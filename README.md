@@ -1,1 +1,1 @@
-literature-implementations-py
+lit-impl-py
