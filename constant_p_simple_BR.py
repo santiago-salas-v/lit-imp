@@ -6,6 +6,7 @@ import matplotlib
 # Use PySide instead of Qt4
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
+matplotlib.rcParams['figure.subplot.hspace'] = 0.2
 import matplotlib.pylab as plt
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from PySide import QtGui, QtCore
@@ -124,34 +125,35 @@ class MainForm(QtGui.QWidget):
                                    QtGui.QTableWidgetItem(
                                        str(x[i, j])))
 
-        self.fig = plt.Figure((5.0, 4.0), dpi=100)
+        self.fig, self.axes = plt.subplots(2, 2, sharex=True)
+        self.fig.set_figheight(5)
+        self.axes.resize(self.axes.size)
         self.canvas = FigureCanvas(self.fig)
+        dep_variables_to_plot = [('T', 'K'),
+                                 ('V', 'm^3'),
+                                 ('X[O2]', '(adim)'),
+                                 ('X[CH4]', '(adim)')]
 
-        #super(self.canvas).__init__(FigureCanvas)
-        #self.canvas.setFocusPolicy(QtCore.Qt.StrongFocus)
-        #with plt.style.context('dark_background'):
-        self.axes = self.fig.add_subplot(2, 2, 1)
-        self.axes.plot(t, temp)
-        self.axes.set_xlabel('t')
-        self.axes.legend(['$T, K$']).draggable(True)
-        self.axes = self.fig.add_subplot(2, 2, 2)
-        self.axes.plot(t, v)
-        self.axes.set_xlabel('t')
-        self.axes.legend(['$V, m^3$']).draggable(True)
-        self.axes = self.fig.add_subplot(2, 2, 3)
-        self.axes.plot(t, x[:, x_labels.index('CH4')])
-        self.axes.set_xlabel('t')
-        self.axes.legend([comp_labels_for_plots['CH4']]).draggable(True)
-        self.axes = self.fig.add_subplot(2, 2, 4)
-        self.axes.plot(t, x[:, x_labels.index('O2')])
-        self.axes.set_xlabel('t')
-        self.axes.legend(['$X_{O2}$']).draggable(True)
-        self.axes.hold(False)
+        for i in range(len(dep_variables_to_plot)):
+            if dep_variables_to_plot[i][0][0:2] == 'X[':
+                self.axes[i].plot(outstruct['t'],
+                                  outstruct['X'][:,
+                                  x_labels.index(
+                                      dep_variables_to_plot[i][0][2:-1])])
+            else:
+                self.axes[i].plot(outstruct['t'],
+                                  outstruct[dep_variables_to_plot[i][0]])
+            self.axes[i].set_xlabel('t, s')
+            self.axes[i].legend(['$' + dep_variables_to_plot[i][0] +
+                                 ', ' + dep_variables_to_plot[i][1] + '$'])\
+                .draggable(True)
+            self.axes[i].hold(False)
 
         vertical_layout = QtGui.QVBoxLayout(self)
         vertical_layout.addWidget(self.table)
         vertical_layout.addWidget(self.canvas)
         self.setLayout(vertical_layout)
+        self.setWindowIcon(QtGui.QIcon('./utils/ch_pot.png'))
 
 
 icon = MainForm()
