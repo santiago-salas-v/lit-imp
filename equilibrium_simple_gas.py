@@ -2,7 +2,7 @@ import cantera as ct
 import csv
 import numpy as np
 import sys
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 # define gui app and widget
 app = QtGui.QApplication(sys.argv)
 # Widget class with changed icon
@@ -163,7 +163,7 @@ class MainForm(QtGui.QWidget):
         self.table_state_funcs.resizeColumnsToContents()
         self.table_properties.resizeColumnsToContents()
         self.table_composition.setSortingEnabled(True)
-        self.table_composition.sortByColumn(2)
+        self.table_composition.sortByColumn(2, QtCore.Qt.DescendingOrder)
         self.table_composition.horizontalHeader().setSortIndicator(2, QtCore.Qt.DescendingOrder)
         # Stop blocking signals
         self.table_properties.blockSignals(False)
