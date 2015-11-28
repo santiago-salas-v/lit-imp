@@ -69,11 +69,11 @@ class Ui_GroupBox(object):
         self.verticalLayout_2.addWidget(self.Components)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.tableWidget = QtGui.QTableWidget(GroupBox)
-        self.tableWidget.setObjectName(_fromUtf8("tableWidget"))
-        self.tableWidget.horizontalHeader().setVisible(True)
-        self.tableWidget.verticalHeader().setVisible(False)
-        self.horizontalLayout.addWidget(self.tableWidget)
+        self.tableReacs = QtGui.QTableWidget(GroupBox)
+        self.tableReacs.setObjectName(_fromUtf8("tableReacs"))
+        self.tableReacs.horizontalHeader().setVisible(True)
+        self.tableReacs.verticalHeader().setVisible(False)
+        self.horizontalLayout.addWidget(self.tableReacs)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.comboBox = QtGui.QComboBox(GroupBox)
@@ -128,41 +128,62 @@ def open_file(form):
                                           caption='Open file',
                                           dir=os.path.join(sys.path[0], 'DATA'),
                                           filter='*.csv')
-    with open(filename) as csv_file:
-        n = 0
-        Nr = 0
-        header_comps = []
-        header_reacs = []
-        reader = csv.reader(csv_file, dialect='excel')
-        for row in reader:
-            if 'COMP' in row:
-                header_comps = next(reader)[0:3]
-                next(reader)
-            elif 'REAC' in row:
-                header_reacs = next(reader)
-                next(reader)
-            if len(header_reacs) == 0 and len(header_comps) > 0:
-                n = n + 1
-            elif len(header_reacs) > 0 and len(header_comps) > 0:
-                Nr = Nr + 1
-        csv_file.close()
-    with open(filename) as csv_file:
-        reader = csv.reader(csv_file, dialect='excel')
-        comps = np.empty([n, 4], dtype='S50')
-        reacs = np.empty([Nr, n + 2], dtype='S50')
-        i = 0
-        j = 0
-        for row in reader:
-            if reader.line_num > 2 and reader.line_num <= n + 2:
-                comps[i] = np.array(row[0:4])
-                i = i + 1
-            elif reader.line_num > n + 2 + 2:
-                reacs[j] = np.array(row)
-                j = j + 1
-        print comps
-        print reacs
-        csv_file.close()
+    if os.path.isfile(filename):
+        with open(filename) as csv_file:
+            n = 0
+            Nr = 0
+            header_comps = []
+            header_reacs = []
+            reader = csv.reader(csv_file, dialect='excel')
+            for row in reader:
+                if 'COMP' in row:
+                    header_comps = next(reader)[0:4]
+                    next(reader)
+                elif 'REAC' in row:
+                    header_reacs = next(reader)
+                    next(reader)
+                if len(header_reacs) == 0 and len(header_comps) > 0:
+                    n = n + 1
+                elif len(header_reacs) > 0 and len(header_comps) > 0:
+                    Nr = Nr + 1
+            csv_file.close()
+        with open(filename) as csv_file:
+            reader = csv.reader(csv_file, dialect='excel')
+            comps = np.empty([n, 4], dtype='S50')
+            reacs = np.empty([Nr, n + 2], dtype='S50')
+            i = 0
+            j = 0
+            for row in reader:
+                if reader.line_num > 2 and reader.line_num <= n + 2:
+                    comps[i] = np.array(row[0:4])
+                    i = i + 1
+                elif reader.line_num > n + 2 + 2:
+                    reacs[j] = np.array(row)
+                    j = j + 1
+            csv_file.close()
 
+            form.Components.setRowCount(n)
+            form.Components.setColumnCount(len(header_comps)+2)
+            form.Components.setHorizontalHeaderLabels(
+                header_comps+['-log10(Ci0)','-log10(Cieq)'])
+
+            form.tableReacs.setRowCount(Nr)
+            form.tableReacs.setColumnCount(len(header_reacs))
+            form.tableReacs.setHorizontalHeaderLabels(header_reacs)
+
+            i=range(0,n)
+            j=range(0,len(header_comps))
+
+            for column in j:
+                for row in i:
+                    form.Components.setItem(row,column,QtGui.QTableWidgetItem(str(comps[row][column])))
+
+            i=range(0,Nr)
+            j=range(0,len(header_reacs))
+
+            for column in j:
+                for row in i:
+                    form.tableReacs.setItem(row,column,QtGui.QTableWidgetItem(str(reacs[row][column])))
 
 def save_file(form):
     (filename, _) = \
