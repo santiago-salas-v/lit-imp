@@ -229,19 +229,10 @@ def open_file(form):
             form.tableReacs.horizontalHeader().setStretchLastSection(True)
 
 def save_file(form):
-    (filename, _) = \
-        QtGui.QFileDialog.getOpenFileName(None,
-                                          caption='Open file',
-                                          dir=os.path.join(sys.path[0], 'DATA'),
-                                          filter='*.csv')
-
+    pass
 
 def plot_intervals(form):
-    (filename, _) = \
-        QtGui.QFileDialog.getOpenFileName(None,
-                                          caption='Open file',
-                                          dir=os.path.join(sys.path[0], 'DATA'),
-                                          filter='*.csv')
+    pass
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
     # Implement less than (<) for numeric table widget items.
