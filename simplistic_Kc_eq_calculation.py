@@ -58,9 +58,6 @@ class Ui_GroupBox(object):
         self.Components.setObjectName(_fromUtf8("Components"))
         item = QtGui.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        #        self.Components.setHorizontalHeaderItem(0, item)
-        #        self.Components.setItem(0, 0, item)
-        #        item = QtGui.QTableWidgetItem()
         self.Components.horizontalHeader().setCascadingSectionResizes(False)
         self.Components.horizontalHeader().setDefaultSectionSize(100)
         self.Components.horizontalHeader().setMinimumSectionSize(27)
@@ -156,9 +153,11 @@ def open_file(form):
             for row in reader:
                 if reader.line_num > 2 and reader.line_num <= n + 2:
                     comps[i] = np.array(row[0:4])
+                    comps[i] = map(lambda x: '0' if x=='' else x,comps[i])
                     i = i + 1
                 elif reader.line_num > n + 2 + 2:
                     reacs[j] = np.array(row)
+                    reacs[j] = map(lambda x: '0' if x=='' else x,reacs[j])
                     j = j + 1
             csv_file.close()
 
@@ -176,14 +175,26 @@ def open_file(form):
 
             for column in j:
                 for row in i:
-                    form.Components.setItem(row,column,QtGui.QTableWidgetItem(str(comps[row][column])))
+                    if column != 1: # Comp. i <Str>
+                        form.Components.setItem(row,column,NSortableTableWidgetItem(str(comps[row][column])))
+                    else:
+                        form.Components.setItem(row,column,QtGui.QTableWidgetItem(str(comps[row][column])))
 
             i=range(0,Nr)
             j=range(0,len(header_reacs))
 
             for column in j:
                 for row in i:
-                    form.tableReacs.setItem(row,column,QtGui.QTableWidgetItem(str(reacs[row][column])))
+                    form.tableReacs.setItem(row,column,NSortableTableWidgetItem(str(reacs[row][column])))
+
+            # Widths
+            form.Components.setSortingEnabled(True)
+            form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+            form.Components.horizontalHeader().setStretchLastSection(True)
+
+            form.tableReacs.setSortingEnabled(True)
+            form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+            form.tableReacs.horizontalHeader().setStretchLastSection(True)
 
 def save_file(form):
     (filename, _) = \
@@ -200,6 +211,13 @@ def plot_intervals(form):
                                           dir=os.path.join(sys.path[0], 'DATA'),
                                           filter='*.csv')
 
+class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
+    # Implement less than (<) for numeric table widget items.
+    def __init__(self, text):
+        QtGui.QTableWidgetItem.__init__(self, text)
+
+    def __lt__(self, y):
+        return float(self.text()) < float(y.text())
 
 class MainForm(QtGui.QWidget):
     def __init__(self, parent=None):
