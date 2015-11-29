@@ -54,6 +54,17 @@ class Ui_GroupBox(object):
         self.save_button.setObjectName(_fromUtf8("save_button"))
         self.horizontalLayout_2.addWidget(self.save_button)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_5 = QtGui.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+        self.label = QtGui.QLabel(GroupBox)
+        self.label.setObjectName(_fromUtf8("label"))
+        self.label.setAlignment(QtCore.Qt.AlignRight)
+        self.horizontalLayout_5.addWidget(self.label)
+        self.spinBox = QtGui.QSpinBox(GroupBox)
+        self.spinBox.setProperty("value", 0)
+        self.spinBox.setObjectName(_fromUtf8("spinBox"))
+        self.horizontalLayout_5.addWidget(self.spinBox)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.Components = QtGui.QTableWidget(GroupBox)
         self.Components.setObjectName(_fromUtf8("Components"))
         item = QtGui.QTableWidgetItem()
@@ -64,6 +75,17 @@ class Ui_GroupBox(object):
         self.Components.horizontalHeader().setSortIndicatorShown(True)
         self.Components.verticalHeader().setVisible(False)
         self.verticalLayout_2.addWidget(self.Components)
+        self.horizontalLayout_6 = QtGui.QHBoxLayout()
+        self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
+        self.label_2 = QtGui.QLabel(GroupBox)
+        self.label_2.setObjectName(_fromUtf8("label_2"))
+        self.label_2.setAlignment(QtCore.Qt.AlignRight)
+        self.horizontalLayout_6.addWidget(self.label_2)
+        self.spinBox_2 = QtGui.QSpinBox(GroupBox)
+        self.spinBox_2.setProperty("value", 0)
+        self.spinBox_2.setObjectName(_fromUtf8("spinBox_2"))
+        self.horizontalLayout_6.addWidget(self.spinBox_2)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.tableReacs = QtGui.QTableWidget(GroupBox)
@@ -117,6 +139,8 @@ class Ui_GroupBox(object):
         self.save_button.setText(_translate("GroupBox", "Save", None))
         self.Components.setSortingEnabled(__sortingEnabled)
         self.pushButton.setText(_translate("GroupBox", "Plot", None))
+        self.label_2.setText(_translate("GroupBox", "Nr (Reac.)", None))
+        self.label.setText(_translate("GroupBox", "n (Comp.)", None))
 
 
 def open_file(form):
@@ -144,6 +168,8 @@ def open_file(form):
                 elif len(header_reacs) > 0 and len(header_comps) > 0:
                     Nr = Nr + 1
             csv_file.close()
+            form.spinBox.setProperty("value", n)
+            form.spinBox_2.setProperty("value", Nr)
         with open(filename) as csv_file:
             reader = csv.reader(csv_file, dialect='excel')
             comps = np.empty([n, 4], dtype='S50')
@@ -175,10 +201,14 @@ def open_file(form):
 
             for column in j:
                 for row in i:
+                    newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
                     if column != 1: # Comp. i <Str>
-                        form.Components.setItem(row,column,NSortableTableWidgetItem(str(comps[row][column])))
+                        newItem = NSortableTableWidgetItem(newItem)
+                        form.Components.setItem(row,column, newItem)
                     else:
-                        form.Components.setItem(row,column,QtGui.QTableWidgetItem(str(comps[row][column])))
+                        form.Components.setItem(row,column, newItem)
+                    if not column in range(1,4):
+                        newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
             i=range(0,Nr)
             j=range(0,len(header_reacs))
@@ -189,10 +219,12 @@ def open_file(form):
 
             # Widths
             form.Components.setSortingEnabled(True)
+            form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
             form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
             form.Components.horizontalHeader().setStretchLastSection(True)
 
             form.tableReacs.setSortingEnabled(True)
+            form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
             form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
             form.tableReacs.horizontalHeader().setStretchLastSection(True)
 
