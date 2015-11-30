@@ -28,7 +28,9 @@ except AttributeError:
 class Ui_GroupBox(object):
     def setupUi(self, GroupBox):
         GroupBox.setObjectName(_fromUtf8("GroupBox"))
-        GroupBox.resize(394, 357)
+        # Default size
+        # GroupBox.resize(394, 357)
+        GroupBox.resize(500, 357)
         self.verticalLayout_2 = QtGui.QVBoxLayout(GroupBox)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
@@ -66,6 +68,7 @@ class Ui_GroupBox(object):
         self.horizontalLayout_5.addWidget(self.spinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.Components = QtGui.QTableWidget(GroupBox)
+        self.Components.setMinimumSize(QtCore.QSize(0, 210))
         self.Components.setObjectName(_fromUtf8("Components"))
         item = QtGui.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
@@ -188,9 +191,9 @@ def open_file(form):
             csv_file.close()
 
             form.Components.setRowCount(n)
-            form.Components.setColumnCount(len(header_comps)+2)
+            form.Components.setColumnCount(len(header_comps)+3)
             form.Components.setHorizontalHeaderLabels(
-                header_comps+['-log10(Ci0)','-log10(Cieq)'])
+                header_comps+['Cieq, mol/L','-log10(Ci0)','-log10(Cieq)'])
 
             form.tableReacs.setRowCount(Nr)
             form.tableReacs.setColumnCount(len(header_reacs))
@@ -207,7 +210,7 @@ def open_file(form):
                         form.Components.setItem(row,column, newItem)
                     else:
                         form.Components.setItem(row,column, newItem)
-                    if not column in range(1,4):
+                    if not column in range(1,3+1):
                         newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
             i=range(0,Nr)
@@ -217,16 +220,16 @@ def open_file(form):
                 for row in i:
                     form.tableReacs.setItem(row,column,NSortableTableWidgetItem(str(reacs[row][column])))
 
-            # Widths
+            # Widths and heights
             form.Components.setSortingEnabled(True)
             form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
             form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-            form.Components.horizontalHeader().setStretchLastSection(True)
+            form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
             form.tableReacs.setSortingEnabled(True)
             form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
             form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-            form.tableReacs.horizontalHeader().setStretchLastSection(True)
+            form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
 def save_file(form):
     pass
