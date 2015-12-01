@@ -196,8 +196,9 @@ def open_file(form):
                 header_comps+['Cieq, mol/L','-log10(Ci0)','-log10(Cieq)'])
 
             form.tableReacs.setRowCount(Nr)
-            form.tableReacs.setColumnCount(len(header_reacs))
-            form.tableReacs.setHorizontalHeaderLabels(header_reacs)
+            form.tableReacs.setColumnCount(len(header_reacs)+1)
+            form.tableReacs.setHorizontalHeaderLabels(
+                header_reacs+['Xi_j'])
 
             i=range(0,n)
             j=range(0,len(header_comps))
@@ -231,11 +232,16 @@ def open_file(form):
             form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
             form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
+
 def save_file(form):
     pass
 
 def plot_intervals(form):
     pass
+
+def calc_Xieq(C0_i, zi, nu_ij, Kc_j, Xieq_0, Ceq_0):
+    n = C0_i.shape[0]
+
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
     # Implement less than (<) for numeric table widget items.
