@@ -7,6 +7,8 @@ Created on Fri Nov 27 20:48:42 2015
 import os, sys, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
+from sympy import solve, nsolve, symbols
+from numpy import log10, matlib
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -240,8 +242,24 @@ def plot_intervals(form):
     pass
 
 def calc_Xieq(C0_i, zi, nu_ij, Kc_j, Xieq_0, Ceq_0):
-    n = C0_i.shape[0]
-
+    """
+    :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
+    :param zi: np.matrix (n X 1) - Carga(i, alimentación)
+    :param nu_ij: np.matrix (n X Nr) - Coefs. esteq. componente i en reacción j
+    :param Kc_j: np.matrix (n X 1) - "Cte." de equilibrio en reacción j Kc_j(T)
+    :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
+    :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
+    """
+    n = nu_ij.shape[0]
+    Nr = nu_ij.shape[1]
+    Ceq_i = np.matrix(symbols('Ce0:'+str(n))).transpose()
+    Xieq_j = np.matrix(symbols('xi0:'+str(Nr))).transpose()
+    func_vec = matlib.empty([n+3,1],dtype='object')
+    func_vec[0:n] = -Ceq_i + C0_i + nu_ij*Xieq_j
+    for f,nu,Kc in np.nditer([func_vec[n:len(func_vec)],nu_ij.T,Kc_j.T],
+                             flags=['refs_ok', 'reduce_ok'], op_flags=['readwrite']):
+        f = -Kc + np.prod(np.power(Ceq_i.T,nu))
+    return Ceq_i, Xieq_j, func_vec
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
     # Implement less than (<) for numeric table widget items.
