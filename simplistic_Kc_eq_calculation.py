@@ -184,44 +184,44 @@ def open_file(form):
             for row in reader:
                 if reader.line_num > 2 and reader.line_num <= n + 2:
                     comps[i] = np.array(row[0:4])
-                    comps[i] = map(lambda x: '0' if x=='' else x,comps[i])
+                    comps[i] = map(lambda x: '0' if x == '' else x, comps[i])
                     i = i + 1
                 elif reader.line_num > n + 2 + 2:
                     reacs[j] = np.array(row)
-                    reacs[j] = map(lambda x: '0' if x=='' else x,reacs[j])
+                    reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
                     j = j + 1
             csv_file.close()
 
             form.Components.setRowCount(n)
-            form.Components.setColumnCount(len(header_comps)+3)
+            form.Components.setColumnCount(len(header_comps) + 3)
             form.Components.setHorizontalHeaderLabels(
-                header_comps+['Cieq, mol/L','-log10(Ci0)','-log10(Cieq)'])
+                header_comps + ['Cieq, mol/L', '-log10(Ci0)', '-log10(Cieq)'])
 
             form.tableReacs.setRowCount(Nr)
-            form.tableReacs.setColumnCount(len(header_reacs)+1)
+            form.tableReacs.setColumnCount(len(header_reacs) + 1)
             form.tableReacs.setHorizontalHeaderLabels(
-                header_reacs+['Xi_j'])
+                header_reacs + ['Xi_j'])
 
-            i=range(0,n)
-            j=range(0,len(header_comps))
+            i = range(0, n)
+            j = range(0, len(header_comps))
 
             for column in j:
                 for row in i:
                     newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
-                    if column != 1: # Comp. i <Str>
+                    if column != 1:  # Comp. i <Str>
                         newItem = NSortableTableWidgetItem(newItem)
-                        form.Components.setItem(row,column, newItem)
+                        form.Components.setItem(row, column, newItem)
                     else:
-                        form.Components.setItem(row,column, newItem)
-                    if not column in range(1,3+1):
+                        form.Components.setItem(row, column, newItem)
+                    if not column in range(1, 3 + 1):
                         newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
-            i=range(0,Nr)
-            j=range(0,len(header_reacs))
+            i = range(0, Nr)
+            j = range(0, len(header_reacs))
 
             for column in j:
                 for row in i:
-                    form.tableReacs.setItem(row,column,NSortableTableWidgetItem(str(reacs[row][column])))
+                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
 
             # Widths and heights
             form.Components.setSortingEnabled(True)
@@ -234,17 +234,27 @@ def open_file(form):
             form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
             form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
+            C0_i = np.matrix([row[3] for row in comps], dtype=float).T
+            z_i  = np.matrix([row[2] for row in comps], dtype=float).T
+            nu_ij = np.matrix([row[2:2+n] for row in reacs], dtype=int).T
+            Kc_j = np.matrix([row[1] for row in reacs], dtype=float).T
+
+            calc_Xieq(C0_i, z_i, nu_ij, Kc_j)
+
 
 def save_file(form):
     pass
 
+
 def plot_intervals(form):
     pass
 
-def calc_Xieq(C0_i, zi, nu_ij, Kc_j, Xieq_0, Ceq_0):
+
+def calc_Xieq(C0_i, z_i, nu_ij, Kc_j, Xieq_0=0, Ceq_0=0):
     """
+    :return: tuple with Ceq_i, Xieq_j, func_vec
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
-    :param zi: np.matrix (n X 1) - Carga(i, alimentación)
+    :param z_i: np.matrix (n X 1) - Carga(i, alimentación)
     :param nu_ij: np.matrix (n X Nr) - Coefs. esteq. componente i en reacción j
     :param Kc_j: np.matrix (n X 1) - "Cte." de equilibrio en reacción j Kc_j(T)
     :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
@@ -252,14 +262,16 @@ def calc_Xieq(C0_i, zi, nu_ij, Kc_j, Xieq_0, Ceq_0):
     """
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
-    Ceq_i = np.matrix(symbols('Ce0:'+str(n))).transpose()
-    Xieq_j = np.matrix(symbols('xi0:'+str(Nr))).transpose()
-    func_vec = matlib.empty([n+3,1],dtype='object')
-    func_vec[0:n] = -Ceq_i + C0_i + nu_ij*Xieq_j
-    for f,nu,Kc in np.nditer([func_vec[n:len(func_vec)],nu_ij.T,Kc_j.T],
-                             flags=['refs_ok', 'reduce_ok'], op_flags=['readwrite']):
-        f = -Kc + np.prod(np.power(Ceq_i.T,nu))
+    Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
+    Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
+    func_vec = matlib.empty([n + 3, 1], dtype='object')
+    func_vec[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
+    for f, nu, Kc in np.nditer([func_vec[n:len(func_vec)], nu_ij.T, Kc_j],
+                               flags=['refs_ok', 'reduce_ok', 'external_loop'],
+                               op_flags=['readwrite']):
+        f[...] = -Kc + np.prod(np.power(Ceq_i.T, nu))
     return Ceq_i, Xieq_j, func_vec
+
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
     # Implement less than (<) for numeric table widget items.
@@ -268,6 +280,7 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
 
     def __lt__(self, y):
         return float(self.text()) < float(y.text())
+
 
 class MainForm(QtGui.QWidget):
     def __init__(self, parent=None):
