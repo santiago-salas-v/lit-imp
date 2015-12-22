@@ -235,8 +235,8 @@ def open_file(form):
             form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
             C0_i = np.matrix([row[3] for row in comps], dtype=float).T
-            z_i  = np.matrix([row[2] for row in comps], dtype=float).T
-            nu_ij = np.matrix([row[2:2+n] for row in reacs], dtype=int).T
+            z_i = np.matrix([row[2] for row in comps], dtype=float).T
+            nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
             Kc_j = np.matrix([row[1] for row in reacs], dtype=float).T
 
             calc_Xieq(C0_i, z_i, nu_ij, Kc_j)
@@ -250,27 +250,36 @@ def plot_intervals(form):
     pass
 
 
-def calc_Xieq(C0_i, z_i, nu_ij, Kc_j, Xieq_0=0, Ceq_0=0):
+def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0):
     """
-    :return: tuple with Ceq_i, Xieq_j, func_vec
+    :return: tuple with Ceq_i, Xieq_j, f_0
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
     :param z_i: np.matrix (n X 1) - Carga(i, alimentación)
     :param nu_ij: np.matrix (n X Nr) - Coefs. esteq. componente i en reacción j
-    :param Kc_j: np.matrix (n X 1) - "Cte." de equilibrio en reacción j Kc_j(T)
+    :param pKa_j: np.matrix (n X 1) - (-1)*log10("Cte." de equilibrio en reacción j) = -log10 Kc_j(T)
     :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
     :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
+    Kc_j = np.power(10, -pKa_j)/(997/(2*1.00794+15.9994))
     Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
+    Ceq_0 = Ceq_i
     Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
-    func_vec = matlib.empty([n + 3, 1], dtype='object')
-    func_vec[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    for f, nu, Kc in np.nditer([func_vec[n:len(func_vec)], nu_ij.T, Kc_j],
+    Xieq_0 = np.matrix(np.zeros([Nr,1]))
+    f_0 = matlib.empty([n + 3, 1], dtype='object')
+    f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
+    for f, nu, Kc in np.nditer([f_0[n:len(f_0)], nu_ij.T, Kc_j],
                                flags=['refs_ok', 'reduce_ok', 'external_loop'],
                                op_flags=['readwrite']):
         f[...] = -Kc + np.prod(np.power(Ceq_i.T, nu))
-    return Ceq_i, Xieq_j, func_vec
+    soln = nsolve(f_0, np.concatenate([Ceq_i,Xieq_j]),
+                  np.concatenate([Ceq_0, Xieq_0]))
+    Ceq_i = soln[0:n]
+    Xieq_j = soln[n:len(soln)]
+    a=[]
+    a.sort()
+    return Ceq_i, Xieq_j, f_0
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
