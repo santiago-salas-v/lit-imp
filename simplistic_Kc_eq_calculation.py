@@ -155,91 +155,95 @@ def open_file(form):
                                           dir=os.path.join(sys.path[0], 'DATA'),
                                           filter='*.csv')
     if os.path.isfile(filename):
-        with open(filename) as csv_file:
-            n = 0
-            Nr = 0
-            header_comps = []
-            header_reacs = []
-            reader = csv.reader(csv_file, dialect='excel')
-            for row in reader:
-                if 'COMP' in row:
-                    header_comps = next(reader)[0:4]
-                    next(reader)
-                elif 'REAC' in row:
-                    header_reacs = next(reader)
-                    next(reader)
-                if len(header_reacs) == 0 and len(header_comps) > 0:
-                    n = n + 1
-                elif len(header_reacs) > 0 and len(header_comps) > 0:
-                    Nr = Nr + 1
-            csv_file.close()
-            form.spinBox.setProperty("value", n)
-            form.spinBox_2.setProperty("value", Nr)
-        with open(filename) as csv_file:
-            reader = csv.reader(csv_file, dialect='excel')
-            comps = np.empty([n, 4], dtype='S50')
-            reacs = np.empty([Nr, n + 2], dtype='S50')
-            i = 0
-            j = 0
-            for row in reader:
-                if reader.line_num > 2 and reader.line_num <= n + 2:
-                    comps[i] = np.array(row[0:4])
-                    comps[i] = map(lambda x: '0' if x == '' else x, comps[i])
-                    i = i + 1
-                elif reader.line_num > n + 2 + 2:
-                    reacs[j] = np.array(row)
-                    reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
-                    j = j + 1
-            csv_file.close()
+        load_csv(filename, form)
 
-            form.Components.setRowCount(n)
-            form.Components.setColumnCount(len(header_comps) + 3)
-            form.Components.setHorizontalHeaderLabels(
-                header_comps + ['Cieq, mol/L', '-log10(Ci0)', '-log10(Cieq)'])
 
-            form.tableReacs.setRowCount(Nr)
-            form.tableReacs.setColumnCount(len(header_reacs) + 1)
-            form.tableReacs.setHorizontalHeaderLabels(
-                header_reacs + ['Xi_j'])
+def load_csv(filename, form):
+    with open(filename) as csv_file:
+        n = 0
+        Nr = 0
+        header_comps = []
+        header_reacs = []
+        reader = csv.reader(csv_file, dialect='excel')
+        for row in reader:
+            if 'COMP' in row:
+                header_comps = next(reader)[0:4]
+                next(reader)
+            elif 'REAC' in row:
+                header_reacs = next(reader)
+                next(reader)
+            if len(header_reacs) == 0 and len(header_comps) > 0:
+                n = n + 1
+            elif len(header_reacs) > 0 and len(header_comps) > 0:
+                Nr = Nr + 1
+        csv_file.close()
+        form.spinBox.setProperty("value", n)
+        form.spinBox_2.setProperty("value", Nr)
+    with open(filename) as csv_file:
+        reader = csv.reader(csv_file, dialect='excel')
+        comps = np.empty([n, 4], dtype='S50')
+        reacs = np.empty([Nr, n + 2], dtype='S50')
+        i = 0
+        j = 0
+        for row in reader:
+            if reader.line_num > 2 and reader.line_num <= n + 2:
+                comps[i] = np.array(row[0:4])
+                comps[i] = map(lambda x: '0' if x == '' else x, comps[i])
+                i = i + 1
+            elif reader.line_num > n + 2 + 2:
+                reacs[j] = np.array(row)
+                reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
+                j = j + 1
+        csv_file.close()
 
-            i = range(0, n)
-            j = range(0, len(header_comps))
+        form.Components.setRowCount(n)
+        form.Components.setColumnCount(len(header_comps) + 3)
+        form.Components.setHorizontalHeaderLabels(
+            header_comps + ['Cieq, mol/L', '-log10(Ci0)', '-log10(Cieq)'])
 
-            for column in j:
-                for row in i:
-                    newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
-                    if column != 1:  # Comp. i <Str>
-                        newItem = NSortableTableWidgetItem(newItem)
-                        form.Components.setItem(row, column, newItem)
-                    else:
-                        form.Components.setItem(row, column, newItem)
-                    if not column in range(1, 3 + 1):
-                        newItem.setFlags(QtCore.Qt.ItemIsEnabled)
+        form.tableReacs.setRowCount(Nr)
+        form.tableReacs.setColumnCount(len(header_reacs) + 1)
+        form.tableReacs.setHorizontalHeaderLabels(
+            header_reacs + ['Xi_j'])
 
-            i = range(0, Nr)
-            j = range(0, len(header_reacs))
+        i = range(0, n)
+        j = range(0, len(header_comps))
 
-            for column in j:
-                for row in i:
-                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+        for column in j:
+            for row in i:
+                newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
+                if column != 1:  # Comp. i <Str>
+                    newItem = NSortableTableWidgetItem(newItem)
+                    form.Components.setItem(row, column, newItem)
+                else:
+                    form.Components.setItem(row, column, newItem)
+                if not column in range(1, 3 + 1):
+                    newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
-            # Widths and heights
-            form.Components.setSortingEnabled(True)
-            form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
-            form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-            form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        i = range(0, Nr)
+        j = range(0, len(header_reacs))
 
-            form.tableReacs.setSortingEnabled(True)
-            form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
-            form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-            form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        for column in j:
+            for row in i:
+                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
 
-            C0_i = np.matrix([row[3] for row in comps], dtype=float).T
-            z_i = np.matrix([row[2] for row in comps], dtype=float).T
-            nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-            Kc_j = np.matrix([row[1] for row in reacs], dtype=float).T
+        # Widths and heights
+        form.Components.setSortingEnabled(True)
+        form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-            calc_Xieq(C0_i, z_i, nu_ij, Kc_j)
+        form.tableReacs.setSortingEnabled(True)
+        form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+        C0_i = np.matrix([row[3] for row in comps], dtype=float).T
+        z_i = np.matrix([row[2] for row in comps], dtype=float).T
+        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+        pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
+
+        calc_Xieq(C0_i, z_i, nu_ij, pKa_j)
 
 
 def save_file(form):
@@ -250,7 +254,7 @@ def plot_intervals(form):
     pass
 
 
-def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0):
+def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0, tol=np.finfo(float).eps, max_it=1000):
     """
     :return: tuple with Ceq_i, Xieq_j, f_0
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
@@ -262,31 +266,51 @@ def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0):
     """
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
-    Kc_j = np.power(10, -pKa_j)/(997/(2*1.00794+15.9994))
-    Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
-    Ceq_0 = Ceq_i
-    Ceq_0 = C0_i+np.finfo(float).eps
-    Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
-    Xieq_0 = np.matrix(np.zeros([Nr,1]))
-    #f_0 = f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j)
-    f_0 = np.empty([n+Nr,1],dtype=object)
-    f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    f_0[n:n+Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij),0).T
-    soln = nsolve(f_0, np.concatenate([Ceq_i,Xieq_j]),
-                  np.concatenate([Ceq_0, Xieq_0]))
-    Ceq_i = soln[0:n]
-    Xieq_j = soln[n:len(soln)]
-    a=[]
-    a.sort()
-    return Ceq_i, Xieq_j, f_0
+    Kc_j = np.power(10, -pKa_j) / (997 / (2 * 1.00794 + 15.9994))
+    Ceq_0 = np.matrix(np.ones([n, 1])) * tol
+    Xieq_j = np.matrix(np.ones([Nr, 1])) * tol
+    X0 = np.concatenate([Ceq_0, Xieq_j])
+    J0 = J(Ceq_0, C0_i, nu_ij, Xieq_j, Kc_j)
+    k = 1
+    while k < max_it:
+        print 'hi'
+        k += 1
+    # Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
+    # Ceq_0 = Ceq_i
+    # Ceq_0 = C0_i + np.finfo(float).eps
+    # Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
+    # Xieq_0 = np.matrix(np.zeros([Nr, 1]))
+    # # f_0 = f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j)
+    # f_0 = np.empty([n + Nr, 1], dtype=object)
+    # f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
+    # f_0[n:n + Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij), 0).T
+    # soln = nsolve(f_0, np.concatenate([Ceq_i, Xieq_j]),
+    #               np.concatenate([Ceq_0, Xieq_0]))
+    # Ceq_i = soln[0:n]
+    # Xieq_j = soln[n:len(soln)]
+    # a = []
+    # a.sort()
+    return 0
 
 
 def f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
-    f_0 = np.empty([n+Nr,1],dtype=object)
+    f_0 = np.matrix(np.empty([n + Nr, 1], dtype=object))
     f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    f_0[n:n+Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij),0).T
+    f_0[n:n + Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij), 0).T
+
+
+def J(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
+    n = nu_ij.shape[0]
+    Nr = nu_ij.shape[1]
+    Eins_durch_C = np.diag(np.power(Ceq_i, -1).A1, 0)
+    Quotient = np.diag(np.prod(np.power(Ceq_i, nu_ij), 0).A1)
+    J = np.matrix(np.zeros([n + Nr, n + Nr], dtype=float))
+    J[0:n, 0:n] = -1 * np.eye(n).astype(float)
+    J[0:n, n:n + Nr] = nu_ij
+    J[n:n + Nr, 0:n] = Quotient * nu_ij.T * Eins_durch_C
+    return J
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
@@ -313,5 +337,6 @@ if not app:  # create QApplication if it doesnt exist
 
 main_form = MainForm()
 main_form.show()
+load_csv('./DATA/COMPONENTS_REACTIONS_EX_001.csv', main_form.ui)
 
 sys.exit(app.exec_())
