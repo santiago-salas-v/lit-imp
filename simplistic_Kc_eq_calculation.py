@@ -265,14 +265,13 @@ def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0):
     Kc_j = np.power(10, -pKa_j)/(997/(2*1.00794+15.9994))
     Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
     Ceq_0 = Ceq_i
+    Ceq_0 = C0_i+np.finfo(float).eps
     Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
     Xieq_0 = np.matrix(np.zeros([Nr,1]))
-    f_0 = matlib.empty([n + 3, 1], dtype='object')
+    #f_0 = f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j)
+    f_0 = np.empty([n+Nr,1],dtype=object)
     f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    for f, nu, Kc in np.nditer([f_0[n:len(f_0)], nu_ij.T, Kc_j],
-                               flags=['refs_ok', 'reduce_ok', 'external_loop'],
-                               op_flags=['readwrite']):
-        f[...] = -Kc + np.prod(np.power(Ceq_i.T, nu))
+    f_0[n:n+Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij),0).T
     soln = nsolve(f_0, np.concatenate([Ceq_i,Xieq_j]),
                   np.concatenate([Ceq_0, Xieq_0]))
     Ceq_i = soln[0:n]
@@ -280,6 +279,14 @@ def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0):
     a=[]
     a.sort()
     return Ceq_i, Xieq_j, f_0
+
+
+def f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
+    n = nu_ij.shape[0]
+    Nr = nu_ij.shape[1]
+    f_0 = np.empty([n+Nr,1],dtype=object)
+    f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
+    f_0[n:n+Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij),0).T
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
