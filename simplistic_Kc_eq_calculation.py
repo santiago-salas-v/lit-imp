@@ -238,12 +238,16 @@ def load_csv(filename, form):
         form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
         form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
+        global C0_i, z_i, nu_ij, pKa_j, max_it, tol
+
         C0_i = np.matrix([row[3] for row in comps], dtype=float).T
         z_i = np.matrix([row[2] for row in comps], dtype=float).T
         nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
         pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
+        max_it = 1000
+        tol = np.finfo(float).eps + 1.0e-3
 
-        calc_Xieq(C0_i, z_i, nu_ij, pKa_j)
+        calc_Xieq()
 
 
 def save_file(form):
@@ -254,7 +258,7 @@ def plot_intervals(form):
     pass
 
 
-def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0, tol=np.finfo(float).eps, max_it=1000):
+def calc_Xieq():
     """
     :return: tuple with Ceq_i, Xieq_j, f_0
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
@@ -264,17 +268,19 @@ def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0, tol=np.finfo(float).ep
     :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
     :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
+    global Ceq_i, C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, Xieq_j
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
     Kc_j = np.power(10, -pKa_j) / (997 / (2 * 1.00794 + 15.9994))
-    Ceq_0 = np.matrix(np.ones([n, 1])) * tol
+    Ceq_i = np.matrix(np.ones([n, 1])) * tol
     Xieq_j = np.matrix(np.ones([Nr, 1])) * tol
-    X0 = np.concatenate([Ceq_0, Xieq_j])
-    J0 = J(Ceq_0, C0_i, nu_ij, Xieq_j, Kc_j)
-    k = 1
-    while k < max_it:
-        print 'hi'
-        k += 1
+    X0 = np.concatenate([Ceq_i, Xieq_j])
+    J0 = J(X0)
+    # Steepest descent: z(X) = nabla(g(X)) = 2*J(X).T*F(X)
+    X = X0
+    X = np.matrix([0,0,0]).T
+    X = steepest_descent(X, f_test, J_test, g_test, tol)
+    # X = steepest_descent(X, f_gl_0, J, tol)
     # Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
     # Ceq_0 = Ceq_i
     # Ceq_0 = C0_i + np.finfo(float).eps
@@ -293,17 +299,19 @@ def calc_Xieq(C0_i, z_i, nu_ij, pKa_j, Xieq_0=0, Ceq_0=0, tol=np.finfo(float).ep
     return 0
 
 
-def f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
-    n = nu_ij.shape[0]
-    Nr = nu_ij.shape[1]
-    f_0 = np.matrix(np.empty([n + Nr, 1], dtype=object))
-    f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    f_0[n:n + Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij), 0).T
+def f_gl_0(X):
+    global C0_i, nu_ij, n, Nr, Kc_j
+    Ceq_i = X[0:n, 0]
+    Xieq_j = X[n:n + Nr, 0]
+    f_gl_0 = np.matrix(np.empty([n + Nr, 1], dtype=float))
+    f_gl_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
+    f_gl_0[n:n + Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij), 0).T
+    return f_gl_0
 
 
-def J(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
-    n = nu_ij.shape[0]
-    Nr = nu_ij.shape[1]
+def J(X):
+    global C0_i, nu_ij, n, Nr, Kc_j
+    Ceq_i = X[0:n, 0]
     Eins_durch_C = np.diag(np.power(Ceq_i, -1).A1, 0)
     Quotient = np.diag(np.prod(np.power(Ceq_i, nu_ij), 0).A1)
     J = np.matrix(np.zeros([n + Nr, n + Nr], dtype=float))
@@ -311,6 +319,80 @@ def J(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j):
     J[0:n, n:n + Nr] = nu_ij
     J[n:n + Nr, 0:n] = Quotient * nu_ij.T * Eins_durch_C
     return J
+
+
+def g(X):
+    f_0 = f_gl_0(X)
+    return (f_0.T * f_0).item()
+
+
+def steepest_descent(X0, f, J, g, tol):
+    X = X0
+    k = 1
+    stop = False
+    while k < max_it and not stop:
+        z = 2 * J(X).T * f(X)
+        z0 = np.sqrt((z.T * z).item())
+        if z0 == 0:
+            # Zero gradient
+            stop = True
+            break
+        z = z / z0
+        alpha1 = 0
+        alpha3 = 1
+        g1 = g(X - alpha1 * z)
+        g3 = g(X - alpha3 * z)
+        while g3 >= g1 and alpha3 > tol / 2.0:
+            alpha3 = alpha3 / 2.0
+            g3 = g(X - alpha3 * z)
+        alpha2 = alpha3 / 2.0
+        g2 = g(X - alpha2 * z)
+        """
+        (Note: Newton’s forward divided-difference formula is used to find
+        the quadratic P(α) = g1 + h1α + h3α(α − α2) that interpolates
+        h(α) at α = 0, α = α2, α = α3.)
+        """
+        h1 = (g2 - g1) / alpha2
+        h2 = (g3 - g2) / (alpha3 - alpha2)
+        h3 = (h2 - h1) / alpha3
+        alpha0 = 0.5 * (alpha2 - h1 / h3)  # (The critical point of P occurs at α0.)
+        g0 = g(X - alpha0 * z)
+        if g0 < g3:
+            alpha = alpha0
+            g_min = g0
+        else:
+            alpha = alpha3
+            g_min = g3
+        X = X - alpha * z
+        print "k="+str(k)+"; "+"X= " + np.array2string(X.A1)+"; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)),"stop?",str(stop)
+        if abs(g_min - g1) < tol:
+            stop = True  # Procedure successful
+        k += 1
+    print k
+
+def f_test(X):
+    X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
+    f = np.matrix([ \
+        3*X1-np.cos(X2*X3)-1.0/2.0, \
+        X1**2-81.0*(X2+0.1)**2+np.sin(X3)+1.06, \
+        np.exp(-X1*X2)+20.0*X3+(10*np.pi-3)/3.0
+        ]).T
+    return f
+
+
+def J_test(X):
+    X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
+    J = np.matrix([ \
+        [3,X2*np.sin(X3),X3*np.sin(X2)], \
+        [2*X1,-81.0*2*(X2+0.1),np.cos(X3)], \
+        [-X2*np.exp(-X1*X2),-X1*np.exp(-X1*X2),20.0]
+        ])
+    return J
+
+
+def g_test(X):
+    f_0 = f_test(X)
+    return (f_0.T * f_0).item()
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
