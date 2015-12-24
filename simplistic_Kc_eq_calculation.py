@@ -196,22 +196,48 @@ def load_csv(filename, form):
                 j = j + 1
         csv_file.close()
 
+        # Solve
+        global C0_i, z_i, nu_ij, pKa_j, max_it, tol
+
+        C0_i = np.matrix([row[3] for row in comps], dtype=float).T
+        z_i = np.matrix([row[2] for row in comps], dtype=float).T
+        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+        pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
+        max_it = 1000
+        tol = np.finfo(float).eps + 0*1.0e-6
+
+        Ceq_i, Xieq_j = calc_Xieq()
+
         form.Components.setRowCount(n)
         form.Components.setColumnCount(len(header_comps) + 3)
         form.Components.setHorizontalHeaderLabels(
-            header_comps + ['Cieq, mol/L', '-log10(Ci0)', '-log10(Cieq)'])
+            header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
 
         form.tableReacs.setRowCount(Nr)
         form.tableReacs.setColumnCount(len(header_reacs) + 1)
         form.tableReacs.setHorizontalHeaderLabels(
-            header_reacs + ['Xi_j'])
+            header_reacs + ['Xieq_j'])
 
         i = range(0, n)
-        j = range(0, len(header_comps))
+        j = range(0, len(header_comps)+3)
 
         for column in j:
             for row in i:
-                newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
+                if column < 4:
+                    newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
+                elif column == 4:
+                    newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
+                elif column == 5:
+                    if C0_i[row] <= 0:
+                        newItem = QtGui.QTableWidgetItem(str(np.nan))
+                    else:
+                        newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
+                elif column == 6:
+                    if Ceq_i[row].item() <= 0:
+                        newItem = QtGui.QTableWidgetItem(str(np.nan))
+                    else:
+                        newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
+                # sortierbar machen
                 if column != 1:  # Comp. i <Str>
                     newItem = NSortableTableWidgetItem(newItem)
                     form.Components.setItem(row, column, newItem)
@@ -238,17 +264,6 @@ def load_csv(filename, form):
         form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
         form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-        global C0_i, z_i, nu_ij, pKa_j, max_it, tol
-
-        C0_i = np.matrix([row[3] for row in comps], dtype=float).T
-        z_i = np.matrix([row[2] for row in comps], dtype=float).T
-        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-        pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
-        max_it = 1000
-        tol = np.finfo(float).eps + 1.0e-3
-
-        calc_Xieq()
-
 
 def save_file(form):
     pass
@@ -268,35 +283,18 @@ def calc_Xieq():
     :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
     :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
-    global Ceq_i, C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, Xieq_j
+    global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
     Kc_j = np.power(10, -pKa_j) / (997 / (2 * 1.00794 + 15.9994))
-    Ceq_i = np.matrix(np.ones([n, 1])) * tol
-    Xieq_j = np.matrix(np.ones([Nr, 1])) * tol
-    X0 = np.concatenate([Ceq_i, Xieq_j])
-    J0 = J(X0)
-    # Steepest descent: z(X) = nabla(g(X)) = 2*J(X).T*F(X)
+    Xieq_j = np.matrix(np.zeros([Nr, 1]))
+    X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1]))*tol), Xieq_j])
     X = X0
-    X = np.matrix([0,0,0]).T
-    X = steepest_descent(X, f_test, J_test, g_test, tol)
-    # X = steepest_descent(X, f_gl_0, J, tol)
-    # Ceq_i = np.matrix(symbols('Ce0:' + str(n))).transpose()
-    # Ceq_0 = Ceq_i
-    # Ceq_0 = C0_i + np.finfo(float).eps
-    # Xieq_j = np.matrix(symbols('xi0:' + str(Nr))).transpose()
-    # Xieq_0 = np.matrix(np.zeros([Nr, 1]))
-    # # f_0 = f_gl_0(Ceq_i, C0_i, nu_ij, Xieq_j, Kc_j)
-    # f_0 = np.empty([n + Nr, 1], dtype=object)
-    # f_0[0:n] = -Ceq_i + C0_i + nu_ij * Xieq_j
-    # f_0[n:n + Nr] = -Kc_j + np.prod(np.power(Ceq_i, nu_ij), 0).T
-    # soln = nsolve(f_0, np.concatenate([Ceq_i, Xieq_j]),
-    #               np.concatenate([Ceq_0, Xieq_0]))
-    # Ceq_i = soln[0:n]
-    # Xieq_j = soln[n:len(soln)]
-    # a = []
-    # a.sort()
-    return 0
+    # Steepest descent: min(g(X))=min(f(X).T*f(X))
+    X = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
+    Ceq_i = X[0:n]
+    Xieq_j = X[n:n+Nr]
+    return Ceq_i, Xieq_j
 
 
 def f_gl_0(X):
@@ -331,7 +329,7 @@ def steepest_descent(X0, f, J, g, tol):
     k = 1
     stop = False
     while k < max_it and not stop:
-        z = 2 * J(X).T * f(X)
+        z = 2 * J(X).T * f(X) # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
         z0 = np.sqrt((z.T * z).item())
         if z0 == 0:
             # Zero gradient
@@ -363,12 +361,17 @@ def steepest_descent(X0, f, J, g, tol):
         else:
             alpha = alpha3
             g_min = g3
+        X_k_m_1 = X
         X = X - alpha * z
-        print "k="+str(k)+"; "+"X= " + np.array2string(X.A1)+"; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)),"stop?",str(stop)
+        diff = X_k_m_1 - X
+        f_val = f(X)
+        print "k="+str(k)+"; "+"X= " + np.array2string(X.A1)+ \
+              "; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)) + "stop?" + str(stop) + \
+              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) + "; ||f(X)||=" + str((f_val.T*f_val).item())
         if abs(g_min - g1) < tol:
             stop = True  # Procedure successful
         k += 1
-    print k
+    return X
 
 def f_test(X):
     X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
