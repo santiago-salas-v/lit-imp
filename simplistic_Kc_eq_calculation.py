@@ -365,9 +365,10 @@ def steepest_descent(X0, f, J, g, tol):
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
-        print "k="+str(k)+"; "+"X= " + np.array2string(X.A1)+ \
-              "; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)) + "stop?" + str(stop) + \
-              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) + "; ||f(X)||=" + str((f_val.T*f_val).item())
+        print "k="+str(k)+"; "+"X= " +'[' + ',\\\n'.join(map(str,X.T.A1)) +']' + \
+              "; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)) + "; stop?" + str(stop) + \
+              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) +  \
+              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str((f_val.T*f_val).item())
         if abs(g_min - g1) < tol:
             stop = True  # Procedure successful
         k += 1
@@ -404,7 +405,11 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
         QtGui.QTableWidgetItem.__init__(self, text)
 
     def __lt__(self, y):
-        return float(self.text()) < float(y.text())
+        float_self = float(self.text())
+        if np.isnan(float_self):
+            return True
+        else:
+            return float(self.text()) < float(y.text())
 
 
 class MainForm(QtGui.QWidget):
