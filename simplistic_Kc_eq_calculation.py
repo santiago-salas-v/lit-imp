@@ -9,6 +9,7 @@ from PySide import QtGui, QtCore
 from functools import partial
 from sympy import solve, nsolve, symbols
 from numpy import log10, matlib
+from mat_Zerlegungen import gausselimination
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -204,7 +205,7 @@ def load_csv(filename, form):
         nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
         pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
         max_it = 1000
-        tol = np.finfo(float).eps + 0*1.0e-6
+        tol = np.finfo(float).eps + 1*1.0e-8
 
         Ceq_i, Xieq_j = calc_Xieq()
 
@@ -247,11 +248,14 @@ def load_csv(filename, form):
                     newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
         i = range(0, Nr)
-        j = range(0, len(header_reacs))
+        j = range(0, len(header_reacs)+1)
 
         for column in j:
             for row in i:
-                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+                if column != len(header_reacs):
+                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+                elif column == len(header_reacs):
+                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
         # Widths and heights
         form.Components.setSortingEnabled(True)
@@ -291,7 +295,23 @@ def calc_Xieq():
     X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1]))*tol), Xieq_j])
     X = X0
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
+    X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
+    # Newton method: G(X) = J(X)^-1 * F(X)
+    k = 1
+    J_val = J(X)
+    Y = np.matrix(np.ones(len(X))).T*tol/(np.sqrt(len(X))*tol)
+    while k <= max_it and np.sqrt((Y.T*Y).item()) >= tol:
+        X_k_m_1 = X
+        Y = gausselimination(J_val, -F_val)
+        X = X + Y
+        diff = X - X0
+        J_val = J(X)
+        F_val = f_gl_0(X)
+        print "k="+str(k)+"; "+"X= " +'[' + ',\\\n'.join(map(str,X.T.A1)) +']' + \
+              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) +  \
+              "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T*F_val).item()) + \
+              "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T*Y).item()))
+        k += 1
     Ceq_i = X[0:n]
     Xieq_j = X[n:n+Nr]
     return Ceq_i, Xieq_j
@@ -368,11 +388,11 @@ def steepest_descent(X0, f, J, g, tol):
         print "k="+str(k)+"; "+"X= " +'[' + ',\\\n'.join(map(str,X.T.A1)) +']' + \
               "; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)) + "; stop?" + str(stop) + \
               "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) +  \
-              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str((f_val.T*f_val).item())
+              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T*f_val).item()))
         if abs(g_min - g1) < tol:
             stop = True  # Procedure successful
         k += 1
-    return X
+    return X, f_val
 
 def f_test(X):
     X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
