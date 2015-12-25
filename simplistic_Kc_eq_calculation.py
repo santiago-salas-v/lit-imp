@@ -35,9 +35,12 @@ class Ui_GroupBox(object):
         # GroupBox.resize(394, 357)
         GroupBox.resize(500, 357)
         self.verticalLayout_2 = QtGui.QVBoxLayout(GroupBox)
+        self.verticalLayout_3 = QtGui.QVBoxLayout(GroupBox)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
         self.open_button = QtGui.QPushButton(GroupBox)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(
@@ -51,16 +54,54 @@ class Ui_GroupBox(object):
         icon2.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-41-stats.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3 =  QtGui.QIcon()
+        icon3.addPixmap(QtGui.QPixmap(
+            _fromUtf8("utils/glyphicons-82-refresh.png")),
+            QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4 =  QtGui.QIcon()
+        icon4.addPixmap(QtGui.QPixmap(
+            _fromUtf8("utils/glyphicons-196-circle-info.png")),
+            QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.open_button.setIcon(icon)
         self.open_button.setObjectName(_fromUtf8("open_button"))
         self.horizontalLayout_2.addWidget(self.open_button)
         self.save_button = QtGui.QPushButton(GroupBox)
         self.save_button.setIcon(icon1)
         self.save_button.setObjectName(_fromUtf8("save_button"))
+        self.info_button = QtGui.QPushButton(GroupBox)
+        self.info_button.setIcon(icon4)
+        self.info_button.setObjectName(_fromUtf8("info_button"))
         self.horizontalLayout_2.addWidget(self.save_button)
+        self.horizontalLayout_2.addWidget(self.info_button)
+        self.equilibrate_button = QtGui.QPushButton(GroupBox)
+        self.equilibrate_button.setIcon(icon3)
+        self.horizontalLayout_3.addWidget(self.equilibrate_button)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+        # TODO: Add tol and max_it spinboxes
+        self.label_3 = QtGui.QLabel(GroupBox)
+        self.label_3.setObjectName(_fromUtf8("max_it_label"))
+        self.label_3.setAlignment(QtCore.Qt.AlignLeft)
+        self.horizontalLayout_5.addWidget(self.label_3)
+        self.spinBox_3 = QtGui.QSpinBox(GroupBox)
+        self.spinBox_3.setMaximum(2000)
+        self.spinBox_3.setMinimum(2)
+        self.spinBox_3.setProperty("value", 1000)
+        self.spinBox_3.setObjectName(_fromUtf8("max_it_spinbox"))
+        self.horizontalLayout_5.addWidget(self.spinBox_3)
+        self.label_4 = QtGui.QLabel(GroupBox)
+        self.label_4.setObjectName(_fromUtf8("tol_label"))
+        self.label_4.setAlignment(QtCore.Qt.AlignRight)
+        self.horizontalLayout_5.addWidget(self.label_4)
+        self.doubleSpinBox_5 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps)))
+        self.doubleSpinBox_5.setMaximum(float(1))
+        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps)
+        self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
+        self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
+        self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
         self.label = QtGui.QLabel(GroupBox)
         self.label.setObjectName(_fromUtf8("label"))
         self.label.setAlignment(QtCore.Qt.AlignRight)
@@ -143,10 +184,14 @@ class Ui_GroupBox(object):
         __sortingEnabled = self.Components.isSortingEnabled()
         self.open_button.setText(_translate("GroupBox", "Open", None))
         self.save_button.setText(_translate("GroupBox", "Save", None))
+        self.info_button.setText(_translate("GroupBox", "About", None))
+        self.equilibrate_button.setText(_translate("GroupBox", "Equilibrate", None))
         self.Components.setSortingEnabled(__sortingEnabled)
         self.pushButton.setText(_translate("GroupBox", "Plot", None))
         self.label_2.setText(_translate("GroupBox", "Nr (Reac.)", None))
         self.label.setText(_translate("GroupBox", "n (Comp.)", None))
+        self.label_3.setText(_translate("GroupBox", "max. it", None))
+        self.label_4.setText(_translate("GroupBox", "tol", None))
 
 
 def open_file(form):
@@ -204,8 +249,8 @@ def load_csv(filename, form):
         z_i = np.matrix([row[2] for row in comps], dtype=float).T
         nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
         pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
-        max_it = 1000
-        tol = np.finfo(float).eps + 1*1.0e-8
+        max_it = int(form.spinBox_3.value())
+        tol = float(form.doubleSpinBox_5.value())
 
         Ceq_i, Xieq_j = calc_Xieq()
 
@@ -290,6 +335,7 @@ def calc_Xieq():
     global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
+    # TODO: Kc_j = 10^-pKa_j/(C0_j)^sum(nu_i)_j ; C0_j -> solvent max(C0_j)
     Kc_j = np.power(10, -pKa_j) / (997 / (2 * 1.00794 + 15.9994))
     Xieq_j = np.matrix(np.zeros([Nr, 1]))
     X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1]))*tol), Xieq_j])
