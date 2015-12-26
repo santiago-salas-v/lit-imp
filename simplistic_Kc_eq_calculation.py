@@ -35,7 +35,6 @@ class Ui_GroupBox(object):
         # GroupBox.resize(394, 357)
         GroupBox.resize(500, 357)
         self.verticalLayout_2 = QtGui.QVBoxLayout(GroupBox)
-        self.verticalLayout_3 = QtGui.QVBoxLayout(GroupBox)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
@@ -54,11 +53,11 @@ class Ui_GroupBox(object):
         icon2.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-41-stats.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon3 =  QtGui.QIcon()
+        icon3 = QtGui.QIcon()
         icon3.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-82-refresh.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon4 =  QtGui.QIcon()
+        icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-196-circle-info.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -80,10 +79,10 @@ class Ui_GroupBox(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
-        # TODO: Add tol and max_it spinboxes
+        # TODO: Add tol and max_it spinboxes functionality
         self.label_3 = QtGui.QLabel(GroupBox)
         self.label_3.setObjectName(_fromUtf8("max_it_label"))
-        self.label_3.setAlignment(QtCore.Qt.AlignLeft)
+        self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_3)
         self.spinBox_3 = QtGui.QSpinBox(GroupBox)
         self.spinBox_3.setMaximum(2000)
@@ -93,18 +92,19 @@ class Ui_GroupBox(object):
         self.horizontalLayout_5.addWidget(self.spinBox_3)
         self.label_4 = QtGui.QLabel(GroupBox)
         self.label_4.setObjectName(_fromUtf8("tol_label"))
-        self.label_4.setAlignment(QtCore.Qt.AlignRight)
+        self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_4)
         self.doubleSpinBox_5 = QtGui.QDoubleSpinBox(GroupBox)
-        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps)))
+        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
-        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps)
+        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 1.1)
+        self.doubleSpinBox_5.setSingleStep(0.1 / 100.0 * (1.0 - np.finfo(float).eps))
         self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
         self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
         self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
         self.label = QtGui.QLabel(GroupBox)
         self.label.setObjectName(_fromUtf8("label"))
-        self.label.setAlignment(QtCore.Qt.AlignRight)
+        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label)
         self.spinBox = QtGui.QSpinBox(GroupBox)
         self.spinBox.setProperty("value", 0)
@@ -124,9 +124,26 @@ class Ui_GroupBox(object):
         self.verticalLayout_2.addWidget(self.Components)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
+        self.label_5 = QtGui.QLabel(GroupBox)
+        self.label_5.setObjectName(_fromUtf8("solvent_label"))
+        self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_6.addWidget(self.label_5)
+        self.comboBox_3 = QtGui.QComboBox(GroupBox)
+        self.horizontalLayout_6.addWidget(self.comboBox_3)
+        self.label_6 = QtGui.QLabel(GroupBox)
+        self.label_6.setObjectName(_fromUtf8("C_solvent_Tref"))
+        self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_6.addWidget(self.label_6)
+        self.doubleSpinBox_6 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
+        self.doubleSpinBox_6.setMaximum(float(1000))
+        self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
+        self.doubleSpinBox_6.setSingleStep(float(5))
+        self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
+        self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
         self.label_2 = QtGui.QLabel(GroupBox)
         self.label_2.setObjectName(_fromUtf8("label_2"))
-        self.label_2.setAlignment(QtCore.Qt.AlignRight)
+        self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_2)
         self.spinBox_2 = QtGui.QSpinBox(GroupBox)
         self.spinBox_2.setProperty("value", 0)
@@ -192,6 +209,8 @@ class Ui_GroupBox(object):
         self.label.setText(_translate("GroupBox", "n (Comp.)", None))
         self.label_3.setText(_translate("GroupBox", "max. it", None))
         self.label_4.setText(_translate("GroupBox", "tol", None))
+        self.label_5.setText(_translate("GroupBox", "solvent", None))
+        self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
 
 
 def open_file(form):
@@ -243,7 +262,7 @@ def load_csv(filename, form):
         csv_file.close()
 
         # Solve
-        global C0_i, z_i, nu_ij, pKa_j, max_it, tol
+        global C0_i, z_i, nu_ij, pKa_j, max_it, tol, index_of_solvent, C_solvent_Tref
 
         C0_i = np.matrix([row[3] for row in comps], dtype=float).T
         z_i = np.matrix([row[2] for row in comps], dtype=float).T
@@ -251,6 +270,15 @@ def load_csv(filename, form):
         pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
         max_it = int(form.spinBox_3.value())
         tol = float(form.doubleSpinBox_5.value())
+
+        for item in comps[:, 1].T:
+            form.comboBox_3.addItem(item)
+
+        index_of_solvent = C0_i.argmax()
+        C_solvent_Tref = C0_i[index_of_solvent].item()
+        form.comboBox_3.setCurrentIndex(C0_i.argmax())
+        form.doubleSpinBox_6.setValue(C_solvent_Tref)
+        form.doubleSpinBox_6.setPrefix('(mol/L)')
 
         Ceq_i, Xieq_j = calc_Xieq()
 
@@ -265,7 +293,7 @@ def load_csv(filename, form):
             header_reacs + ['Xieq_j'])
 
         i = range(0, n)
-        j = range(0, len(header_comps)+3)
+        j = range(0, len(header_comps) + 3)
 
         for column in j:
             for row in i:
@@ -293,7 +321,7 @@ def load_csv(filename, form):
                     newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
         i = range(0, Nr)
-        j = range(0, len(header_reacs)+1)
+        j = range(0, len(header_reacs) + 1)
 
         for column in j:
             for row in i:
@@ -332,34 +360,34 @@ def calc_Xieq():
     :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
     :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
-    global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j
+    global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, index_of_solvent, C_solvent_Tref
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
     # TODO: Kc_j = 10^-pKa_j/(C0_j)^sum(nu_i)_j ; C0_j -> solvent max(C0_j)
-    Kc_j = np.power(10, -pKa_j) / (997 / (2 * 1.00794 + 15.9994))
+    Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
     Xieq_j = np.matrix(np.zeros([Nr, 1]))
-    X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1]))*tol), Xieq_j])
+    X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol), Xieq_j])
     X = X0
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
     X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 1
     J_val = J(X)
-    Y = np.matrix(np.ones(len(X))).T*tol/(np.sqrt(len(X))*tol)
-    while k <= max_it and np.sqrt((Y.T*Y).item()) >= tol:
+    Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
+    while k <= max_it and np.sqrt((Y.T * Y).item()) >= tol:
         X_k_m_1 = X
         Y = gausselimination(J_val, -F_val)
         X = X + Y
         diff = X - X0
         J_val = J(X)
         F_val = f_gl_0(X)
-        print "k="+str(k)+"; "+"X= " +'[' + ',\\\n'.join(map(str,X.T.A1)) +']' + \
-              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) +  \
-              "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T*F_val).item()) + \
-              "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T*Y).item()))
+        print "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' + \
+              "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) + \
+              "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T * F_val).item()) + \
+              "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T * Y).item()))
         k += 1
     Ceq_i = X[0:n]
-    Xieq_j = X[n:n+Nr]
+    Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
 
 
@@ -395,7 +423,7 @@ def steepest_descent(X0, f, J, g, tol):
     k = 1
     stop = False
     while k < max_it and not stop:
-        z = 2 * J(X).T * f(X) # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
+        z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
         z0 = np.sqrt((z.T * z).item())
         if z0 == 0:
             # Zero gradient
@@ -431,32 +459,33 @@ def steepest_descent(X0, f, J, g, tol):
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
-        print "k="+str(k)+"; "+"X= " +'[' + ',\\\n'.join(map(str,X.T.A1)) +']' + \
-              "; g="+str(g_min)+"; |g-g1|="+str(abs(g_min - g1)) + "; stop?" + str(stop) + \
-              "; |X(k)-X(k-1)|="+ str((diff.T*diff).item()) +  \
-              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T*f_val).item()))
+        print "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' + \
+              "; g=" + str(g_min) + "; |g-g1|=" + str(abs(g_min - g1)) + "; stop?" + str(stop) + \
+              "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) + \
+              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T * f_val).item()))
         if abs(g_min - g1) < tol:
             stop = True  # Procedure successful
         k += 1
     return X, f_val
 
+
 def f_test(X):
-    X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
+    X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
     f = np.matrix([ \
-        3*X1-np.cos(X2*X3)-1.0/2.0, \
-        X1**2-81.0*(X2+0.1)**2+np.sin(X3)+1.06, \
-        np.exp(-X1*X2)+20.0*X3+(10*np.pi-3)/3.0
-        ]).T
+        3 * X1 - np.cos(X2 * X3) - 1.0 / 2.0, \
+        X1 ** 2 - 81.0 * (X2 + 0.1) ** 2 + np.sin(X3) + 1.06, \
+        np.exp(-X1 * X2) + 20.0 * X3 + (10 * np.pi - 3) / 3.0
+    ]).T
     return f
 
 
 def J_test(X):
-    X1,X2,X3 = X[0].item(),X[1].item(),X[2].item()
+    X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
     J = np.matrix([ \
-        [3,X2*np.sin(X3),X3*np.sin(X2)], \
-        [2*X1,-81.0*2*(X2+0.1),np.cos(X3)], \
-        [-X2*np.exp(-X1*X2),-X1*np.exp(-X1*X2),20.0]
-        ])
+        [3, X2 * np.sin(X3), X3 * np.sin(X2)], \
+        [2 * X1, -81.0 * 2 * (X2 + 0.1), np.cos(X3)], \
+        [-X2 * np.exp(-X1 * X2), -X1 * np.exp(-X1 * X2), 20.0]
+    ])
     return J
 
 
