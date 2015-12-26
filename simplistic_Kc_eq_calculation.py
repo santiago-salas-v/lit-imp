@@ -287,9 +287,6 @@ def load_QTableWidget(form):
         i += 1
     for j in range(comps.shape[1]):
         for i in range(comps.shape[0]):
-            #if j in filter(lambda x: x != 1,range(comps.shape[1])):
-            #    comps[i,j] = float(form.Components.item(i,j).text())
-            #i += 1
             comps[i,j] = form.Components.item(i,j).text()
         j += 1
     for j in range(reacs.shape[1]):
@@ -569,5 +566,4 @@ main_form.show()
 header_comps, comps, header_reacs, reacs = \
     load_csv(main_form.ui,'./DATA/COMPONENTS_REACTIONS_EX_001.csv')
 equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
-load_QTableWidget(main_form.ui)
 sys.exit(app.exec_())
