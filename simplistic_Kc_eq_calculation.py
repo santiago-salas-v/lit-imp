@@ -138,7 +138,7 @@ class Ui_GroupBox(object):
         self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_6.setMaximum(float(1000))
         self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
-        self.doubleSpinBox_6.setSingleStep(float(5))
+        self.doubleSpinBox_6.setSingleStep(1.0e-2)
         self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
         self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
         self.label_2 = QtGui.QLabel(GroupBox)
@@ -192,6 +192,7 @@ class Ui_GroupBox(object):
         self.open_button.clicked.connect(partial(open_file, self))
         self.save_button.clicked.connect(partial(save_file, self))
         self.pushButton.clicked.connect(partial(plot_intervals, self))
+        self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
@@ -220,10 +221,12 @@ def open_file(form):
                                           dir=os.path.join(sys.path[0], 'DATA'),
                                           filter='*.csv')
     if os.path.isfile(filename):
-        load_csv(filename, form)
+        header_comps, comps, header_reacs, reacs = \
+            load_csv(filename, form)
 
 
-def load_csv(filename, form):
+def load_csv(form, filename):
+    global n, Nr
     with open(filename) as csv_file:
         n = 0
         Nr = 0
@@ -260,87 +263,128 @@ def load_csv(filename, form):
                 reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
                 j = j + 1
         csv_file.close()
+    return header_comps, comps, header_reacs, reacs
 
-        # Solve
-        global C0_i, z_i, nu_ij, pKa_j, max_it, tol, index_of_solvent, C_solvent_Tref
 
-        C0_i = np.matrix([row[3] for row in comps], dtype=float).T
-        z_i = np.matrix([row[2] for row in comps], dtype=float).T
-        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-        pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
-        max_it = int(form.spinBox_3.value())
-        tol = float(form.doubleSpinBox_5.value())
+def load_QTableWidget(form):
+    n = form.Components.rowCount()
+    Nr = form.tableReacs.rowCount()
+    comps = np.empty([n, 4], dtype='S50')
+    reacs = np.empty([Nr, n + 2], dtype='S50')
+    header_comps = []
+    header_reacs = []
+    i = 0
+    j = 0
+    text_val = ''
+    float_val = float(0)
+    for i in range(len(header_comps)):
+        header_comps[i] = \
+            form.Components.horizontalHeaderItem(i).data(0)
+        i += 1
+    for i in range(len(header_reacs)):
+        header_reacs[i] = \
+            form.tableReacs.horizontalHeaderItem(i).data(0)
+        i += 1
+    for j in range(comps.shape[1]):
+        for i in range(comps.shape[0]):
+            #if j in filter(lambda x: x != 1,range(comps.shape[1])):
+            #    comps[i,j] = float(form.Components.item(i,j).text())
+            #i += 1
+            comps[i,j] = form.Components.item(i,j).text()
+        j += 1
+    for j in range(reacs.shape[1]):
+        for i in range(reacs.shape[0]):
+            reacs[i,j] = form.tableReacs.item(i,j).text()
+        j += 1
+    return header_comps, comps, header_reacs, reacs
 
-        for item in comps[:, 1].T:
-            form.comboBox_3.addItem(item)
+def gui_equilibrate(form):
+    header_comps, comps, header_reacs, reacs = load_QTableWidget(form)
+    equilibrate(form,header_comps, comps, header_reacs, reacs)
 
-        index_of_solvent = C0_i.argmax()
-        C_solvent_Tref = C0_i[index_of_solvent].item()
-        form.comboBox_3.setCurrentIndex(C0_i.argmax())
-        form.doubleSpinBox_6.setValue(C_solvent_Tref)
-        form.doubleSpinBox_6.setPrefix('(mol/L)')
+def equilibrate(form, header_comps, comps, header_reacs, reacs):
+    # Solve
+    global C0_i, z_i, nu_ij, pKa_j
+    global max_it, tol, index_of_solvent, C_solvent_Tref
 
-        Ceq_i, Xieq_j = calc_Xieq()
+    n = len(comps)
+    Nr = len(reacs)
+    C0_i = np.matrix([row[3] for row in comps], dtype=float).T
+    z_i = np.matrix([row[2] for row in comps], dtype=float).T
+    nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+    pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
+    max_it = int(form.spinBox_3.value())
+    tol = float(form.doubleSpinBox_5.value())
 
-        form.Components.setRowCount(n)
-        form.Components.setColumnCount(len(header_comps) + 3)
-        form.Components.setHorizontalHeaderLabels(
-            header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
+    for item in comps[:, 1].T:
+        form.comboBox_3.addItem(item)
 
-        form.tableReacs.setRowCount(Nr)
-        form.tableReacs.setColumnCount(len(header_reacs) + 1)
-        form.tableReacs.setHorizontalHeaderLabels(
-            header_reacs + ['Xieq_j'])
+    index_of_solvent = C0_i.argmax()
+    C_solvent_Tref = C0_i[index_of_solvent].item()
+    form.comboBox_3.setCurrentIndex(C0_i.argmax())
+    form.doubleSpinBox_6.setValue(C_solvent_Tref)
+    form.doubleSpinBox_6.setPrefix('(mol/L)')
 
-        i = range(0, n)
-        j = range(0, len(header_comps) + 3)
+    Ceq_i, Xieq_j = calc_Xieq()
 
-        for column in j:
-            for row in i:
-                if column < 4:
-                    newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
-                elif column == 4:
-                    newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
-                elif column == 5:
-                    if C0_i[row] <= 0:
-                        newItem = QtGui.QTableWidgetItem(str(np.nan))
-                    else:
-                        newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
-                elif column == 6:
-                    if Ceq_i[row].item() <= 0:
-                        newItem = QtGui.QTableWidgetItem(str(np.nan))
-                    else:
-                        newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
-                # sortierbar machen
-                if column != 1:  # Comp. i <Str>
-                    newItem = NSortableTableWidgetItem(newItem)
-                    form.Components.setItem(row, column, newItem)
+    form.Components.setRowCount(n)
+    form.Components.setColumnCount(len(header_comps) + 3)
+    form.Components.setHorizontalHeaderLabels(
+        header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
+
+    form.tableReacs.setRowCount(Nr)
+    form.tableReacs.setColumnCount(len(header_reacs) + 1)
+    form.tableReacs.setHorizontalHeaderLabels(
+        header_reacs + ['Xieq_j'])
+
+    i = range(0, n)
+    j = range(0, len(header_comps) + 3)
+
+    for column in j:
+        for row in i:
+            if column < 4:
+                newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
+            elif column == 4:
+                newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
+            elif column == 5:
+                if C0_i[row] <= 0:
+                    newItem = QtGui.QTableWidgetItem(str(np.nan))
                 else:
-                    form.Components.setItem(row, column, newItem)
-                if not column in range(1, 3 + 1):
-                    newItem.setFlags(QtCore.Qt.ItemIsEnabled)
+                    newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
+            elif column == 6:
+                if Ceq_i[row].item() <= 0:
+                    newItem = QtGui.QTableWidgetItem(str(np.nan))
+                else:
+                    newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
+            # sortierbar machen
+            if column != 1:  # Comp. i <Str>
+                newItem = NSortableTableWidgetItem(newItem)
+                form.Components.setItem(row, column, newItem)
+            else:
+                form.Components.setItem(row, column, newItem)
+            if not column in range(1, 3 + 1):
+                newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
-        i = range(0, Nr)
-        j = range(0, len(header_reacs) + 1)
+    i = range(0, Nr)
+    j = range(0, len(header_reacs) + 1)
 
-        for column in j:
-            for row in i:
-                if column != len(header_reacs):
-                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
-                elif column == len(header_reacs):
-                    form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
+    for column in j:
+        for row in i:
+            if column != len(header_reacs):
+                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+            elif column == len(header_reacs):
+                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
-        # Widths and heights
-        form.Components.setSortingEnabled(True)
-        form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+    # Widths and heights
+    form.Components.setSortingEnabled(True)
+    form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+    form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-        form.tableReacs.setSortingEnabled(True)
-        form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-
+    form.tableReacs.setSortingEnabled(True)
+    form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+    form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
 def save_file(form):
     pass
@@ -522,6 +566,8 @@ if not app:  # create QApplication if it doesnt exist
 
 main_form = MainForm()
 main_form.show()
-load_csv('./DATA/COMPONENTS_REACTIONS_EX_001.csv', main_form.ui)
-
+header_comps, comps, header_reacs, reacs = \
+    load_csv(main_form.ui,'./DATA/COMPONENTS_REACTIONS_EX_001.csv')
+equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
+load_QTableWidget(main_form.ui)
 sys.exit(app.exec_())
