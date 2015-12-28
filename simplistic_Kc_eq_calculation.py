@@ -276,22 +276,26 @@ def load_csv(form, filename):
 
 
 def load_QTableWidget(form):
+    global component_order_in_table
     n = form.Components.rowCount()
     Nr = form.tableReacs.rowCount()
     comps = np.empty([n, 4], dtype='S50')
     reacs = np.empty([Nr, n + 2], dtype='S50')
     header_comps = []
     header_reacs = []
+    component_order_in_table = []
+    for i in range(form.Components.rowCount()):
+        component_order_in_table.append(int(form.Components.item(i, 0).text()) - 1)
     for i in range(comps.shape[0]):
         header_comps.append(form.Components.horizontalHeaderItem(i).data(0))
     for i in range(reacs.shape[1]):
         header_reacs.append(form.tableReacs.horizontalHeaderItem(i).data(0))
     for j in range(comps.shape[1]):
         for i in range(comps.shape[0]):
-            comps[int(form.Components.item(i, 0).text()) - 1, j] = form.Components.item(i, j).text()
+            comps[component_order_in_table[i], j] = form.Components.item(i, j).text()
     for j in range(reacs.shape[1]):
         for i in range(reacs.shape[0]):
-            reacs[int(form.tableReacs.item(i, 0).text()) - 1, j] = form.tableReacs.item(i, j).text()
+            reacs[i, j] = form.tableReacs.item(i, j).text()
     return header_comps, comps, header_reacs, reacs
 
 
@@ -304,6 +308,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     # Solve
     global C0_i, z_i, nu_ij, pKa_j
     global max_it, tol, index_of_solvent, C_solvent_Tref
+    global component_order_in_table
 
     n = len(comps)
     Nr = len(reacs)
@@ -326,13 +331,20 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     Ceq_i, Xieq_j = calc_Xieq()
 
-    i = range(0, n)
+    if 'component_order_in_table' in globals():
+        i = component_order_in_table
+    else:
+        i = range(0, n)
     j = range(0, 4 + 3)
+
+    # As usual, problems occurr when sorting is combined with setting QTableWidgetItems
+    form.Components.setSortingEnabled(False)
+    form.tableReacs.setSortingEnabled(False)
 
     for column in j:
         for row in i:
             if column < 4:
-                newItem = QtGui.QTableWidgetItem(str(comps[row][column]))
+                newItem = QtGui.QTableWidgetItem(str(comps[row,column]))
             elif column == 4:
                 newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
             elif column == 5:
@@ -364,7 +376,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
             elif column == len(header_reacs):
                 form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
-    # Widths and heights
+    # Widths and heights, re-enable sorting
     form.Components.setSortingEnabled(True)
     form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
     form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
