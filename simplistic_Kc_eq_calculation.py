@@ -263,6 +263,15 @@ def load_csv(form, filename):
                 reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
                 j = j + 1
         csv_file.close()
+    form.Components.setRowCount(n)
+    form.Components.setColumnCount(len(header_comps) + 3)
+    form.Components.setHorizontalHeaderLabels(
+        header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
+
+    form.tableReacs.setRowCount(Nr)
+    form.tableReacs.setColumnCount(len(header_reacs) + 1)
+    form.tableReacs.setHorizontalHeaderLabels(
+        header_reacs + ['Xieq_j'])
     return header_comps, comps, header_reacs, reacs
 
 
@@ -273,31 +282,23 @@ def load_QTableWidget(form):
     reacs = np.empty([Nr, n + 2], dtype='S50')
     header_comps = []
     header_reacs = []
-    i = 0
-    j = 0
-    text_val = ''
-    float_val = float(0)
-    for i in range(len(header_comps)):
-        header_comps[i] = \
-            form.Components.horizontalHeaderItem(i).data(0)
-        i += 1
-    for i in range(len(header_reacs)):
-        header_reacs[i] = \
-            form.tableReacs.horizontalHeaderItem(i).data(0)
-        i += 1
+    for i in range(comps.shape[0]):
+        header_comps.append(form.Components.horizontalHeaderItem(i).data(0))
+    for i in range(reacs.shape[1]):
+        header_reacs.append(form.tableReacs.horizontalHeaderItem(i).data(0))
     for j in range(comps.shape[1]):
         for i in range(comps.shape[0]):
-            comps[i,j] = form.Components.item(i,j).text()
-        j += 1
+            comps[int(form.Components.item(i, 0).text()) - 1, j] = form.Components.item(i, j).text()
     for j in range(reacs.shape[1]):
         for i in range(reacs.shape[0]):
-            reacs[i,j] = form.tableReacs.item(i,j).text()
-        j += 1
+            reacs[int(form.tableReacs.item(i, 0).text()) - 1, j] = form.tableReacs.item(i, j).text()
     return header_comps, comps, header_reacs, reacs
+
 
 def gui_equilibrate(form):
     header_comps, comps, header_reacs, reacs = load_QTableWidget(form)
-    equilibrate(form,header_comps, comps, header_reacs, reacs)
+    equilibrate(form, header_comps, comps, header_reacs, reacs)
+
 
 def equilibrate(form, header_comps, comps, header_reacs, reacs):
     # Solve
@@ -313,6 +314,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     max_it = int(form.spinBox_3.value())
     tol = float(form.doubleSpinBox_5.value())
 
+    form.comboBox_3.clear()
     for item in comps[:, 1].T:
         form.comboBox_3.addItem(item)
 
@@ -324,18 +326,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     Ceq_i, Xieq_j = calc_Xieq()
 
-    form.Components.setRowCount(n)
-    form.Components.setColumnCount(len(header_comps) + 3)
-    form.Components.setHorizontalHeaderLabels(
-        header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
-
-    form.tableReacs.setRowCount(Nr)
-    form.tableReacs.setColumnCount(len(header_reacs) + 1)
-    form.tableReacs.setHorizontalHeaderLabels(
-        header_reacs + ['Xieq_j'])
-
     i = range(0, n)
-    j = range(0, len(header_comps) + 3)
+    j = range(0, 4 + 3)
 
     for column in j:
         for row in i:
@@ -383,6 +375,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
+
 def save_file(form):
     pass
 
@@ -404,7 +397,6 @@ def calc_Xieq():
     global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, index_of_solvent, C_solvent_Tref
     n = nu_ij.shape[0]
     Nr = nu_ij.shape[1]
-    # TODO: Kc_j = 10^-pKa_j/(C0_j)^sum(nu_i)_j ; C0_j -> solvent max(C0_j)
     Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
     Xieq_j = np.matrix(np.zeros([Nr, 1]))
     X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol), Xieq_j])
@@ -564,6 +556,6 @@ if not app:  # create QApplication if it doesnt exist
 main_form = MainForm()
 main_form.show()
 header_comps, comps, header_reacs, reacs = \
-    load_csv(main_form.ui,'./DATA/COMPONENTS_REACTIONS_EX_001.csv')
+    load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
 equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
 sys.exit(app.exec_())
