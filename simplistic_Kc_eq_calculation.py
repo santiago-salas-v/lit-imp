@@ -194,6 +194,7 @@ class Ui_GroupBox(object):
         self.pushButton.clicked.connect(partial(plot_intervals, self))
         self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
         self.Components.cellChanged.connect(partial(recalculate_after_cell_edit, self))
+        self.info_button.clicked.connect(partial(display_about_info, GroupBox))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
@@ -549,6 +550,27 @@ def J_test(X):
 def g_test(X):
     f_0 = f_test(X)
     return (f_0.T * f_0).item()
+
+
+def display_about_info(form):
+    textStreamOutput = ''
+    with open('README.md') as readme_file:
+        for row in readme_file:
+            textStreamOutput += row
+    readme_file.close()
+    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation',textStreamOutput)
+
+
+class aboutBox(QtGui.QMessageBox):
+    def __init__(self, parent=None):
+        QtGui.QMessageBox.__init__(self, parent)
+
+    def __init__(self, title_text, contained_text):
+        QtGui.QMessageBox.__init__(self, title_text, contained_text)
+        self.setText(title_text)
+        self.setDetailedText(contained_text)
+        self.show()
+
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
