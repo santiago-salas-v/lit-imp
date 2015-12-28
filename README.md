@@ -6,6 +6,7 @@ Python, numpy, scipy
 ============
 
 Composición de equilibrio, forma sencilla (K_gamma = 1) : simplistic_Kc_eq_calculation.py
+
 Factorización de matriz LR = PDA y eliminación Gauss: mat_Zerlegungen.py
 
 Pasos para correr la aplicación:
