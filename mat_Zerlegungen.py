@@ -1,11 +1,11 @@
 import numpy as np
-from sympy import pprint, Matrix, nsimplify
+# from sympy import pprint, Matrix, nsimplify
 
 
 def lrpd(A):
     """L,R,P,D,DA aus der LR = PDA Zerlegung
-    Methode aus Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer [DE] S. 79
-    :param A numpy.matrix NxN
+    Methode aus Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer S. 79
+    :param A: numpy.matrix NxN
     """
     n = A.shape[0]
     p = np.matrix(np.eye(n).astype(dtype=float))
@@ -40,8 +40,8 @@ def lrpd(A):
 def gausselimination(A, b):
     """Loesung des Systems Ax = b (LRx=PDb) durch Vorwaertseinsetzen aus Ly = Pb, und danach
     Rueckwaertseinsetzen aus Rx = y
-    :param: A numpy.matrix n X n
-    :param: b numpy.matrix n X 1
+    :param A: numpy.matrix n X n
+    :param b: numpy.matrix n X 1
     """
     n = A.shape[0]
     x = np.matrix(np.zeros_like(b))

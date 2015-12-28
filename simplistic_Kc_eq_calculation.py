@@ -7,9 +7,9 @@ Created on Fri Nov 27 20:48:42 2015
 import os, sys, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
-from sympy import solve, nsolve, symbols
-from numpy import log10, matlib
 from mat_Zerlegungen import gausselimination
+# from sympy import solve, nsolve, symbols
+# from numpy import log10, matlib
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -193,6 +193,7 @@ class Ui_GroupBox(object):
         self.save_button.clicked.connect(partial(save_file, self))
         self.pushButton.clicked.connect(partial(plot_intervals, self))
         self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
+        self.Components.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
@@ -222,7 +223,10 @@ def open_file(form):
                                           filter='*.csv')
     if os.path.isfile(filename):
         header_comps, comps, header_reacs, reacs = \
-            load_csv(filename, form)
+            load_csv(form, filename)
+        equilibrate(form, header_comps, comps, header_reacs, reacs)
+        form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
 
 
 def load_csv(form, filename):
@@ -299,6 +303,10 @@ def load_QTableWidget(form):
     return header_comps, comps, header_reacs, reacs
 
 
+def recalculate_after_cell_edit(form, row, column):
+    gui_equilibrate(form)
+
+
 def gui_equilibrate(form):
     header_comps, comps, header_reacs, reacs = load_QTableWidget(form)
     equilibrate(form, header_comps, comps, header_reacs, reacs)
@@ -341,6 +349,9 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.Components.setSortingEnabled(False)
     form.tableReacs.setSortingEnabled(False)
 
+    form.Components.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+
     for column in j:
         for row in i:
             if column < 4:
@@ -378,14 +389,15 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     # Widths and heights, re-enable sorting
     form.Components.setSortingEnabled(True)
-    form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
     form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
     form.tableReacs.setSortingEnabled(True)
-    form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
     form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+    form.Components.blockSignals(False)
+    form.tableReacs.blockSignals(False)
 
 
 def save_file(form):
@@ -397,7 +409,7 @@ def plot_intervals(form):
 
 
 def calc_Xieq():
-    """
+    """Steepest descent for good initial estimate, then Newton method for non-linear algebraic system
     :return: tuple with Ceq_i, Xieq_j, f_0
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
     :param z_i: np.matrix (n X 1) - Carga(i, alimentación)
@@ -570,4 +582,6 @@ main_form.show()
 header_comps, comps, header_reacs, reacs = \
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
 equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
+main_form.ui.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
 sys.exit(app.exec_())
