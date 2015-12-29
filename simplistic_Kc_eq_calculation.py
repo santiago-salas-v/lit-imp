@@ -61,6 +61,10 @@ class Ui_GroupBox(object):
         icon4.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-196-circle-info.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon5 = QtGui.QIcon()
+        icon5.addPixmap(QtGui.QPixmap(
+            _fromUtf8("utils/glyphicons-88-log-book.png")),
+            QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.open_button.setIcon(icon)
         self.open_button.setObjectName(_fromUtf8("open_button"))
         self.horizontalLayout_2.addWidget(self.open_button)
@@ -70,7 +74,11 @@ class Ui_GroupBox(object):
         self.info_button = QtGui.QPushButton(GroupBox)
         self.info_button.setIcon(icon4)
         self.info_button.setObjectName(_fromUtf8("info_button"))
+        self.log_button = QtGui.QPushButton(GroupBox)
+        self.log_button.setIcon(icon5)
+        self.log_button.setObjectName(_fromUtf8("log_button"))
         self.horizontalLayout_2.addWidget(self.save_button)
+        self.horizontalLayout_2.addWidget(self.log_button)
         self.horizontalLayout_2.addWidget(self.info_button)
         self.equilibrate_button = QtGui.QPushButton(GroupBox)
         self.equilibrate_button.setIcon(icon3)
@@ -80,6 +88,7 @@ class Ui_GroupBox(object):
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
         # TODO: Add tol and max_it spinboxes functionality
+        # TODO: Add log button
         self.label_3 = QtGui.QLabel(GroupBox)
         self.label_3.setObjectName(_fromUtf8("max_it_label"))
         self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
@@ -204,6 +213,7 @@ class Ui_GroupBox(object):
         __sortingEnabled = self.Components.isSortingEnabled()
         self.open_button.setText(_translate("GroupBox", "Open", None))
         self.save_button.setText(_translate("GroupBox", "Save", None))
+        self.log_button.setText(_translate("GroupBox", "Log", None))
         self.info_button.setText(_translate("GroupBox", "About", None))
         self.equilibrate_button.setText(_translate("GroupBox", "Equilibrate", None))
         self.Components.setSortingEnabled(__sortingEnabled)
@@ -428,6 +438,13 @@ def calc_Xieq():
     X = X0
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
     X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
+    """
+    if any(map(lambda x: np.sign(x)==-1, X[0:n])):
+        X = X0
+        minus_f = lambda x: -1*f_gl_0(x)
+        minus_J = lambda x: -1*J(x)
+        X, F_val = steepest_descent(X0, minus_f, minus_J, g, 1.0e-3)
+    """
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 1
     J_val = J(X)
@@ -558,15 +575,15 @@ def display_about_info(form):
         for row in readme_file:
             textStreamOutput += row
     readme_file.close()
-    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation',textStreamOutput)
+    aboutBox_1 = aboutBox.about('simplistic Kc eq calculation',textStreamOutput)
 
 
 class aboutBox(QtGui.QMessageBox):
     def __init__(self, parent=None):
         QtGui.QMessageBox.__init__(self, parent)
 
-    def __init__(self, title_text, contained_text):
-        QtGui.QMessageBox.__init__(self, title_text, contained_text)
+    def about(self, title_text, contained_text):
+        QtGui.QMessageBox.__init__(self, None)
         self.setText(title_text)
         self.setDetailedText(contained_text)
         self.show()
