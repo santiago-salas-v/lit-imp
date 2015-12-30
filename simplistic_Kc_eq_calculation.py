@@ -4,7 +4,7 @@ Created on Fri Nov 27 20:48:42 2015
 
 @author: Santiago Salas
 """
-import os, sys, numpy as np, scipy as sp, csv
+import os, sys, logging, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
@@ -106,7 +106,7 @@ class Ui_GroupBox(object):
         self.doubleSpinBox_5 = QtGui.QDoubleSpinBox(GroupBox)
         self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
-        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 1.1)
+        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
         self.doubleSpinBox_5.setSingleStep(0.1 / 100.0 * (1.0 - np.finfo(float).eps))
         self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
         self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
@@ -120,17 +120,17 @@ class Ui_GroupBox(object):
         self.spinBox.setObjectName(_fromUtf8("spinBox"))
         self.horizontalLayout_5.addWidget(self.spinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
-        self.Components = QtGui.QTableWidget(GroupBox)
-        self.Components.setMinimumSize(QtCore.QSize(0, 210))
-        self.Components.setObjectName(_fromUtf8("Components"))
+        self.tableComps = QtGui.QTableWidget(GroupBox)
+        self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
+        self.tableComps.setObjectName(_fromUtf8("tableComps"))
         item = QtGui.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        self.Components.horizontalHeader().setCascadingSectionResizes(False)
-        self.Components.horizontalHeader().setDefaultSectionSize(100)
-        self.Components.horizontalHeader().setMinimumSectionSize(27)
-        self.Components.horizontalHeader().setSortIndicatorShown(True)
-        self.Components.verticalHeader().setVisible(False)
-        self.verticalLayout_2.addWidget(self.Components)
+        self.tableComps.horizontalHeader().setCascadingSectionResizes(False)
+        self.tableComps.horizontalHeader().setDefaultSectionSize(100)
+        self.tableComps.horizontalHeader().setMinimumSectionSize(27)
+        self.tableComps.horizontalHeader().setSortIndicatorShown(True)
+        self.tableComps.verticalHeader().setVisible(False)
+        self.verticalLayout_2.addWidget(self.tableComps)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
         self.label_5 = QtGui.QLabel(GroupBox)
@@ -168,6 +168,13 @@ class Ui_GroupBox(object):
         self.horizontalLayout.addWidget(self.tableReacs)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.label_7 =  QtGui.QLabel(GroupBox)
+        self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
+        self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.label_8 =  QtGui.QLabel(GroupBox)
+        self.label_8.setObjectName(_fromUtf8("verticalAxisLabel"))
+        self.label_8.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.verticalLayout.addWidget(self.label_7)
         self.comboBox = QtGui.QComboBox(GroupBox)
         self.comboBox.setObjectName(_fromUtf8("comboBox"))
         self.verticalLayout.addWidget(self.comboBox)
@@ -182,6 +189,7 @@ class Ui_GroupBox(object):
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.comboBox_2 = QtGui.QComboBox(GroupBox)
         self.comboBox_2.setObjectName(_fromUtf8("comboBox_2"))
+        self.verticalLayout.addWidget(self.label_8)
         self.verticalLayout.addWidget(self.comboBox_2)
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
@@ -202,21 +210,22 @@ class Ui_GroupBox(object):
         self.save_button.clicked.connect(partial(save_file, self))
         self.pushButton.clicked.connect(partial(plot_intervals, self))
         self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
-        self.Components.cellChanged.connect(partial(recalculate_after_cell_edit, self))
+        self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, GroupBox))
+        self.log_button.clicked.connect(partial(show_log, GroupBox))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
     def retranslateUi(self, GroupBox):
         GroupBox.setWindowTitle(_translate("GroupBox", "Simplistic EC.", None))
         # GroupBox.setTitle(_translate("GroupBox", "Simplistic Eq.", None))
-        __sortingEnabled = self.Components.isSortingEnabled()
+        __sortingEnabled = self.tableComps.isSortingEnabled()
         self.open_button.setText(_translate("GroupBox", "Open", None))
         self.save_button.setText(_translate("GroupBox", "Save", None))
         self.log_button.setText(_translate("GroupBox", "Log", None))
         self.info_button.setText(_translate("GroupBox", "About", None))
         self.equilibrate_button.setText(_translate("GroupBox", "Equilibrate", None))
-        self.Components.setSortingEnabled(__sortingEnabled)
+        self.tableComps.setSortingEnabled(__sortingEnabled)
         self.pushButton.setText(_translate("GroupBox", "Plot", None))
         self.label_2.setText(_translate("GroupBox", "Nr (Reac.)", None))
         self.label.setText(_translate("GroupBox", "n (Comp.)", None))
@@ -224,7 +233,8 @@ class Ui_GroupBox(object):
         self.label_4.setText(_translate("GroupBox", "tol", None))
         self.label_5.setText(_translate("GroupBox", "solvent", None))
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
-
+        self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
+        self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
 
 def open_file(form):
     (filename, _) = \
@@ -236,7 +246,7 @@ def open_file(form):
         header_comps, comps, header_reacs, reacs = \
             load_csv(form, filename)
         equilibrate(form, header_comps, comps, header_reacs, reacs)
-        form.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        form.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
         form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
 
 
@@ -278,9 +288,9 @@ def load_csv(form, filename):
                 reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
                 j = j + 1
         csv_file.close()
-    form.Components.setRowCount(n)
-    form.Components.setColumnCount(len(header_comps) + 3)
-    form.Components.setHorizontalHeaderLabels(
+    form.tableComps.setRowCount(n)
+    form.tableComps.setColumnCount(len(header_comps) + 3)
+    form.tableComps.setHorizontalHeaderLabels(
         header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
 
     form.tableReacs.setRowCount(Nr)
@@ -292,22 +302,22 @@ def load_csv(form, filename):
 
 def load_QTableWidget(form):
     global component_order_in_table
-    n = form.Components.rowCount()
+    n = form.tableComps.rowCount()
     Nr = form.tableReacs.rowCount()
     comps = np.empty([n, 4], dtype='S50')
     reacs = np.empty([Nr, n + 2], dtype='S50')
     header_comps = []
     header_reacs = []
     component_order_in_table = []
-    for i in range(form.Components.rowCount()):
-        component_order_in_table.append(int(form.Components.item(i, 0).text()) - 1)
+    for i in range(form.tableComps.rowCount()):
+        component_order_in_table.append(int(form.tableComps.item(i, 0).text()) - 1)
     for i in range(comps.shape[0]):
-        header_comps.append(form.Components.horizontalHeaderItem(i).data(0))
+        header_comps.append(form.tableComps.horizontalHeaderItem(i).data(0))
     for i in range(reacs.shape[1]):
         header_reacs.append(form.tableReacs.horizontalHeaderItem(i).data(0))
     for j in range(comps.shape[1]):
         for i in range(comps.shape[0]):
-            comps[component_order_in_table[i], j] = form.Components.item(i, j).text()
+            comps[component_order_in_table[i], j] = form.tableComps.item(i, j).text()
     for j in range(reacs.shape[1]):
         for i in range(reacs.shape[0]):
             reacs[i, j] = form.tableReacs.item(i, j).text()
@@ -328,7 +338,13 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     global C0_i, z_i, nu_ij, pKa_j
     global max_it, tol, index_of_solvent, C_solvent_Tref
     global component_order_in_table
+    # Setup logging
+    if not os.path.exists('./logs'):
+        os.mkdir('./logs')
+    logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
+                        format='%(asctime)s %(message)s')
 
+    # Collect variables
     n = len(comps)
     Nr = len(reacs)
     C0_i = np.matrix([row[3] for row in comps], dtype=float).T
@@ -338,16 +354,31 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     max_it = int(form.spinBox_3.value())
     tol = float(form.doubleSpinBox_5.value())
 
+    # Gui setup with calculated values
+    form.comboBox.clear()
+    form.comboBox_2.clear()
     form.comboBox_3.clear()
     for item in comps[:, 1].T:
+        form.comboBox.addItem('C_{' + item + '} | 0')
+        form.comboBox_2.addItem('C_{' + item + '} | eq')
         form.comboBox_3.addItem(item)
 
-    index_of_solvent = C0_i.argmax()
+    highestC0Indexes = np.argpartition(C0_i.A1, (-1,-2))
+    index_of_solvent = highestC0Indexes[-1]
+    if len(C0_i) > 1:
+        index_of_second_highest_C0 =  highestC0Indexes[-2]
+    else:
+        index_of_second_highest_C0 = highestC0Indexes[-1]
     C_solvent_Tref = C0_i[index_of_solvent].item()
-    form.comboBox_3.setCurrentIndex(C0_i.argmax())
+    form.comboBox_3.setCurrentIndex(index_of_solvent)
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
     form.doubleSpinBox_6.setPrefix('(mol/L)')
 
+    C_second_highest_C0_Tref = C0_i[index_of_second_highest_C0].item()
+    form.comboBox.setCurrentIndex(index_of_second_highest_C0)
+    form.comboBox_2.setCurrentIndex(0)
+
+    # Calculate equilibrium composition
     Ceq_i, Xieq_j = calc_Xieq()
 
     if 'component_order_in_table' in globals():
@@ -357,10 +388,10 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     j = range(0, 4 + 3)
 
     # As usual, problems occurr when sorting is combined with setting QTableWidgetItems
-    form.Components.setSortingEnabled(False)
+    form.tableComps.setSortingEnabled(False)
     form.tableReacs.setSortingEnabled(False)
 
-    form.Components.blockSignals(True)
+    form.tableComps.blockSignals(True)
     form.tableReacs.blockSignals(True)
 
     for column in j:
@@ -382,9 +413,9 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
             # sortierbar machen
             if column != 1:  # Comp. i <Str>
                 newItem = NSortableTableWidgetItem(newItem)
-                form.Components.setItem(row, column, newItem)
+                form.tableComps.setItem(row, column, newItem)
             else:
-                form.Components.setItem(row, column, newItem)
+                form.tableComps.setItem(row, column, newItem)
             if not column in range(1, 3 + 1):
                 newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
@@ -399,15 +430,15 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
                 form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
     # Widths and heights, re-enable sorting
-    form.Components.setSortingEnabled(True)
-    form.Components.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-    form.Components.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+    form.tableComps.setSortingEnabled(True)
+    form.tableComps.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+    form.tableComps.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
     form.tableReacs.setSortingEnabled(True)
     form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-    form.Components.blockSignals(False)
+    form.tableComps.blockSignals(False)
     form.tableReacs.blockSignals(False)
 
 
@@ -456,10 +487,11 @@ def calc_Xieq():
         diff = X - X0
         J_val = J(X)
         F_val = f_gl_0(X)
-        print "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' + \
-              "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) + \
-              "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T * F_val).item()) + \
-              "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T * Y).item()))
+        logging.debug('Newton method loop: ' + "k=" + str(k) + "; " + "X= " +
+                      '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' +
+                      "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) +
+                      "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T * F_val).item()) +
+                      "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T * Y).item())))
         k += 1
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
@@ -534,10 +566,11 @@ def steepest_descent(X0, f, J, g, tol):
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
-        print "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' + \
-              "; g=" + str(g_min) + "; |g-g1|=" + str(abs(g_min - g1)) + "; stop?" + str(stop) + \
-              "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) + \
-              "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T * f_val).item()))
+        logging.debug('Steepest descent method loop: ' +
+                      "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' +
+                      "; g=" + str(g_min) + "; |g-g1|=" + str(abs(g_min - g1)) + "; stop?" + str(stop) +
+                      "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) +
+                      "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T * f_val).item())))
         if abs(g_min - g1) < tol:
             stop = True  # Procedure successful
         k += 1
@@ -575,7 +608,11 @@ def display_about_info(form):
         for row in readme_file:
             textStreamOutput += row
     readme_file.close()
-    aboutBox_1 = aboutBox.about('simplistic Kc eq calculation',textStreamOutput)
+    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation',textStreamOutput)
+
+
+def show_log(form):
+    pass
 
 
 class aboutBox(QtGui.QMessageBox):
@@ -621,6 +658,6 @@ main_form.show()
 header_comps, comps, header_reacs, reacs = \
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
 equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
-main_form.ui.Components.sortByColumn(0, QtCore.Qt.AscendingOrder)
+main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
 main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
 sys.exit(app.exec_())

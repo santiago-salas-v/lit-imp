@@ -3,6 +3,7 @@
 *ignorethis*
 *.tmp
 *.pyc
+*.log
 *~$.*
 *~
 .idea/
@@ -11,3 +12,4 @@ bu/
 codegen/
 bufferSolution/
 bufferSolution_LINUX/
+log/
