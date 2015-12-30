@@ -4,10 +4,11 @@ Created on Fri Nov 27 20:48:42 2015
 
 @author: Santiago Salas
 """
-import os, sys, logging, numpy as np, scipy as sp, csv
+import os, sys, logging, pandas as pd, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
+
 # from sympy import solve, nsolve, symbols
 # from numpy import log10, matlib
 
@@ -168,10 +169,10 @@ class Ui_GroupBox(object):
         self.horizontalLayout.addWidget(self.tableReacs)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.label_7 =  QtGui.QLabel(GroupBox)
+        self.label_7 = QtGui.QLabel(GroupBox)
         self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
         self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.label_8 =  QtGui.QLabel(GroupBox)
+        self.label_8 = QtGui.QLabel(GroupBox)
         self.label_8.setObjectName(_fromUtf8("verticalAxisLabel"))
         self.label_8.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
         self.verticalLayout.addWidget(self.label_7)
@@ -235,6 +236,7 @@ class Ui_GroupBox(object):
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
         self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
         self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
+
 
 def open_file(form):
     (filename, _) = \
@@ -342,7 +344,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     if not os.path.exists('./logs'):
         os.mkdir('./logs')
     logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
-                        format='%(asctime)s %(message)s')
+                        format='%(asctime)s ; %(message)s')
 
     # Collect variables
     n = len(comps)
@@ -363,10 +365,10 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
         form.comboBox_2.addItem('C_{' + item + '} | eq')
         form.comboBox_3.addItem(item)
 
-    highestC0Indexes = np.argpartition(C0_i.A1, (-1,-2))
+    highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
     index_of_solvent = highestC0Indexes[-1]
     if len(C0_i) > 1:
-        index_of_second_highest_C0 =  highestC0Indexes[-2]
+        index_of_second_highest_C0 = highestC0Indexes[-2]
     else:
         index_of_second_highest_C0 = highestC0Indexes[-1]
     C_solvent_Tref = C0_i[index_of_solvent].item()
@@ -397,7 +399,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     for column in j:
         for row in i:
             if column < 4:
-                newItem = QtGui.QTableWidgetItem(str(comps[row,column]))
+                newItem = QtGui.QTableWidgetItem(str(comps[row, column]))
             elif column == 4:
                 newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
             elif column == 5:
@@ -477,22 +479,24 @@ def calc_Xieq():
         X, F_val = steepest_descent(X0, minus_f, minus_J, g, 1.0e-3)
     """
     # Newton method: G(X) = J(X)^-1 * F(X)
-    k = 1
+    k = 0
     J_val = J(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
-    while k <= max_it and np.sqrt((Y.T * Y).item()) >= tol:
+    diff = np.matrix(np.empty([len(X), 1]))
+    diff.fill(np.nan)
+    stop = False
+    while k <= max_it and not stop:
+        new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
         Y = gausselimination(J_val, -F_val)
         X = X + Y
-        diff = X - X0
+        diff = X - X_k_m_1
         J_val = J(X)
         F_val = f_gl_0(X)
-        logging.debug('Newton method loop: ' + "k=" + str(k) + "; " + "X= " +
-                      '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' +
-                      "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) +
-                      "; f(X)= " + str(F_val.T.A1) + "; ||f(X)||=" + str((F_val.T * F_val).item()) +
-                      "; Y= " + str(Y.T.A1) + "; ||Y||=" + str(np.sqrt((Y.T * Y).item())))
+        if np.sqrt((Y.T * Y).item()) < tol:
+            stop = True  # Procedure successful
         k += 1
+    new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
@@ -527,8 +531,13 @@ def g(X):
 
 def steepest_descent(X0, f, J, g, tol):
     X = X0
-    k = 1
+    f_val = f(X)
+    k = 0
     stop = False
+    diff = np.matrix(np.empty([len(X), 1]))
+    diff.fill(np.nan)
+    Y = np.matrix(np.empty([len(X), 1]))
+    Y.fill(np.nan)
     while k < max_it and not stop:
         z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
         z0 = np.sqrt((z.T * z).item())
@@ -562,20 +571,30 @@ def steepest_descent(X0, f, J, g, tol):
         else:
             alpha = alpha3
             g_min = g3
+        if abs(g_min - g1) < tol:
+            stop = True  # Procedure successful
+        new_log_Entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
         X_k_m_1 = X
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
-        logging.debug('Steepest descent method loop: ' +
-                      "k=" + str(k) + "; " + "X= " + '[' + ',\\\n'.join(map(str, X.T.A1)) + ']' +
-                      "; g=" + str(g_min) + "; |g-g1|=" + str(abs(g_min - g1)) + "; stop?" + str(stop) +
-                      "; |X(k)-X(k-1)|=" + str((diff.T * diff).item()) +
-                      "; f(X)= " + str(f_val.T.A1) + "; ||f(X)||=" + str(np.sqrt((f_val.T * f_val).item())))
-        if abs(g_min - g1) < tol:
-            stop = True  # Procedure successful
         k += 1
+    new_log_Entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
     return X, f_val
 
+
+def new_log_Entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
+    logging.debug(method + ' method loop;' +
+                  'k=' + str(k) +
+                  ';X=' + '[' + ','.join(map(str, X.T.A1)) + ']' +
+                  ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
+                  ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
+                  ';||f(X)||=' + str(np.sqrt((f_val.T * f_val).item())) +
+                  ';Y=' + '[' + ','.join(map(str, Y.T.A1)) + ']' +
+                  ';||Y||=' + str(np.sqrt((Y.T * Y).item())) +
+                  ';g=' + str(g_min) +
+                  ';|g-g1|=' + str(abs(g_min - g1)) +
+                  ';stop=' + str(stop))
 
 def f_test(X):
     X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
@@ -608,11 +627,11 @@ def display_about_info(form):
         for row in readme_file:
             textStreamOutput += row
     readme_file.close()
-    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation',textStreamOutput)
+    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation', textStreamOutput)
 
 
 def show_log(form):
-    pass
+    log = pd.read_csv(filepath_or_buffer='./logs/calculation_results.log')
 
 
 class aboutBox(QtGui.QMessageBox):
@@ -624,7 +643,6 @@ class aboutBox(QtGui.QMessageBox):
         self.setText(title_text)
         self.setDetailedText(contained_text)
         self.show()
-
 
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
