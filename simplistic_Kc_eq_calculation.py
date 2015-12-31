@@ -665,7 +665,7 @@ def show_log(form):
                       .replace('[', '').replace(']', ''),
                       sep=',')
     take_int = lambda x: int(x.rpartition('=')[-1])
-    take_bool = lambda x: bool(x.rpartition('=')[-1])
+    take_bool = lambda x: x.rpartition('=')[-1] == 'True'
     take_date = lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S,%f')
 
     cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
@@ -689,14 +689,66 @@ def show_log(form):
         filepath_or_buffer='./logs/calculation_results.log',
         delimiter=';',
         names=headers_and_types[:, 0],
-        index_col=0,
-        parse_dates=True,
+        index_col=False,
         converters=cell_conversions)
+    form.logWidget = LogWidget(log)
 
-    form.pandasView = QtGui.QTableView()
-    form.pandasModel = PandasModel(log)
-    form.pandasView.setModel(form.pandasModel)
-    form.pandasView.show()
+
+
+class LogWidget(QtGui.QWidget):
+    def __init__(self, _log, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.log = _log
+        self.setupUi()
+        self.group_2.show()
+
+    def setupUi(self):
+        minLogHeight = 400
+        minLogWidth = minLogHeight*16/9
+        displayItemsByPage = 50
+        self.group_2 = QtGui.QGroupBox()
+        self.group_2.resize(minLogWidth,minLogHeight)
+        self.verticalLayout = QtGui.QVBoxLayout(self.group_2)
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.group_2.setLayout(self.verticalLayout)
+        self.pandasView = QtGui.QTableView(self.group_2)
+        self.firstButton = QtGui.QPushButton(self.group_2)
+        self.lastButton = QtGui.QPushButton(self.group_2)
+        self.nextButton = QtGui.QPushButton(self.group_2)
+        self.previousButton = QtGui.QPushButton(self.group_2)
+        self.pageLabel = QtGui.QLabel(self.group_2)
+        self.totPagesLabel = QtGui.QLabel(self.group_2)
+        self.pageBox = QtGui.QLineEdit(self.group_2)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout.addWidget(self.pandasView)
+        self.horizontalLayout.addWidget(self.firstButton)
+        self.horizontalLayout.addWidget(self.previousButton)
+        self.horizontalLayout.addWidget(self.pageLabel)
+        self.horizontalLayout.addWidget(self.pageBox)
+        self.horizontalLayout.addWidget(self.totPagesLabel)
+        self.horizontalLayout.addWidget(self.nextButton)
+        self.horizontalLayout.addWidget(self.lastButton)
+        self.pandasModel = PandasModel(self.log.tail(displayItemsByPage))
+        self.pandasView.setModel(self.pandasModel)
+
+        # To ensure full display, first set resize modes, then resize columns to contents
+        self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
+        self.pandasView.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.pandasView.resizeColumnsToContents()
+        self.pageBox.setMaximumWidth(int(round(minLogHeight/float(5))))
+        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+
+        lastPage = int(round(len(self.log.values)/float(displayItemsByPage)))
+        currentPageFirstEntry = len(self.log.values)-50
+        currentPageLastEntry = len(self.log.values)
+        self.totPagesLabel.setText(' / ' + str(lastPage))
+        self.pageLabel.setText('Entries ' + str(currentPageFirstEntry) +
+                               ' to ' + str(currentPageLastEntry)+ '; Page: ')
+        self.pageBox.setText(str(lastPage))
+        self.firstButton.setText('<< First')
+        self.lastButton.setText('Last >>')
+        self.previousButton.setText('< Previous')
+        self.nextButton.setText('Next >')
 
 
 class PandasModel(QtCore.QAbstractTableModel):
