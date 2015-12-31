@@ -8,6 +8,7 @@ import os, sys, logging, pandas as pd, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
+from datetime import datetime
 
 # from sympy import solve, nsolve, symbols
 # from numpy import log10, matlib
@@ -344,7 +345,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     if not os.path.exists('./logs'):
         os.mkdir('./logs')
     logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
-                        format='%(asctime)s ; %(message)s')
+                        format='%(asctime)s;%(message)s')
 
     # Collect variables
     n = len(comps)
@@ -596,6 +597,7 @@ def new_log_Entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';stop=' + str(stop))
 
+
 def f_test(X):
     X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
     f = np.matrix([ \
@@ -631,7 +633,97 @@ def display_about_info(form):
 
 
 def show_log(form):
-    log = pd.read_csv(filepath_or_buffer='./logs/calculation_results.log')
+    headers_and_types = np.array(
+        (('date', str),
+         ('method', str),
+         ('k', int),
+         ('X', list),
+         ('||X(k)-X(k-1)||', float),
+         ('f(X)', list),
+         ('||f(X)||', float),
+         ('Y', list),
+         ('||Y||', float),
+         ('g', float),
+         ('|g-g1|', float),
+         ('stop', bool)))
+
+    headers_and_types_dict = dict(headers_and_types)
+    col_numbers_with_float = \
+        np.argwhere(map(lambda x: x == float, headers_and_types[:, 1]))
+    col_numbers_with_list = \
+        np.argwhere(map(lambda x: x == list, headers_and_types[:, 1]))
+    col_numbers_with_int = \
+        np.argwhere(map(lambda x: x == int, headers_and_types[:, 1]))
+    col_numbers_with_str = \
+        np.argwhere(map(lambda x: x == str, headers_and_types[:, 1]))
+    col_numbers_with_bool = \
+        np.argwhere(map(lambda x: x == bool, headers_and_types[:, 1]))
+
+    take_float = lambda x: float(x.rpartition('=')[-1])
+    take_list = lambda x: \
+        np.fromstring(x.rpartition('=')[-1]
+                      .replace('[', '').replace(']', ''),
+                      sep=',')
+    take_int = lambda x: int(x.rpartition('=')[-1])
+    take_bool = lambda x: bool(x.rpartition('=')[-1])
+    take_date = lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S,%f')
+
+    cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
+
+    for i in range(len(headers_and_types)):
+        if i == 0:
+            cell_conversions[headers_and_types[i, 0]] = take_date
+        elif i in col_numbers_with_float:
+            cell_conversions[headers_and_types[i, 0]] = take_float
+        elif i in col_numbers_with_list:
+            cell_conversions[headers_and_types[i, 0]] = take_list
+        elif i in col_numbers_with_int:
+            cell_conversions[headers_and_types[i, 0]] = take_int
+        elif i in col_numbers_with_bool:
+            cell_conversions[headers_and_types[i, 0]] = take_bool
+        elif i in col_numbers_with_str:
+            pass
+        i += 1
+
+    log = pd.read_csv(
+        filepath_or_buffer='./logs/calculation_results.log',
+        delimiter=';',
+        names=headers_and_types[:, 0],
+        index_col=0,
+        parse_dates=True,
+        converters=cell_conversions)
+
+    form.pandasView = QtGui.QTableView()
+    form.pandasModel = PandasModel(log)
+    form.pandasView.setModel(form.pandasModel)
+    form.pandasView.show()
+
+
+class PandasModel(QtCore.QAbstractTableModel):
+    """
+    Used to populate a QTableView with the pandas model
+    """
+
+    def __init__(self, data, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        self._data = data
+
+    def rowCount(self, parent=None):
+        return len(self._data.values)
+
+    def columnCount(self, parent=None):
+        return self._data.columns.size
+
+    def data(self, index, role=QtCore.Qt.DisplayPropertyRole):
+        if index.isValid():
+            if role == QtCore.Qt.DisplayRole:
+                return str(self._data.values[index.row()][index.column()])
+        return None
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._data.columns[col]
+        return None
 
 
 class aboutBox(QtGui.QMessageBox):
@@ -667,15 +759,16 @@ class MainForm(QtGui.QWidget):
         self.ui.setupUi(self)
 
 
-app = QtGui.QApplication.instance()  # checks if QApplication already exists
-if not app:  # create QApplication if it doesnt exist
-    app = QtGui.QApplication(sys.argv)
+if __name__ == '__main__':
+    app = QtGui.QApplication.instance()  # checks if QApplication already exists
+    if not app:  # create QApplication if it doesnt exist
+        app = QtGui.QApplication(sys.argv)
 
-main_form = MainForm()
-main_form.show()
-header_comps, comps, header_reacs, reacs = \
-    load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
-equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
-main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
-main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
-sys.exit(app.exec_())
+    main_form = MainForm()
+    main_form.show()
+    header_comps, comps, header_reacs, reacs = \
+        load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
+    equilibrate(main_form.ui, header_comps, comps, header_reacs, reacs)
+    main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    sys.exit(app.exec_())
