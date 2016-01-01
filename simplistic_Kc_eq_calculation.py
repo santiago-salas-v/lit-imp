@@ -694,7 +694,6 @@ def show_log(form):
     form.logWidget = LogWidget(log)
 
 
-
 class LogWidget(QtGui.QWidget):
     def __init__(self, _log, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -704,7 +703,7 @@ class LogWidget(QtGui.QWidget):
 
     def setupUi(self):
         self.minLogHeight = 400
-        self.minLogWidth = self.minLogHeight*16/9
+        self.minLogWidth = self.minLogHeight * 16 / 9
         self.group_2 = QtGui.QGroupBox()
         self.group_2.resize(self.minLogWidth, self.minLogHeight)
         self.verticalLayout = QtGui.QVBoxLayout(self.group_2)
@@ -732,64 +731,101 @@ class LogWidget(QtGui.QWidget):
         self.lastButton.clicked.connect(partial(self.lastPage))
         self.nextButton.clicked.connect(partial(self.nextPage))
         self.previousButton.clicked.connect(partial(self.previousPage))
-
-        self.currentPageFirstEntry = len(self.log.values) - 50
-        self.displayItemsByPage = 50
-        self.display()
-
-
-    def firstPage(self):
-        self.currentPageFirstEntry = 1
-        self.displayItemsByPage = 50
-        self.display()
-
-
-    def lastPage(self):
-        self.currentPageFirstEntry = len(self.log.values) - 50
-        self.displayItemsByPage = 50
-        self.display()
-
-
-    def nextPage(self):
-        pass
-
-
-    def previousPage(self):
-        pass
-
-
-    def display(self):
-        # Page number
-        self.currentPageLastEntry = self.currentPageFirstEntry + \
-                                    self.displayItemsByPage
-        self.currentPage = int(round(self.currentPageLastEntry/ \
-                                  float(self.displayItemsByPage)))
-        self.lastPage = int(round(len(self.log.values)/ \
-                                  float(self.displayItemsByPage)))
-
-        self.pandasModel = PandasModel(
-            self.log[self.currentPageFirstEntry : self.currentPageLastEntry])
-        self.pandasView.setModel(self.pandasModel)
+        self.pageBox.editingFinished.connect(partial(self.goToPageNo))
 
         # To ensure full display, first set resize modes, then resize columns to contents
         self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
         self.pandasView.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
         self.pandasView.setWordWrap(True)
         self.pandasView.resizeColumnsToContents()
-        self.pandasView.verticalHeaders = \
-            map(str,range(self.currentPageFirstEntry,
-                          self.currentPageLastEntry + 1, 1))
-        self.pageBox.setMaximumWidth(int(round(self.minLogHeight/float(5))))
-        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
 
-        self.totPagesLabel.setText(' / ' + str(self.lastPage))
-        self.pageLabel.setText('Entries ' + str(self.currentPageFirstEntry) +
-                               ' to ' + str(self.currentPageLastEntry)+ '; Page: ')
-        self.pageBox.setText(str(self.currentPage))
         self.firstButton.setText('<< First')
         self.lastButton.setText('Last >>')
         self.previousButton.setText('< Previous')
         self.nextButton.setText('Next >')
+        self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
+        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+
+        self.displayItemsByPage = 50
+        self.currentPageFirstEntry = len(self.log.values) \
+                                     - self.displayItemsByPage
+        self.display()
+
+
+    def firstPage(self):
+        self.currentPageFirstEntry = 1
+        self.displayItemsByPage = self.displayItemsByPage
+        self.display()
+
+
+    def lastPage(self):
+        self.currentPageFirstEntry = len(self.log.values) \
+                                     - self.displayItemsByPage
+        self.display()
+
+
+    def nextPage(self):
+        if self.currentPageLastEntry + \
+                self.displayItemsByPage > len(self.log.values):
+            self.currentPageFirstEntry = len(self.log.values) \
+                                         - self.displayItemsByPage
+        else:
+            self.currentPageFirstEntry = self.currentPageFirstEntry + \
+                                         self.displayItemsByPage
+        self.display()
+
+
+    def previousPage(self):
+        if self.currentPageFirstEntry - \
+                self.displayItemsByPage < 0:
+            self.currentPageFirstEntry = 0
+        else:
+            self.currentPageFirstEntry = self.currentPageFirstEntry - \
+                                         self.displayItemsByPage
+        self.display()
+
+
+    def goToPageNo(self):
+        pageText = self.pageBox.text()
+        try:
+            pageNo = int(round(float(pageText)))
+            self.lastPage = int(round(len(self.log.values) / \
+                                  float(self.displayItemsByPage)))
+            if pageNo < self.lastPage:
+                self.currentPageFirstEntry = \
+                    (pageNo - 1)*self.displayItemsByPage + 1
+            elif pageNo >= self.lastPage:
+                self.currentPageFirstEntry = len(self.log.values) \
+                                             - self.displayItemsByPage
+            elif pageNo <= 1:
+                self.currentPageFirstEntry = 1
+            self.display()
+        except ValueError:
+            pass
+
+
+    def display(self):
+        # Page number
+        self.currentPageLastEntry = self.currentPageFirstEntry + \
+                                    self.displayItemsByPage
+        self.currentPage = int(round(self.currentPageLastEntry / \
+                                     float(self.displayItemsByPage)))
+        self.lastPage = int(round(len(self.log.values) / \
+                                  float(self.displayItemsByPage)))
+
+        self.pandasModel = PandasModel(
+            self.log[self.currentPageFirstEntry: self.currentPageLastEntry])
+        self.pandasView.setModel(self.pandasModel)
+        self.pandasView.resizeColumnsToContents()
+        self.pandasView.verticalHeaders = \
+            map(str, range(self.currentPageFirstEntry,
+                           self.currentPageLastEntry + 1, 1))
+        self.totPagesLabel.setText(' / ' + str(self.lastPage))
+        self.pageLabel.setText('Entries ' + str(self.currentPageFirstEntry) +
+                               ' to ' + str(self.currentPageLastEntry) + '; Page: ')
+        self.pageBox.blockSignals(True)
+        self.pageBox.setText(str(self.currentPage))
+        self.pageBox.blockSignals(False)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
