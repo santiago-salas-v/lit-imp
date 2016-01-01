@@ -4,7 +4,7 @@ Created on Fri Nov 27 20:48:42 2015
 
 @author: Santiago Salas
 """
-import os, sys, logging, pandas as pd, numpy as np, scipy as sp, csv
+import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
 from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
@@ -624,12 +624,66 @@ def g_test(X):
 
 
 def display_about_info(form):
-    textStreamOutput = ''
+    rowString = unicode('', 'utf_8')
+    form.aboutBox_1 = QtGui.QTextBrowser()
+    form.aboutBox_1.setWindowTitle('About')
+    form.aboutBox_1.setWindowIcon(QtGui.QIcon(
+            os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
+    form.aboutBox_1.setOpenExternalLinks(True)
+    addingTable = False
+
+    htmlStream = \
+        unicode('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
+                'utf_8')
+    htmlStream += unicode('<html>', 'utf_8')
+    htmlStream += unicode('<head><meta name="qrichtext" content="1" /><style type="text/css">' +
+                          '\\np,li {white-space: pre-wrap;}\n' +
+                          '\\np,br {line-height: 10%;}\n' +
+                          '</style></head>', 'utf_8')
+
+    htmlStream += unicode('<body style=' + '"' + ' font-family:' + "'" + 'MS Shell Dlg 2' + "'" +
+                          '; font-size:8.25pt; font-weight:400; font-style:normal;' + '"' + '>', 'utf_8')
+    stringToAdd = unicode('', 'utf_8')
+    startingP = unicode("<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
+                        "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>", 'utf_8')
+    endingP = unicode('</p>', 'utf_8')
+    matchingHLine = re.compile('=+')
     with open('README.md') as readme_file:
         for row in readme_file:
-            textStreamOutput += row
+            rowString = unicode(row, 'utf_8')
+            if not addingTable and rowString.find('|') != -1:
+                stringToAdd = ''.join(
+                    ['<table>', '<tr><td>',
+                     rowString.replace('|','</td><td>').replace('\n',''),
+                     '</td></tr>'])
+                addingTable = True
+            elif addingTable and rowString.find('|') == -1:
+                stringToAdd = '</table>' + startingP + rowString + endingP
+                addingTable = False
+            elif addingTable and rowString.find('|') != -1:
+                stringToAdd =  ''.join(
+                    ['<tr><td>',
+                     rowString.replace('|','</td><td>').replace('\n',''),
+                     '</td></tr>'])
+            elif not addingTable and rowString.find('|') == -1:
+                stringToAdd = startingP + rowString + endingP
+            if len(rowString.replace('\n','')) == 0:
+                htmlStream += stringToAdd + '<br>'
+            elif matchingHLine.match(rowString):
+                htmlStream += '<hr />'
+            else:
+                htmlStream += stringToAdd
+    htmlStream += unicode('<hr />','utf_8')
+    htmlStream += unicode("<footer><p>code:" +
+                          '<a href=' +'"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' +'>' +
+                          'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
+                          'utf_8')
+    htmlStream += unicode('</body></html>', 'utf_8')
     readme_file.close()
-    aboutBox_1 = QtGui.QMessageBox.about(form, 'simplistic Kc eq calculation', textStreamOutput)
+    form.aboutBox_1.setHtml(htmlStream)
+    form.aboutBox_1.setMinimumWidth(500)
+    form.aboutBox_1.setMinimumHeight(400)
+    form.aboutBox_1.show()
 
 
 def show_log(form):

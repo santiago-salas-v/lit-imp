@@ -5,23 +5,24 @@ Python, numpy, scipy
 
 ============
 
-Composición de equilibrio, forma sencilla (K_gamma = 1) : simplistic_Kc_eq_calculation.py
+Cálculo de composición de equilibrio simplificado (K_gamma = 1) : simplistic_Kc_eq_calculation.py
 
-Factorización de matriz LR = PDA y eliminación Gauss: mat_Zerlegungen.py
+Factorización LR = PDA y eliminación Gauss: mat_Zerlegungen.py
 
 Pasos para correr la aplicación:
 
 1.  Usar Anaconda u otra distribución de Python libre incluyendo numpy y scipy
+2.  Correr el programa simplistic_Kc_eq_calculation.py, por ejemplo: python.exe simplistic_Kc_eq_calculation.py
 
 ============
 
 Refs.
 
-Refs     		| VALUE
--------------   | -------------
-Composición de equilibrio | Smith, J.M., Van Ness, H.C. y Abbott, M.M. Introducción a la termodinámica en ingeniería química. 6a ed. en español. México, D.F. : McGraw-Hill Interamericana, 2003.
-Solución de sistema no-lineal | Burden Richard L., Faires J. Douglas; Numerical Analysis; 9th ed. Brooks/Cole, Cengage Learning 2011. 
-Factorización de matriz LR = PDA y eliminación Gauss | Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer-Verlag Berlin Heidelberg 2006 S. 79.
+Refs|VALUE
+-------------|-------------
+Composición de equilibrio|Smith, J.M., Van Ness, H.C. y Abbott, M.M. Introducción a la termodinámica en ingeniería química. 6a ed. en español. México, D.F. : McGraw-Hill Interamericana, 2003.
+Solución de sistema no-lineal|Burden Richard L., Faires J. Douglas; Numerical Analysis; 9th ed. Brooks/Cole, Cengage Learning 2011.
+Factorización de matriz LR = PDA y eliminación Gauss|Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer-Verlag Berlin Heidelberg 2006 S. 79.
 
 ============
 
