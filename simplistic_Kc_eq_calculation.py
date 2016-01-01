@@ -697,8 +697,13 @@ def show_log(form):
 class LogWidget(QtGui.QWidget):
     def __init__(self, _log, parent=None):
         QtGui.QWidget.__init__(self, parent)
+        self.icon = QtGui.QIcon()
+        self.icon.addPixmap(QtGui.QPixmap(
+            _fromUtf8("utils/glyphicons-88-log-book.png")),
+            QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.log = _log
         self.setupUi()
+        self.group_2.setWindowIcon(self.icon)
         self.group_2.show()
 
     def setupUi(self):
@@ -717,8 +722,10 @@ class LogWidget(QtGui.QWidget):
         self.pageLabel = QtGui.QLabel(self.group_2)
         self.totPagesLabel = QtGui.QLabel(self.group_2)
         self.pageBox = QtGui.QLineEdit(self.group_2)
+        self.exportButton = QtGui.QPushButton(self.group_2)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.addWidget(self.pandasView)
+        self.verticalLayout.addWidget(self.exportButton)
         self.horizontalLayout.addWidget(self.firstButton)
         self.horizontalLayout.addWidget(self.previousButton)
         self.horizontalLayout.addWidget(self.pageLabel)
@@ -731,6 +738,7 @@ class LogWidget(QtGui.QWidget):
         self.lastButton.clicked.connect(partial(self.lastPage))
         self.nextButton.clicked.connect(partial(self.nextPage))
         self.previousButton.clicked.connect(partial(self.previousPage))
+        self.exportButton.clicked.connect(partial(self.exportData))
         self.pageBox.editingFinished.connect(partial(self.goToPageNo))
 
         # To ensure full display, first set resize modes, then resize columns to contents
@@ -739,30 +747,29 @@ class LogWidget(QtGui.QWidget):
         self.pandasView.setWordWrap(True)
         self.pandasView.resizeColumnsToContents()
 
+        self.group_2.setWindowTitle('calculation log')
         self.firstButton.setText('<< First')
         self.lastButton.setText('Last >>')
         self.previousButton.setText('< Previous')
         self.nextButton.setText('Next >')
         self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
         self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.exportButton.setText('Export (csv)')
 
         self.displayItemsByPage = 50
         self.currentPageFirstEntry = len(self.log.values) \
                                      - self.displayItemsByPage
         self.display()
 
-
     def firstPage(self):
         self.currentPageFirstEntry = 1
         self.displayItemsByPage = self.displayItemsByPage
         self.display()
 
-
     def lastPage(self):
         self.currentPageFirstEntry = len(self.log.values) \
                                      - self.displayItemsByPage
         self.display()
-
 
     def nextPage(self):
         if self.currentPageLastEntry + \
@@ -774,7 +781,6 @@ class LogWidget(QtGui.QWidget):
                                          self.displayItemsByPage
         self.display()
 
-
     def previousPage(self):
         if self.currentPageFirstEntry - \
                 self.displayItemsByPage < 0:
@@ -784,16 +790,15 @@ class LogWidget(QtGui.QWidget):
                                          self.displayItemsByPage
         self.display()
 
-
     def goToPageNo(self):
         pageText = self.pageBox.text()
         try:
             pageNo = int(round(float(pageText)))
             self.lastPage = int(round(len(self.log.values) / \
-                                  float(self.displayItemsByPage)))
+                                      float(self.displayItemsByPage)))
             if pageNo < self.lastPage:
                 self.currentPageFirstEntry = \
-                    (pageNo - 1)*self.displayItemsByPage + 1
+                    (pageNo - 1) * self.displayItemsByPage + 1
             elif pageNo >= self.lastPage:
                 self.currentPageFirstEntry = len(self.log.values) \
                                              - self.displayItemsByPage
@@ -802,7 +807,6 @@ class LogWidget(QtGui.QWidget):
             self.display()
         except ValueError:
             pass
-
 
     def display(self):
         # Page number
@@ -826,6 +830,19 @@ class LogWidget(QtGui.QWidget):
         self.pageBox.blockSignals(True)
         self.pageBox.setText(str(self.currentPage))
         self.pageBox.blockSignals(False)
+
+    def exportData(self):
+        supportedFilters = ['CSV file (*.csv)']
+        # TODO: supportedFilters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)', 'XLS (2007) (*.xls)']
+        (fileName, selectedFilter) = QtGui.QFileDialog.getSaveFileName(
+            parent=self.group_2,
+            caption='enter file name to save...',
+            filter=';;'.join(supportedFilters))
+        if selectedFilter == supportedFilters[0]:
+            self.log.to_csv(fileName)
+        elif selectedFilter == supportedFilters[1] or \
+                        selectedFilter == supportedFilters[2]:
+            self.log.to_excel(fileName)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
