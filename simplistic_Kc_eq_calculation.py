@@ -105,7 +105,7 @@ class Ui_GroupBox(object):
         self.label_4.setObjectName(_fromUtf8("tol_label"))
         self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_4)
-        self.doubleSpinBox_5 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_5 = ScientificDoubleSpinBox(GroupBox)
         self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
         self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
@@ -182,11 +182,13 @@ class Ui_GroupBox(object):
         self.verticalLayout.addWidget(self.comboBox)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.doubleSpinBox = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox = ScientificDoubleSpinBox(GroupBox)
         self.doubleSpinBox.setObjectName(_fromUtf8("doubleSpinBox"))
+        self.doubleSpinBox.setMinimum(0.0)
         self.horizontalLayout_3.addWidget(self.doubleSpinBox)
-        self.doubleSpinBox_2 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_2 = ScientificDoubleSpinBox(GroupBox)
         self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
+        self.doubleSpinBox_2.setMinimum(0.0)
         self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.comboBox_2 = QtGui.QComboBox(GroupBox)
@@ -195,11 +197,13 @@ class Ui_GroupBox(object):
         self.verticalLayout.addWidget(self.comboBox_2)
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
-        self.doubleSpinBox_4 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_4 = ScientificDoubleSpinBox(GroupBox)
         self.doubleSpinBox_4.setObjectName(_fromUtf8("doubleSpinBox_4"))
+        self.doubleSpinBox_4.setMinimum(0.0)
         self.horizontalLayout_4.addWidget(self.doubleSpinBox_4)
-        self.doubleSpinBox_3 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_3 = ScientificDoubleSpinBox(GroupBox)
         self.doubleSpinBox_3.setObjectName(_fromUtf8("doubleSpinBox_3"))
+        self.doubleSpinBox_3.setMinimum(0.0)
         self.horizontalLayout_4.addWidget(self.doubleSpinBox_3)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
         self.pushButton = QtGui.QPushButton(GroupBox)
@@ -894,9 +898,9 @@ class LogWidget(QtGui.QWidget):
             filter=';;'.join(supportedFilters))
         if selectedFilter == supportedFilters[0]:
             self.log.to_csv(fileName)
-        elif selectedFilter == supportedFilters[1] or \
-                        selectedFilter == supportedFilters[2]:
-            self.log.to_excel(fileName)
+        #elif selectedFilter == supportedFilters[1] or \
+        #                selectedFilter == supportedFilters[2]:
+        #    self.log.to_excel(fileName)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
@@ -958,6 +962,67 @@ class MainForm(QtGui.QWidget):
             os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
         self.ui = Ui_GroupBox()
         self.ui.setupUi(self)
+
+# Following classes from git@gist.github.com:0be2e44981159d0854f5.git
+# Regular expression to find floats. Match groups are the whole string, the
+# whole coefficient, the decimal part of the coefficient, and the exponent
+# part.
+_float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
+
+def valid_float_string(string):
+    match = _float_re.search(string)
+    return match.groups()[0] == string if match else False
+
+
+class FloatValidator(QtGui.QValidator):
+
+    def validate(self, string, position):
+        if valid_float_string(string):
+            return self.State.Acceptable
+        if string == "" or string[position-1] in 'e.-+':
+            return self.State.Intermediate
+        return self.State.Invalid
+
+    def fixup(self, text):
+        match = _float_re.search(text)
+        return match.groups()[0] if match else ""
+
+
+class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
+
+    def __init__(self, parent=None):
+        QtGui.QDoubleSpinBox.__init__(self, parent)
+        self.setMinimum(-np.inf)
+        self.setMaximum(np.inf)
+        self.validator = FloatValidator()
+        self.setDecimals(1000)
+
+    def validate(self, text, position):
+        return self.validator.validate(text, position)
+
+    def fixup(self, text):
+        return self.validator.fixup(text)
+
+    def valueFromText(self, text):
+        return float(text)
+
+    def textFromValue(self, value):
+        return format_float(value)
+
+    def stepBy(self, steps):
+        text = self.cleanText()
+        groups = _float_re.search(text).groups()
+        decimal = float(groups[1])
+        decimal += steps
+        new_string = "{:g}".format(decimal) + (groups[3] if groups[3] else "")
+        self.lineEdit().setText(new_string)
+
+
+def format_float(value):
+    """Modified form of the 'g' format specifier."""
+    string = "{:g}".format(value).replace("e+", "e")
+    string = re.sub("e(-?)0*(\d+)", r"e\1\2", string)
+    return string
 
 
 if __name__ == '__main__':
