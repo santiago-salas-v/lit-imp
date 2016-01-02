@@ -365,10 +365,10 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox.clear()
     form.comboBox_2.clear()
     form.comboBox_3.clear()
-    for item in comps[:, 1].T:
-        form.comboBox.addItem('C_{' + item + '} | 0')
-        form.comboBox_2.addItem('C_{' + item + '} | eq')
-        form.comboBox_3.addItem(item)
+    for item in comps[:, 0:2]:
+        form.comboBox.addItem('C0_' + item[0] + ' {'  + item[1] + '}')
+        form.comboBox_2.addItem('Ceq_' + item[0] + ' {'  + item[1] + '}')
+        form.comboBox_3.addItem(item[1])
 
     highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
     index_of_solvent = highestC0Indexes[-1]
