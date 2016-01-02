@@ -386,7 +386,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox_2.setCurrentIndex(0)
 
     # Calculate equilibrium composition
-    Ceq_i, Xieq_j = calc_Xieq()
+    Ceq_i, Xieq_j = calc_Xieq(form)
 
     if 'component_order_in_table' in globals():
         i = component_order_in_table
@@ -457,7 +457,7 @@ def plot_intervals(form):
     pass
 
 
-def calc_Xieq():
+def calc_Xieq(form):
     """Steepest descent for good initial estimate, then Newton method for non-linear algebraic system
     :return: tuple with Ceq_i, Xieq_j, f_0
     :param C0_i: np.matrix (n X 1) - Conc(i, alimentación)
@@ -474,8 +474,13 @@ def calc_Xieq():
     Xieq_j = np.matrix(np.zeros([Nr, 1]))
     X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol), Xieq_j])
     X = X0
+    # Add progress bar & variable
+    # TODO: Implement cancel button to cancel iterations
+    progressDialog = QtGui.QProgressDialog()
+    progressDialog.setFixedWidth(300)
+    progressDialog.setWindowTitle('Steepest descent method')
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3)
+    X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3, progressDialog)
     """
     if any(map(lambda x: np.sign(x)==-1, X[0:n])):
         X = X0
@@ -487,19 +492,47 @@ def calc_Xieq():
     k = 0
     J_val = J(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
+    magnitude_Y = np.sqrt((Y.T * Y).item())
+    # For progress bar, use log scale to compensate for quadratic convergence
+    log10_to_o_max_magnityde_y = np.log10(tol / magnitude_Y)
+    progress_k = \
+        (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
+    progressDialog.setWindowTitle('Newton method loop')
+    progressDialog.setValue(0)
+    progressDialog.setVisible(True)
+    progressDialog.setLabelText('Newton method: Quadratic convergence. \n' +
+                                'Iteration k=' + str(k) +
+                                '; (max_it=' + str(max_it) + ')')
     while k <= max_it and not stop:
         new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
+        progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
         X = X + Y
         diff = X - X_k_m_1
         J_val = J(X)
         F_val = f_gl_0(X)
-        if np.sqrt((Y.T * Y).item()) < tol:
+        magnitude_Y = np.sqrt((Y.T * Y).item())
+        if magnitude_Y < tol:
             stop = True  # Procedure successful
+            progressDialog.setValue(100.0)
+            progressDialog.setVisible(False)
+        else:
+            # For progress bar, use log scale to compensate for quadratic convergence
+            progressDialog.setLabelText('Newton method: Quadratic convergence. \n' +
+                                        'Iteration k=' + str(k) +
+                                        '; (max_it=' + str(max_it) + ')')
+            progress_k = \
+                (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
+            progressDialog.setValue(
+                (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
+            if round(progress_k) == round(progress_k_m_1):
+                QtGui.QApplication.processEvents()
+            if progressDialog.wasCanceled():
+                stop = True
         k += 1
     new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
     Ceq_i = X[0:n]
@@ -534,7 +567,7 @@ def g(X):
     return (f_0.T * f_0).item()
 
 
-def steepest_descent(X0, f, J, g, tol):
+def steepest_descent(X0, f, J, g, tol, progressDialog):
     X = X0
     f_val = f(X)
     k = 0
@@ -543,6 +576,13 @@ def steepest_descent(X0, f, J, g, tol):
     diff.fill(np.nan)
     Y = np.matrix(np.empty([len(X), 1]))
     Y.fill(np.nan)
+    abs_gmin_minus_g1 = np.nan
+    progressDialog.setValue(0)
+    progressDialog
+    progressDialog.setVisible(True)
+    progressDialog.setLabelText('Steepest descent: Linear convergence. \n' +
+                                'Iteration k=' + str(k) +
+                                '; (max_it=' + str(max_it) + ')')
     while k < max_it and not stop:
         z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
         z0 = np.sqrt((z.T * z).item())
@@ -576,8 +616,16 @@ def steepest_descent(X0, f, J, g, tol):
         else:
             alpha = alpha3
             g_min = g3
-        if abs(g_min - g1) < tol:
+        abs_gmin_minus_g1 = abs(g_min - g1)
+        if abs_gmin_minus_g1 < tol:
             stop = True  # Procedure successful
+            progressDialog.setValue(100.0)
+            progressDialog.setVisible(False)
+        else:
+            progressDialog.setValue(tol / abs_gmin_minus_g1 * 100)
+            progressDialog.setLabelText('Steepest descent: Linear convergence. \n' +
+                                        'Iteration k=' + str(k) +
+                                        '; (max_it=' + str(max_it) + ')')
         new_log_Entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
         X_k_m_1 = X
         X = X - alpha * z
@@ -632,7 +680,7 @@ def display_about_info(form):
     form.aboutBox_1 = QtGui.QTextBrowser()
     form.aboutBox_1.setWindowTitle('About')
     form.aboutBox_1.setWindowIcon(QtGui.QIcon(
-            os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
+        os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
     form.aboutBox_1.setOpenExternalLinks(True)
     addingTable = False
 
@@ -658,28 +706,28 @@ def display_about_info(form):
             if not addingTable and rowString.find('|') != -1:
                 stringToAdd = ''.join(
                     ['<table>', '<tr><td>',
-                     rowString.replace('|','</td><td>').replace('\n',''),
+                     rowString.replace('|', '</td><td>').replace('\n', ''),
                      '</td></tr>'])
                 addingTable = True
             elif addingTable and rowString.find('|') == -1:
                 stringToAdd = '</table>' + startingP + rowString + endingP
                 addingTable = False
             elif addingTable and rowString.find('|') != -1:
-                stringToAdd =  ''.join(
+                stringToAdd = ''.join(
                     ['<tr><td>',
-                     rowString.replace('|','</td><td>').replace('\n',''),
+                     rowString.replace('|', '</td><td>').replace('\n', ''),
                      '</td></tr>'])
             elif not addingTable and rowString.find('|') == -1:
                 stringToAdd = startingP + rowString + endingP
-            if len(rowString.replace('\n','')) == 0:
+            if len(rowString.replace('\n', '')) == 0:
                 htmlStream += stringToAdd + '<br>'
             elif matchingHLine.match(rowString):
                 htmlStream += '<hr />'
             else:
                 htmlStream += stringToAdd
-    htmlStream += unicode('<hr />','utf_8')
+    htmlStream += unicode('<hr />', 'utf_8')
     htmlStream += unicode("<footer><p>code:" +
-                          '<a href=' +'"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' +'>' +
+                          '<a href=' + '"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' + '>' +
                           'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
                           'utf_8')
     htmlStream += unicode('</body></html>', 'utf_8')
@@ -898,9 +946,9 @@ class LogWidget(QtGui.QWidget):
             filter=';;'.join(supportedFilters))
         if selectedFilter == supportedFilters[0]:
             self.log.to_csv(fileName)
-        #elif selectedFilter == supportedFilters[1] or \
-        #                selectedFilter == supportedFilters[2]:
-        #    self.log.to_excel(fileName)
+            # elif selectedFilter == supportedFilters[1] or \
+            #                selectedFilter == supportedFilters[2]:
+            #    self.log.to_excel(fileName)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
@@ -963,11 +1011,13 @@ class MainForm(QtGui.QWidget):
         self.ui = Ui_GroupBox()
         self.ui.setupUi(self)
 
+
 # Following classes from git@gist.github.com:0be2e44981159d0854f5.git
 # Regular expression to find floats. Match groups are the whole string, the
 # whole coefficient, the decimal part of the coefficient, and the exponent
 # part.
 _float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
+
 
 def valid_float_string(string):
     match = _float_re.search(string)
@@ -975,11 +1025,10 @@ def valid_float_string(string):
 
 
 class FloatValidator(QtGui.QValidator):
-
     def validate(self, string, position):
         if valid_float_string(string):
             return self.State.Acceptable
-        if string == "" or string[position-1] in 'e.-+':
+        if string == "" or string[position - 1] in 'e.-+':
             return self.State.Intermediate
         return self.State.Invalid
 
@@ -989,7 +1038,6 @@ class FloatValidator(QtGui.QValidator):
 
 
 class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
-
     def __init__(self, parent=None):
         QtGui.QDoubleSpinBox.__init__(self, parent)
         self.setMinimum(-np.inf)
