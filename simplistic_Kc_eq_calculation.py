@@ -5,13 +5,16 @@ Created on Fri Nov 27 20:48:42 2015
 @author: Santiago Salas
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
+import matplotlib
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4'] = 'PySide'
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
 from datetime import datetime
 
-# from sympy import solve, nsolve, symbols
-# from numpy import log10, matlib
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -224,7 +227,7 @@ class Ui_GroupBox(object):
 
     def retranslateUi(self, GroupBox):
         GroupBox.setWindowTitle(_translate("GroupBox", "Simplistic EC.", None))
-        # GroupBox.setTitle(_translate("GroupBox", "Simplistic Eq.", None))
+        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "Plot", None))
         __sortingEnabled = self.tableComps.isSortingEnabled()
         self.open_button.setText(_translate("GroupBox", "Open", None))
         self.save_button.setText(_translate("GroupBox", "Save", None))
@@ -241,6 +244,61 @@ class Ui_GroupBox(object):
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
         self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
         self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
+
+
+class Ui_GroupBoxPlot(object):
+    def setupUi(self, GroupBox):
+        GroupBox.setObjectName("GroupBox")
+        GroupBox.resize(762, 450)
+        self.horizontalLayoutWidget = QtGui.QWidget(GroupBox)
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(9, 19, 741, 421))
+        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
+        self.horizontalLayout = QtGui.QHBoxLayout(self.horizontalLayoutWidget)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        # Generate the plot
+        self.figure = Figure(figsize=(600,450), dpi=72, facecolor=(1,1,1),
+                             edgecolor=(0,0,0))
+        self.ax = self.figure.add_subplot(111)
+        self.ax.plot([0,1])
+        # Generate the canvas to display the plot
+        self.canvas = FigureCanvas(self.figure)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.canvas.sizePolicy().hasHeightForWidth())
+        self.canvas.setSizePolicy(sizePolicy)
+        self.canvas.setMinimumSize(QtCore.QSize(600, 0))
+        self.canvas.setObjectName("canvas")
+        self.horizontalLayout.addWidget(self.canvas)
+        self.verticalLayout = QtGui.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label = QtGui.QLabel(self.horizontalLayoutWidget)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+        self.listWidget_2 = QtGui.QListWidget(self.horizontalLayoutWidget)
+        self.listWidget_2.setObjectName("listWidget_2")
+        self.verticalLayout.addWidget(self.listWidget_2)
+        self.label_2 = QtGui.QLabel(self.horizontalLayoutWidget)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.listWidget = QtGui.QListWidget(self.horizontalLayoutWidget)
+        self.listWidget.setObjectName("listWidget")
+        self.verticalLayout.addWidget(self.listWidget)
+        self.pushButton = QtGui.QPushButton(self.horizontalLayoutWidget)
+        self.pushButton.setObjectName("pushButton")
+        self.verticalLayout.addWidget(self.pushButton)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+
+        self.retranslateUi(GroupBox)
+        QtCore.QMetaObject.connectSlotsByName(GroupBox)
+
+    def retranslateUi(self, GroupBox):
+        GroupBox.setWindowTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("GroupBox", "Displayed", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("GroupBox", "Available", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton.setText(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
 
 
 def open_file(form):
@@ -454,7 +512,10 @@ def save_file(form):
 
 
 def plot_intervals(form):
-    pass
+    form.groupBox = QtGui.QGroupBox()
+    form.groupBox.plotBox = Ui_GroupBoxPlot()
+    form.groupBox.plotBox.setupUi(form.groupBox)
+    form.groupBox.show()
 
 
 def calc_Xieq(form):
@@ -1003,9 +1064,9 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
             return float(self.text()) < float(y.text())
 
 
-class MainForm(QtGui.QWidget):
+class MainForm(QtGui.QGroupBox):
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QGroupBox.__init__(self, parent)
         self.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
         self.ui = Ui_GroupBox()
