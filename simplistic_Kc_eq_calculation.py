@@ -33,7 +33,7 @@ except AttributeError:
         return QtGui.QApplication.translate(context, text, disambig)
 
 
-class Ui_GroupBox(object):
+class UiGroupBox(object):
     def setupUi(self, GroupBox):
         GroupBox.setObjectName(_fromUtf8("GroupBox"))
         # Default size
@@ -246,7 +246,7 @@ class Ui_GroupBox(object):
         self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
 
 
-class Ui_GroupBoxPlot(object):
+class UiGroupBoxPlot(object):
     def setupUi(self, GroupBox):
         GroupBox.setObjectName("GroupBox")
         GroupBox.resize(762, 450)
@@ -365,7 +365,7 @@ def load_csv(form, filename):
     return header_comps, comps, header_reacs, reacs
 
 
-def load_QTableWidget(form):
+def load_qtablewidget(form):
     global component_order_in_table
     n = form.tableComps.rowCount()
     Nr = form.tableReacs.rowCount()
@@ -394,15 +394,16 @@ def recalculate_after_cell_edit(form, row, column):
 
 
 def gui_equilibrate(form):
-    header_comps, comps, header_reacs, reacs = load_QTableWidget(form)
+    header_comps, comps, header_reacs, reacs = load_qtablewidget(form)
     equilibrate(form, header_comps, comps, header_reacs, reacs)
 
 
 def equilibrate(form, header_comps, comps, header_reacs, reacs):
     # Solve
-    global C0_i, z_i, nu_ij, pKa_j
+    global C0_i, z_i, nu_ij, pKa_j, n, Nr
     global max_it, tol, index_of_solvent, C_solvent_Tref
     global component_order_in_table
+    global Xieq_j_0, Ceq_i_0
     # Setup logging
     if not os.path.exists('./logs'):
         os.mkdir('./logs')
@@ -443,8 +444,21 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
     form.comboBox_2.setCurrentIndex(0)
 
-    # Calculate equilibrium composition
-    Ceq_i, Xieq_j = calc_Xieq(form)
+    # First estimates for eq. Composition Ceq and Reaction extent Xieq
+    Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+    Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+    acceptable_solution = False
+    k = 1
+    # Calculate equilibrium composition: Steepest descent / Newton method
+    # TODO: Implement global homotopy-continuation method
+    while not acceptable_solution and k < max_it:
+        Ceq_i, Xieq_j = calc_Xieq(form)
+        k += 1
+        if all(Ceq_i > 0):
+            acceptable_solution = True
+        else:
+            # Set reactions to random extent and recalculate
+            Xieq_j_0 = np.matrix(np.random.normal(0.0,1.0/3.0,Nr)).T
 
     if 'component_order_in_table' in globals():
         i = component_order_in_table
@@ -452,7 +466,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
         i = range(0, n)
     j = range(0, 4 + 3)
 
-    # As usual, problems occurr when sorting is combined with setting QTableWidgetItems
+    # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
+    # Therefore disable sorting, then set QTableWidgetItems and finally reenable sorting.
     form.tableComps.setSortingEnabled(False)
     form.tableReacs.setSortingEnabled(False)
 
@@ -513,7 +528,7 @@ def save_file(form):
 
 def plot_intervals(form):
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = Ui_GroupBoxPlot()
+    form.groupBox.plotBox = UiGroupBoxPlot()
     form.groupBox.plotBox.setupUi(form.groupBox)
     form.groupBox.show()
 
@@ -525,15 +540,13 @@ def calc_Xieq(form):
     :param z_i: np.matrix (n X 1) - Carga(i, alimentación)
     :param nu_ij: np.matrix (n X Nr) - Coefs. esteq. componente i en reacción j
     :param pKa_j: np.matrix (n X 1) - (-1)*log10("Cte." de equilibrio en reacción j) = -log10 Kc_j(T)
-    :param Xieq_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
-    :param Ceq_0: np.matrix (n X 1) - Conc(i, equilibrio)
+    :param Xieq_j_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
+    :param Ceq_i_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
     global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, index_of_solvent, C_solvent_Tref
-    n = nu_ij.shape[0]
-    Nr = nu_ij.shape[1]
+    global Xieq_j_0, Ceq_i_0
     Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
-    Xieq_j = np.matrix(np.zeros([Nr, 1]))
-    X0 = np.concatenate([C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol), Xieq_j])
+    X0 = np.concatenate([Ceq_i_0, Xieq_j_0])
     X = X0
     # Add progress bar & variable
     # TODO: Implement cancel button to cancel iterations
@@ -541,7 +554,7 @@ def calc_Xieq(form):
     progressDialog.setFixedWidth(300)
     progressDialog.setWindowTitle('Steepest descent method')
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X, F_val = steepest_descent(X, f_gl_0, J, g, 1.0e-3, progressDialog)
+    X, F_val = steepest_descent(X, f_gl_0, j, g, 1.0e-3, progressDialog)
     """
     if any(map(lambda x: np.sign(x)==-1, X[0:n])):
         X = X0
@@ -551,7 +564,7 @@ def calc_Xieq(form):
     """
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 0
-    J_val = J(X)
+    J_val = j(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
     magnitude_Y = np.sqrt((Y.T * Y).item())
     # For progress bar, use log scale to compensate for quadratic convergence
@@ -568,13 +581,13 @@ def calc_Xieq(form):
                                 'Iteration k=' + str(k) +
                                 '; (max_it=' + str(max_it) + ')')
     while k <= max_it and not stop:
-        new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
+        new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
         X = X + Y
         diff = X - X_k_m_1
-        J_val = J(X)
+        J_val = j(X)
         F_val = f_gl_0(X)
         magnitude_Y = np.sqrt((Y.T * Y).item())
         if magnitude_Y < tol:
@@ -595,7 +608,7 @@ def calc_Xieq(form):
             if progressDialog.wasCanceled():
                 stop = True
         k += 1
-    new_log_Entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
+    new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
@@ -611,16 +624,16 @@ def f_gl_0(X):
     return f_gl_0
 
 
-def J(X):
+def j(X):
     global C0_i, nu_ij, n, Nr, Kc_j
     Ceq_i = X[0:n, 0]
-    Eins_durch_C = np.diag(np.power(Ceq_i, -1).A1, 0)
-    Quotient = np.diag(np.prod(np.power(Ceq_i, nu_ij), 0).A1)
-    J = np.matrix(np.zeros([n + Nr, n + Nr], dtype=float))
-    J[0:n, 0:n] = -1 * np.eye(n).astype(float)
-    J[0:n, n:n + Nr] = nu_ij
-    J[n:n + Nr, 0:n] = Quotient * nu_ij.T * Eins_durch_C
-    return J
+    eins_durch_c = np.diag(np.power(Ceq_i, -1).A1, 0)
+    quotient = np.diag(np.prod(np.power(Ceq_i, nu_ij), 0).A1)
+    jac = np.matrix(np.zeros([n + Nr, n + Nr], dtype=float))
+    jac[0:n, 0:n] = -1 * np.eye(n).astype(float)
+    jac[0:n, n:n + Nr] = nu_ij
+    jac[n:n + Nr, 0:n] = quotient * nu_ij.T * eins_durch_c
+    return jac
 
 
 def g(X):
@@ -687,17 +700,17 @@ def steepest_descent(X0, f, J, g, tol, progressDialog):
             progressDialog.setLabelText('Steepest descent: Linear convergence. \n' +
                                         'Iteration k=' + str(k) +
                                         '; (max_it=' + str(max_it) + ')')
-        new_log_Entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
+        new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
         X_k_m_1 = X
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
         k += 1
-    new_log_Entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
+    new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
     return X, f_val
 
 
-def new_log_Entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
+def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
     logging.debug(method + ' method loop;' +
                   'k=' + str(k) +
                   ';X=' + '[' + ','.join(map(str, X.T.A1)) + ']' +
@@ -1069,7 +1082,7 @@ class MainForm(QtGui.QGroupBox):
         QtGui.QGroupBox.__init__(self, parent)
         self.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
-        self.ui = Ui_GroupBox()
+        self.ui = UiGroupBox()
         self.ui.setupUi(self)
 
 
