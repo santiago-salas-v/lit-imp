@@ -221,7 +221,7 @@ class UiGroupBox(object):
         self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
         self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, self))
-        self.log_button.clicked.connect(partial(show_log, self))
+        self.log_button.clicked.connect(partial(show_log))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
@@ -449,11 +449,13 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
     acceptable_solution = False
     k = 1
+    stop = False
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
-    while not acceptable_solution and k < max_it:
+    while not acceptable_solution and k < max_it and stop == False:
         Ceq_i, Xieq_j = calc_Xieq(form)
         k += 1
+        # TODO: if progressDialog.wasCanceled() == True then stop
         if all(Ceq_i > 0):
             acceptable_solution = True
         else:
@@ -601,8 +603,15 @@ def calc_Xieq(form):
                                         '; (max_it=' + str(max_it) + ')')
             progress_k = \
                 (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
-            progressDialog.setValue(
-                (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
+            # TODO: Fix case in which magnitude_Y == inf (divergent)
+            if np.isnan(magnitude_Y) or np.isinf(magnitude_Y):
+                stop = True # Divergent method
+                progressDialog.setValue(
+                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_y) * 100.0)
+                progressDialog.setLabelText('Divergent')
+            else:
+                progressDialog.setValue(
+                    (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
             if round(progress_k) == round(progress_k_m_1):
                 QtGui.QApplication.processEvents()
             if progressDialog.wasCanceled():
@@ -812,7 +821,7 @@ def display_about_info(form):
     form.aboutBox_1.show()
 
 
-def show_log(form):
+def show_log():
     headers_and_types = np.array(
         (('date', str),
          ('method', str),
@@ -871,7 +880,7 @@ def show_log(form):
         names=headers_and_types[:, 0],
         index_col=False,
         converters=cell_conversions)
-    form.logWidget = LogWidget(log)
+    return LogWidget(log)
 
 
 class LogWidget(QtGui.QWidget):
