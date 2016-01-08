@@ -6,6 +6,8 @@ Created on Fri Nov 27 20:48:42 2015
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
 import matplotlib
+from sympy.polys.polytools import GroebnerBasis
+
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -14,7 +16,6 @@ from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
 from datetime import datetime
-
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -136,6 +137,10 @@ class UiGroupBox(object):
         self.tableComps.horizontalHeader().setSortIndicatorShown(True)
         self.tableComps.verticalHeader().setVisible(False)
         self.verticalLayout_2.addWidget(self.tableComps)
+        self.label_9 = QtGui.QLabel(GroupBox)
+        self.verticalLayout_2.addWidget(self.label_9)
+        self.progressBar = QtGui.QProgressBar(GroupBox, visible=True)
+        self.verticalLayout_2.addWidget(self.progressBar)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
         self.label_5 = QtGui.QLabel(GroupBox)
@@ -244,6 +249,7 @@ class UiGroupBox(object):
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
         self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
         self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
+        self.label_9.setText(_translate("GroupBox", 'Currently unequilibrated', None))
 
 
 class UiGroupBoxPlot(object):
@@ -257,10 +263,10 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         # Generate the plot
-        self.figure = Figure(figsize=(600,450), dpi=72, facecolor=(1,1,1),
-                             edgecolor=(0,0,0))
+        self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
+                             edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
-        self.ax.plot([0,1])
+        self.ax.plot([0, 1])
         # Generate the canvas to display the plot
         self.canvas = FigureCanvas(self.figure)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Expanding)
@@ -297,7 +303,8 @@ class UiGroupBoxPlot(object):
         GroupBox.setWindowTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("GroupBox", "Displayed", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("GroupBox", "Available", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(
+            QtGui.QApplication.translate("GroupBox", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
 
 
@@ -425,8 +432,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox_2.clear()
     form.comboBox_3.clear()
     for item in comps[:, 0:2]:
-        form.comboBox.addItem('C0_' + item[0] + ' {'  + item[1] + '}')
-        form.comboBox_2.addItem('Ceq_' + item[0] + ' {'  + item[1] + '}')
+        form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
+        form.comboBox_2.addItem('Ceq_' + item[0] + ' {' + item[1] + '}')
         form.comboBox_3.addItem(item[1])
 
     highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
@@ -445,22 +452,39 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox_2.setCurrentIndex(0)
 
     # First estimates for eq. Composition Ceq and Reaction extent Xieq
-    Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
-    Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
-    acceptable_solution = False
+    if not hasattr(form, 'acceptable_solution'):
+        Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+    else:
+        # Use previous solution as initial estimate, if it was valid.
+        Ceq_i_0 =  form.Ceq_i_0
+        Xieq_j_0 = form.Xieq_j_0
+    form.acceptable_solution = False
     k = 1
     stop = False
+    form.initialEstimateAttempts = 1
+    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
-    while not acceptable_solution and k < max_it and stop == False:
+    while not form.acceptable_solution and k < max_it and stop == False:
         Ceq_i, Xieq_j = calc_Xieq(form)
         k += 1
-        # TODO: if progressDialog.wasCanceled() == True then stop
+        # TODO: if progressBar.wasCanceled() == True then stop
         if all(Ceq_i > 0):
-            acceptable_solution = True
+            form.acceptable_solution = True
         else:
             # Set reactions to random extent and recalculate
-            Xieq_j_0 = np.matrix(np.random.normal(0.0,1.0/3.0,Nr)).T
+            Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            # Set composition to inidial value
+            Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+            form.initialEstimateAttempts += 1
+            form.methodLoops = [0, 0]
+
+    if not form.acceptable_solution:
+        delattr(form, 'acceptable_solution')
+    else:
+        form.Ceq_i_0 = Ceq_i
+        form.Xieq_j_0 = Xieq_j
 
     if 'component_order_in_table' in globals():
         i = component_order_in_table
@@ -552,18 +576,9 @@ def calc_Xieq(form):
     X = X0
     # Add progress bar & variable
     # TODO: Implement cancel button to cancel iterations
-    progressDialog = QtGui.QProgressDialog()
-    progressDialog.setFixedWidth(300)
-    progressDialog.setWindowTitle('Steepest descent method')
+    form.progressBar.setWindowTitle('Steepest descent method')
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X, F_val = steepest_descent(X, f_gl_0, j, g, 1.0e-3, progressDialog)
-    """
-    if any(map(lambda x: np.sign(x)==-1, X[0:n])):
-        X = X0
-        minus_f = lambda x: -1*f_gl_0(x)
-        minus_J = lambda x: -1*J(x)
-        X, F_val = steepest_descent(X0, minus_f, minus_J, g, 1.0e-3)
-    """
+    X, F_val = steepest_descent(X, f_gl_0, j, g, 1.0e-3, form)
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 0
     J_val = j(X)
@@ -576,12 +591,9 @@ def calc_Xieq(form):
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
-    progressDialog.setWindowTitle('Newton method loop')
-    progressDialog.setValue(0)
-    progressDialog.setVisible(True)
-    progressDialog.setLabelText('Newton method: Quadratic convergence. \n' +
-                                'Iteration k=' + str(k) +
-                                '; (max_it=' + str(max_it) + ')')
+    form.progressBar.setValue(0)
+    form.progressBar.setVisible(True)
+    update_status_label(form, k, stop)
     while k <= max_it and not stop:
         new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
@@ -594,30 +606,30 @@ def calc_Xieq(form):
         magnitude_Y = np.sqrt((Y.T * Y).item())
         if magnitude_Y < tol:
             stop = True  # Procedure successful
-            progressDialog.setValue(100.0)
-            progressDialog.setVisible(False)
+            form.progressBar.setValue(100.0)
+            form.progressBar.setVisible(False)
         else:
             # For progress bar, use log scale to compensate for quadratic convergence
-            progressDialog.setLabelText('Newton method: Quadratic convergence. \n' +
-                                        'Iteration k=' + str(k) +
-                                        '; (max_it=' + str(max_it) + ')')
+            update_status_label(form, k, stop)
             progress_k = \
                 (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
             # TODO: Fix case in which magnitude_Y == inf (divergent)
             if np.isnan(magnitude_Y) or np.isinf(magnitude_Y):
-                stop = True # Divergent method
-                progressDialog.setValue(
+                stop = True  # Divergent method
+                form.progressBar.setValue(
                     (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_y) * 100.0)
-                progressDialog.setLabelText('Divergent')
+                form.label_9.setText('Divergent')
             else:
-                progressDialog.setValue(
+                form.progressBar.setValue(
                     (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
             if round(progress_k) == round(progress_k_m_1):
                 QtGui.QApplication.processEvents()
-            if progressDialog.wasCanceled():
-                stop = True
+                # if form.progressBar.wasCanceled():
+                # stop = True
         k += 1
+        form.methodLoops[1] += 1
     new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
+    update_status_label(form, k, stop)
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
@@ -650,7 +662,7 @@ def g(X):
     return (f_0.T * f_0).item()
 
 
-def steepest_descent(X0, f, J, g, tol, progressDialog):
+def steepest_descent(X0, f, J, g, tol, form):
     X = X0
     f_val = f(X)
     k = 0
@@ -660,12 +672,11 @@ def steepest_descent(X0, f, J, g, tol, progressDialog):
     Y = np.matrix(np.empty([len(X), 1]))
     Y.fill(np.nan)
     abs_gmin_minus_g1 = np.nan
-    progressDialog.setValue(0)
-    progressDialog
-    progressDialog.setVisible(True)
-    progressDialog.setLabelText('Steepest descent: Linear convergence. \n' +
-                                'Iteration k=' + str(k) +
-                                '; (max_it=' + str(max_it) + ')')
+    progressBar = form.progressBar
+    label_9 = form.label_9
+    progressBar.setValue(0)
+    progressBar.setVisible(True)
+    update_status_label(form, k, False)
     while k < max_it and not stop:
         z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
         z0 = np.sqrt((z.T * z).item())
@@ -702,21 +713,36 @@ def steepest_descent(X0, f, J, g, tol, progressDialog):
         abs_gmin_minus_g1 = abs(g_min - g1)
         if abs_gmin_minus_g1 < tol:
             stop = True  # Procedure successful
-            progressDialog.setValue(100.0)
-            progressDialog.setVisible(False)
+            progressBar.setValue(100.0)
+            progressBar.setVisible(False)
         else:
-            progressDialog.setValue(tol / abs_gmin_minus_g1 * 100)
-            progressDialog.setLabelText('Steepest descent: Linear convergence. \n' +
-                                        'Iteration k=' + str(k) +
-                                        '; (max_it=' + str(max_it) + ')')
+            progressBar.setValue(tol / abs_gmin_minus_g1 * 100)
+            update_status_label(form, k, False)
         new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
+        update_status_label(form, k, False)
         X_k_m_1 = X
         X = X - alpha * z
         diff = X_k_m_1 - X
         f_val = f(X)
         k += 1
+        form.methodLoops[0] += 1
     new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
     return X, f_val
+
+
+def update_status_label(form, k, solved):
+    if solved:
+        solved = 'solved'
+    else:
+        solved = 'solution not found'
+
+    form.label_9.setText('Loops: Steepest descent ' +
+                         str(form.methodLoops[0]) + ' | Newton ' +
+                         str(form.methodLoops[1]) +
+                         ' | Initial estimate attempts ' +
+                         str(form.initialEstimateAttempts) + '\n' +
+                         'Iteration k=' + str(k) +
+                         '; ' + str(solved) )
 
 
 def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
