@@ -6,7 +6,6 @@ Created on Fri Nov 27 20:48:42 2015
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
 import matplotlib
-from sympy.polys.polytools import GroebnerBasis
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -448,36 +447,39 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
     form.comboBox_2.setCurrentIndex(0)
 
+    # First estimates for eq. Composition Ceq and Reaction extent Xieq
+    if not hasattr(form, 'acceptable_solution'):
+        Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+    else:
+        # Use previous solution as initial estimate, if it was valid.
+        Ceq_i_0 = form.Ceq_i_0
+        Xieq_j_0 = form.Xieq_j_0
+
     # Pass variables to form before loop start
     variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
-                         'max_it', 'tol', 'index_of_solvent', 'C_solvent_Tref']
+                         'max_it', 'tol', 'index_of_solvent', 'C_solvent_Tref',
+                         'Ceq_i_0', 'Xieq_j_0']
     for var in variables_to_pass:
         setattr(form, var, locals()[var])
 
-    # First estimates for eq. Composition Ceq and Reaction extent Xieq
-    if not hasattr(form, 'acceptable_solution'):
-        form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
-        form.Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
-    else:
-        # Use previous solution as initial estimate, if it was valid.
-        form.Ceq_i_0 = form.Ceq_i_0
-        form.Xieq_j_0 = form.Xieq_j_0
-    form.acceptable_solution = False
+
     k = 1
     stop = False
+    form.acceptable_solution = False
     form.initialEstimateAttempts = 1
     form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
     while not form.acceptable_solution and k < max_it and stop == False:
-        form.Ceq_i, form.Xieq_j = calc_Xieq(form)
+        Ceq_i, Xieq_j = calc_Xieq(form)
         k += 1
         # TODO: if progressBar.wasCanceled() == True then stop
-        if all(form.Ceq_i > 0):
+        if all(Ceq_i > 0):
             form.acceptable_solution = True
         else:
             # Set reactions to random extent and recalculate
-            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
             # Set composition to inidial value
             form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
             form.initialEstimateAttempts += 1
@@ -486,12 +488,12 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     if not form.acceptable_solution:
         delattr(form, 'acceptable_solution')
     else:
-        form.Ceq_i_0 = form.Ceq_i
-        form.Xieq_j_0 = form.Xieq_j
+        form.Ceq_i_0 = Ceq_i
+        form.Xieq_j_0 = Xieq_j
 
     # Store solution in order to add to table
-    Ceq_i = form.Ceq_i
-    Xieq_j = form.Xieq_j
+    form.Ceq_i = Ceq_i
+    form.Xieq_j = Xieq_j
 
     if hasattr(form,'component_order_in_table'):
         i = getattr(form, 'component_order_in_table')
