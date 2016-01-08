@@ -180,9 +180,6 @@ class UiGroupBox(object):
         self.label_7 = QtGui.QLabel(GroupBox)
         self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
         self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.label_8 = QtGui.QLabel(GroupBox)
-        self.label_8.setObjectName(_fromUtf8("verticalAxisLabel"))
-        self.label_8.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
         self.verticalLayout.addWidget(self.label_7)
         self.comboBox = QtGui.QComboBox(GroupBox)
         self.comboBox.setObjectName(_fromUtf8("comboBox"))
@@ -198,20 +195,8 @@ class UiGroupBox(object):
         self.doubleSpinBox_2.setMinimum(0.0)
         self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.comboBox_2 = QtGui.QComboBox(GroupBox)
-        self.comboBox_2.setObjectName(_fromUtf8("comboBox_2"))
-        self.verticalLayout.addWidget(self.label_8)
-        self.verticalLayout.addWidget(self.comboBox_2)
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
-        self.doubleSpinBox_4 = ScientificDoubleSpinBox(GroupBox)
-        self.doubleSpinBox_4.setObjectName(_fromUtf8("doubleSpinBox_4"))
-        self.doubleSpinBox_4.setMinimum(0.0)
-        self.horizontalLayout_4.addWidget(self.doubleSpinBox_4)
-        self.doubleSpinBox_3 = ScientificDoubleSpinBox(GroupBox)
-        self.doubleSpinBox_3.setObjectName(_fromUtf8("doubleSpinBox_3"))
-        self.doubleSpinBox_3.setMinimum(0.0)
-        self.horizontalLayout_4.addWidget(self.doubleSpinBox_3)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
         self.pushButton = QtGui.QPushButton(GroupBox)
         self.pushButton.setObjectName(_fromUtf8("pushButton"))
@@ -247,7 +232,6 @@ class UiGroupBox(object):
         self.label_5.setText(_translate("GroupBox", "solvent", None))
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
         self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
-        self.label_8.setText(_translate("GroupBox", "Vertical 'Y' axis", None))
         self.label_9.setText(_translate("GroupBox", 'Currently unequilibrated', None))
 
 
@@ -425,11 +409,9 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     # Gui setup with calculated values
     form.comboBox.clear()
-    form.comboBox_2.clear()
     form.comboBox_3.clear()
     for item in comps[:, 0:2]:
         form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
-        form.comboBox_2.addItem('Ceq_' + item[0] + ' {' + item[1] + '}')
         form.comboBox_3.addItem(item[1])
 
     highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
@@ -445,7 +427,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     C_second_highest_C0_Tref = C0_i[index_of_second_highest_C0].item()
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
-    form.comboBox_2.setCurrentIndex(0)
+    form.doubleSpinBox.setValue(C_second_highest_C0_Tref*(1-20/100.0))
+    form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref*(1+20/100.0))
 
     # First estimates for eq. Composition Ceq and Reaction extent Xieq
     if not hasattr(form, 'acceptable_solution'):
@@ -479,6 +462,7 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
             form.acceptable_solution = True
         else:
             # Set reactions to random extent and recalculate
+            # TODO: scale to concentration sizes
             Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
             # Set composition to inidial value
             form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
@@ -490,6 +474,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     else:
         form.Ceq_i_0 = Ceq_i
         form.Xieq_j_0 = Xieq_j
+        form.label_9.setText(form.label_9.text() +
+                             '\nsum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
 
     # Store solution in order to add to table
     form.Ceq_i = Ceq_i
@@ -566,6 +552,8 @@ def plot_intervals(form):
     form.groupBox.plotBox = UiGroupBoxPlot()
     form.groupBox.plotBox.setupUi(form.groupBox)
     form.groupBox.show()
+
+
 
 
 def calc_Xieq(form):
@@ -755,9 +743,9 @@ def steepest_descent(X0, f, J, g, tol, form):
 
 def update_status_label(form, k, solved):
     if solved:
-        solved = 'solved'
+        solved = 'solved.'
     else:
-        solved = 'solution not found'
+        solved = 'solution not found.'
 
     form.label_9.setText('Loops: Steepest descent ' +
                          str(form.methodLoops[0]) + ' | Newton ' +
