@@ -323,7 +323,6 @@ def open_file(form):
 
 
 def load_csv(form, filename):
-    global n, Nr
     with open(filename) as csv_file:
         n = 0
         Nr = 0
@@ -369,13 +368,14 @@ def load_csv(form, filename):
     form.tableReacs.setColumnCount(len(header_reacs) + 1)
     form.tableReacs.setHorizontalHeaderLabels(
         header_reacs + ['Xieq_j'])
+    form.n = n
+    form.Nr = Nr
     return header_comps, comps, header_reacs, reacs
 
 
 def load_qtablewidget(form):
-    global component_order_in_table
-    n = form.tableComps.rowCount()
-    Nr = form.tableReacs.rowCount()
+    n = form.n
+    Nr = form.Nr
     comps = np.empty([n, 4], dtype='S50')
     reacs = np.empty([Nr, n + 2], dtype='S50')
     header_comps = []
@@ -393,6 +393,7 @@ def load_qtablewidget(form):
     for j in range(reacs.shape[1]):
         for i in range(reacs.shape[0]):
             reacs[i, j] = form.tableReacs.item(i, j).text()
+    form.component_order_in_table = component_order_in_table
     return header_comps, comps, header_reacs, reacs
 
 
@@ -407,10 +408,6 @@ def gui_equilibrate(form):
 
 def equilibrate(form, header_comps, comps, header_reacs, reacs):
     # Solve
-    global C0_i, z_i, nu_ij, pKa_j, n, Nr
-    global max_it, tol, index_of_solvent, C_solvent_Tref
-    global component_order_in_table
-    global Xieq_j_0, Ceq_i_0
     # Setup logging
     if not os.path.exists('./logs'):
         os.mkdir('./logs')
@@ -418,8 +415,8 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
                         format='%(asctime)s;%(message)s')
 
     # Collect variables
-    n = len(comps)
-    Nr = len(reacs)
+    n = form.n
+    Nr = form.Nr
     C0_i = np.matrix([row[3] for row in comps], dtype=float).T
     z_i = np.matrix([row[2] for row in comps], dtype=float).T
     nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
@@ -451,14 +448,20 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
     form.comboBox_2.setCurrentIndex(0)
 
+    # Pass variables to form before loop start
+    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
+                         'max_it', 'tol', 'index_of_solvent', 'C_solvent_Tref']
+    for var in variables_to_pass:
+        setattr(form, var, locals()[var])
+
     # First estimates for eq. Composition Ceq and Reaction extent Xieq
     if not hasattr(form, 'acceptable_solution'):
-        Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
-        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+        form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+        form.Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
     else:
         # Use previous solution as initial estimate, if it was valid.
-        Ceq_i_0 =  form.Ceq_i_0
-        Xieq_j_0 = form.Xieq_j_0
+        form.Ceq_i_0 = form.Ceq_i_0
+        form.Xieq_j_0 = form.Xieq_j_0
     form.acceptable_solution = False
     k = 1
     stop = False
@@ -467,27 +470,31 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
     while not form.acceptable_solution and k < max_it and stop == False:
-        Ceq_i, Xieq_j = calc_Xieq(form)
+        form.Ceq_i, form.Xieq_j = calc_Xieq(form)
         k += 1
         # TODO: if progressBar.wasCanceled() == True then stop
-        if all(Ceq_i > 0):
+        if all(form.Ceq_i > 0):
             form.acceptable_solution = True
         else:
             # Set reactions to random extent and recalculate
-            Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
             # Set composition to inidial value
-            Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+            form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
             form.initialEstimateAttempts += 1
             form.methodLoops = [0, 0]
 
     if not form.acceptable_solution:
         delattr(form, 'acceptable_solution')
     else:
-        form.Ceq_i_0 = Ceq_i
-        form.Xieq_j_0 = Xieq_j
+        form.Ceq_i_0 = form.Ceq_i
+        form.Xieq_j_0 = form.Xieq_j
 
-    if 'component_order_in_table' in globals():
-        i = component_order_in_table
+    # Store solution in order to add to table
+    Ceq_i = form.Ceq_i
+    Xieq_j = form.Xieq_j
+
+    if hasattr(form,'component_order_in_table'):
+        i = getattr(form, 'component_order_in_table')
     else:
         i = range(0, n)
     j = range(0, 4 + 3)
@@ -569,16 +576,31 @@ def calc_Xieq(form):
     :param Xieq_j_0: np.matrix (n X 1) - avance de reacción j - estimado inicial
     :param Ceq_i_0: np.matrix (n X 1) - Conc(i, equilibrio)
     """
-    global C0_i, z_i, nu_ij, pKa_j, max_it, tol, n, Nr, Kc_j, index_of_solvent, C_solvent_Tref
-    global Xieq_j_0, Ceq_i_0
+    n = form.n
+    Nr = form.Nr
+    C0_i = form.C0_i
+    pKa_j = form.pKa_j
+    nu_ij = form.nu_ij
+    Ceq_i_0 = form.Ceq_i_0
+    Xieq_j_0 = form.Xieq_j_0
+    C_solvent_Tref = form.C_solvent_Tref
+    index_of_solvent = form.index_of_solvent
+    max_it = form.max_it
+    tol = form.tol
+    z_i = form.z_i
+
     Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
+    f = lambda x: f_gl_0(x, C0_i, nu_ij, n, Nr, Kc_j)
+    j = lambda x: jac(x, C0_i, nu_ij, n, Nr, Kc_j)
+    g = lambda x: g_vec(x, C0_i, nu_ij, n, Nr, Kc_j)
+
     X0 = np.concatenate([Ceq_i_0, Xieq_j_0])
     X = X0
     # Add progress bar & variable
     # TODO: Implement cancel button to cancel iterations
     form.progressBar.setWindowTitle('Steepest descent method')
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X, F_val = steepest_descent(X, f_gl_0, j, g, 1.0e-3, form)
+    X, F_val = steepest_descent(X, f, j, g, 1.0e-3, form)
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 0
     J_val = j(X)
@@ -602,7 +624,7 @@ def calc_Xieq(form):
         X = X + Y
         diff = X - X_k_m_1
         J_val = j(X)
-        F_val = f_gl_0(X)
+        F_val = f(X)
         magnitude_Y = np.sqrt((Y.T * Y).item())
         if magnitude_Y < tol:
             stop = True  # Procedure successful
@@ -635,8 +657,7 @@ def calc_Xieq(form):
     return Ceq_i, Xieq_j
 
 
-def f_gl_0(X):
-    global C0_i, nu_ij, n, Nr, Kc_j
+def f_gl_0(X, C0_i, nu_ij, n, Nr, Kc_j):
     Ceq_i = X[0:n, 0]
     Xieq_j = X[n:n + Nr, 0]
     f_gl_0 = np.matrix(np.empty([n + Nr, 1], dtype=float))
@@ -645,8 +666,7 @@ def f_gl_0(X):
     return f_gl_0
 
 
-def j(X):
-    global C0_i, nu_ij, n, Nr, Kc_j
+def jac(X, C0_i, nu_ij, n, Nr, Kc_j):
     Ceq_i = X[0:n, 0]
     eins_durch_c = np.diag(np.power(Ceq_i, -1).A1, 0)
     quotient = np.diag(np.prod(np.power(Ceq_i, nu_ij), 0).A1)
@@ -657,12 +677,13 @@ def j(X):
     return jac
 
 
-def g(X):
-    f_0 = f_gl_0(X)
+def g_vec(X, C0_i, nu_ij, n, Nr, Kc_j):
+    f_0 = f_gl_0(X, C0_i, nu_ij, n, Nr, Kc_j)
     return (f_0.T * f_0).item()
 
 
 def steepest_descent(X0, f, J, g, tol, form):
+    max_it = form.max_it
     X = X0
     f_val = f(X)
     k = 0
@@ -742,7 +763,7 @@ def update_status_label(form, k, solved):
                          ' | Initial estimate attempts ' +
                          str(form.initialEstimateAttempts) + '\n' +
                          'Iteration k=' + str(k) +
-                         '; ' + str(solved) )
+                         '; ' + str(solved))
 
 
 def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
