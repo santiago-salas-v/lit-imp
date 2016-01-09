@@ -458,18 +458,21 @@ def gui_equilibrate(form):
     load_variables_from_form(form)
     gui_setup_and_variables(form)
     equilibrate(form)
+    retabulate(form)
 
 
 def equilibrate(form):
-    # Get variables from form before loop start
     # Collect variables
     n = form.n
     Nr = form.Nr
     C0_i = form.C0_i
-    header_comps = form.header_comps
+    z_i = form.z_i
     comps = form.comps
-    header_reacs = form.header_reacs
     reacs = form.reacs
+    nu_ij = form.nu_ij
+    pKa_j = form.pKa_j
+    max_it = form.max_it
+    tol = form.tol
 
     # Setup logging
     if not os.path.exists('./logs'):
@@ -477,11 +480,77 @@ def equilibrate(form):
     logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
                         format='%(asctime)s;%(message)s')
 
-    # Store solution in order to add to table
-    solve(form)
+    # First estimates for eq. Composition Ceq and Reaction extent Xieq
+    if not hasattr(form, 'acceptable_solution'):
+        Ceq_i_0 = C0_i
+        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+        Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
+        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+    else:
+        # Use previous solution as initial estimate, if it was valid.
+        Ceq_i_0 = form.Ceq_i_0
+        Xieq_j_0 = form.Xieq_j_0
+
+    # Pass variables to form before loop start
+    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
+                         'max_it', 'tol',
+                         'Ceq_i_0', 'Xieq_j_0']
+    for var in variables_to_pass:
+        setattr(form, var, locals()[var])
+
+    k = 1
+    stop = False
+    form.cancelButton.setVisible(True)
+    form.remove_canceled_status()
+    form.acceptable_solution = False
+    form.initialEstimateAttempts = 1
+    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
+    # Calculate equilibrium composition: Steepest descent / Newton method
+    # TODO: Implement global homotopy-continuation method
+    while not form.acceptable_solution \
+            and k < max_it and stop == False\
+            and not form.was_canceled():
+        Ceq_i, Xieq_j = calc_Xieq(form)
+        k += 1
+        # TODO: if progressBar.wasCanceled() == True then stop
+        if all(Ceq_i > 0) and not any(np.isnan(Ceq_i)):
+            form.acceptable_solution = True
+        else:
+            # Set reactions to random extent and recalculate
+            # TODO: scale to concentration sizes
+            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            # Set aequilibrium composition to initial value + estimated conversion
+            form.Ceq_i_0 = C0_i
+            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+            form.Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
+            form.initialEstimateAttempts += 1
+            form.methodLoops = [0, 0]
+
+    if not form.acceptable_solution:
+        delattr(form, 'acceptable_solution')
+    else:
+        form.Ceq_i_0 = Ceq_i
+        form.Xieq_j_0 = Xieq_j
+        form.label_9.setText(form.label_9.text() +
+                             '\nsum(C0*z_i) = ' + str((z_i.T*C0_i).item()) +
+                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
+
+    form.Ceq_i = Ceq_i
+    form.Xieq_j = Xieq_j
+    form.cancelButton.setVisible(False)
+
+
+def retabulate(form):
+    # Collect variables
+    n = form.n
+    Nr = form.Nr
+    C0_i = form.C0_i
+    comps = form.comps
+    reacs = form.reacs
+    header_comps = form.header_comps
+    header_reacs = form.header_reacs
     Ceq_i = form.Ceq_i
     Xieq_j = form.Xieq_j
-
     if hasattr(form,'component_order_in_table'):
         i = getattr(form, 'component_order_in_table')
     else:
@@ -542,80 +611,6 @@ def equilibrate(form):
 
     form.tableComps.blockSignals(False)
     form.tableReacs.blockSignals(False)
-
-
-def solve(form):
-    # Collect variables
-    n = form.n
-    Nr = form.Nr
-    C0_i = form.C0_i
-    z_i = form.z_i
-    comps = form.comps
-    reacs = form.reacs
-    nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-    pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
-    max_it = int(form.spinBox_3.value())
-    tol = float(form.doubleSpinBox_5.value())
-
-
-    # First estimates for eq. Composition Ceq and Reaction extent Xieq
-    if not hasattr(form, 'acceptable_solution'):
-        Ceq_i_0 = C0_i
-        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-        Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
-        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
-    else:
-        # Use previous solution as initial estimate, if it was valid.
-        Ceq_i_0 = form.Ceq_i_0
-        Xieq_j_0 = form.Xieq_j_0
-
-    # Pass variables to form before loop start
-    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
-                         'max_it', 'tol',
-                         'Ceq_i_0', 'Xieq_j_0']
-    for var in variables_to_pass:
-        setattr(form, var, locals()[var])
-
-    k = 1
-    stop = False
-    form.cancelButton.setVisible(True)
-    form.remove_canceled_status()
-    form.acceptable_solution = False
-    form.initialEstimateAttempts = 1
-    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
-    # Calculate equilibrium composition: Steepest descent / Newton method
-    # TODO: Implement global homotopy-continuation method
-    while not form.acceptable_solution \
-            and k < max_it and stop == False\
-            and not form.was_canceled():
-        Ceq_i, Xieq_j = calc_Xieq(form)
-        k += 1
-        # TODO: if progressBar.wasCanceled() == True then stop
-        if all(Ceq_i > 0) and not any(np.isnan(Ceq_i)):
-            form.acceptable_solution = True
-        else:
-            # Set reactions to random extent and recalculate
-            # TODO: scale to concentration sizes
-            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
-            # Set aequilibrium composition to initial value + estimated conversion
-            form.Ceq_i_0 = C0_i
-            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-            form.Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
-            form.initialEstimateAttempts += 1
-            form.methodLoops = [0, 0]
-
-    if not form.acceptable_solution:
-        delattr(form, 'acceptable_solution')
-    else:
-        form.Ceq_i_0 = Ceq_i
-        form.Xieq_j_0 = Xieq_j
-        form.label_9.setText(form.label_9.text() +
-                             '\nsum(C0*z_i) = ' + str((z_i.T*C0_i).item()) +
-                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
-
-    form.Ceq_i = Ceq_i
-    form.Xieq_j = Xieq_j
-    form.cancelButton.setVisible(False)
 
 
 def save_file(form):
@@ -1268,7 +1263,7 @@ def format_float(value):
     return string
 
 
-if __name__ == '__main__':
+def main():
     app = QtGui.QApplication.instance()  # checks if QApplication already exists
     if not app:  # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
@@ -1278,6 +1273,11 @@ if __name__ == '__main__':
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
     gui_setup_and_variables(main_form.ui)
     equilibrate(main_form.ui)
+    retabulate(main_form.ui)
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
