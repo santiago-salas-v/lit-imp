@@ -34,6 +34,8 @@ except AttributeError:
 
 
 class UiGroupBox(object):
+    _was_canceled = False
+
     def setupUi(self, GroupBox):
         GroupBox.setObjectName(_fromUtf8("GroupBox"))
         # Default size
@@ -138,8 +140,14 @@ class UiGroupBox(object):
         self.verticalLayout_2.addWidget(self.tableComps)
         self.label_9 = QtGui.QLabel(GroupBox)
         self.verticalLayout_2.addWidget(self.label_9)
+        self.horizontalLayout_7 = QtGui.QHBoxLayout()
+        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
+        self.cancelButton = QtGui.QPushButton(GroupBox)
+        self.cancelButton.setVisible(False)
         self.progressBar = QtGui.QProgressBar(GroupBox, visible=True)
-        self.verticalLayout_2.addWidget(self.progressBar)
+        self.horizontalLayout_7.addWidget(self.cancelButton)
+        self.horizontalLayout_7.addWidget(self.progressBar)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_7)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
         self.label_5 = QtGui.QLabel(GroupBox)
@@ -211,12 +219,13 @@ class UiGroupBox(object):
         self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, self))
         self.log_button.clicked.connect(partial(show_log))
+        self.cancelButton.clicked.connect(partial(self.cancel_loop))
         self.retranslateUi(GroupBox)
         QtCore.QMetaObject.connectSlotsByName(GroupBox)
 
     def retranslateUi(self, GroupBox):
         GroupBox.setWindowTitle(_translate("GroupBox", "Simplistic EC.", None))
-        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "Plot", None))
+        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "EC", None))
         __sortingEnabled = self.tableComps.isSortingEnabled()
         self.open_button.setText(_translate("GroupBox", "Open", None))
         self.save_button.setText(_translate("GroupBox", "Save", None))
@@ -233,6 +242,20 @@ class UiGroupBox(object):
         self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
         self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
         self.label_9.setText(_translate("GroupBox", 'Currently unequilibrated', None))
+        self.cancelButton.setText('cancel')
+
+
+    def cancel_loop(self):
+        self._was_canceled = True
+        self.progressBar.setVisible(False)
+
+
+    def remove_canceled_status(self):
+        self._was_canceled = False
+
+
+    def was_canceled(self):
+        return self._was_canceled
 
 
 class UiGroupBoxPlot(object):
@@ -432,7 +455,9 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     # First estimates for eq. Composition Ceq and Reaction extent Xieq
     if not hasattr(form, 'acceptable_solution'):
-        Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+        Ceq_i_0 = C0_i
+        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+        Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
         Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
     else:
         # Use previous solution as initial estimate, if it was valid.
@@ -449,23 +474,29 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
 
     k = 1
     stop = False
+    form.cancelButton.setVisible(True)
+    form.remove_canceled_status()
     form.acceptable_solution = False
     form.initialEstimateAttempts = 1
     form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
-    while not form.acceptable_solution and k < max_it and stop == False:
+    while not form.acceptable_solution \
+            and k < max_it and stop == False\
+            and not form.was_canceled():
         Ceq_i, Xieq_j = calc_Xieq(form)
         k += 1
         # TODO: if progressBar.wasCanceled() == True then stop
-        if all(Ceq_i > 0):
+        if all(Ceq_i > 0) and not any(np.isnan(Ceq_i)):
             form.acceptable_solution = True
         else:
             # Set reactions to random extent and recalculate
             # TODO: scale to concentration sizes
-            Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
-            # Set composition to inidial value
-            form.Ceq_i_0 = C0_i + abs(nu_ij * np.matrix(np.ones([Nr, 1])) * tol)
+            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            # Set aequilibrium composition to initial value + estimated conversion
+            form.Ceq_i_0 = C0_i
+            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+            form.Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
             form.initialEstimateAttempts += 1
             form.methodLoops = [0, 0]
 
@@ -475,8 +506,10 @@ def equilibrate(form, header_comps, comps, header_reacs, reacs):
         form.Ceq_i_0 = Ceq_i
         form.Xieq_j_0 = Xieq_j
         form.label_9.setText(form.label_9.text() +
-                             '\nsum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
+                             '\nsum(C0*z_i) = ' + str((z_i.T*C0_i).item()) +
+                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
 
+    form.cancelButton.setVisible(False)
     # Store solution in order to add to table
     form.Ceq_i = Ceq_i
     form.Xieq_j = Xieq_j
@@ -588,7 +621,6 @@ def calc_Xieq(form):
     X = X0
     # Add progress bar & variable
     # TODO: Implement cancel button to cancel iterations
-    form.progressBar.setWindowTitle('Steepest descent method')
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
     X, F_val = steepest_descent(X, f, j, g, 1.0e-3, form)
     # Newton method: G(X) = J(X)^-1 * F(X)
@@ -603,6 +635,7 @@ def calc_Xieq(form):
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
+    divergent = False
     form.progressBar.setValue(0)
     form.progressBar.setVisible(True)
     update_status_label(form, k, stop)
@@ -628,9 +661,9 @@ def calc_Xieq(form):
             # TODO: Fix case in which magnitude_Y == inf (divergent)
             if np.isnan(magnitude_Y) or np.isinf(magnitude_Y):
                 stop = True  # Divergent method
+                divergent = True
                 form.progressBar.setValue(
                     (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_y) * 100.0)
-                form.label_9.setText('Divergent')
             else:
                 form.progressBar.setValue(
                     (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
@@ -640,8 +673,8 @@ def calc_Xieq(form):
                 # stop = True
         k += 1
         form.methodLoops[1] += 1
-    new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
-    update_status_label(form, k, stop)
+    new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop and not divergent)
+    update_status_label(form, k, stop and not divergent)
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
