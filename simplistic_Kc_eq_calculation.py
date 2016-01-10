@@ -6,7 +6,6 @@ Created on Fri Nov 27 20:48:42 2015
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
 import matplotlib
-
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,18 +35,18 @@ except AttributeError:
 class UiGroupBox(object):
     _was_canceled = False
 
-    def setupUi(self, GroupBox):
-        GroupBox.setObjectName(_fromUtf8("GroupBox"))
+    def __init__(self, parent):
+        parent.setObjectName(_fromUtf8("GroupBox"))
         # Default size
-        # GroupBox.resize(394, 357)
-        GroupBox.resize(500, 357)
-        self.verticalLayout_2 = QtGui.QVBoxLayout(GroupBox)
+        # parent.resize(394, 357)
+        parent.resize(500, 357)
+        self.verticalLayout_2 = QtGui.QVBoxLayout(parent)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.open_button = QtGui.QPushButton(GroupBox)
+        self.open_button = QtGui.QPushButton(parent)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-145-folder-open.png")),
@@ -75,19 +74,19 @@ class UiGroupBox(object):
         self.open_button.setIcon(icon)
         self.open_button.setObjectName(_fromUtf8("open_button"))
         self.horizontalLayout_2.addWidget(self.open_button)
-        self.save_button = QtGui.QPushButton(GroupBox)
+        self.save_button = QtGui.QPushButton(parent)
         self.save_button.setIcon(icon1)
         self.save_button.setObjectName(_fromUtf8("save_button"))
-        self.info_button = QtGui.QPushButton(GroupBox)
+        self.info_button = QtGui.QPushButton(parent)
         self.info_button.setIcon(icon4)
         self.info_button.setObjectName(_fromUtf8("info_button"))
-        self.log_button = QtGui.QPushButton(GroupBox)
+        self.log_button = QtGui.QPushButton(parent)
         self.log_button.setIcon(icon5)
         self.log_button.setObjectName(_fromUtf8("log_button"))
         self.horizontalLayout_2.addWidget(self.save_button)
         self.horizontalLayout_2.addWidget(self.log_button)
         self.horizontalLayout_2.addWidget(self.info_button)
-        self.equilibrate_button = QtGui.QPushButton(GroupBox)
+        self.equilibrate_button = QtGui.QPushButton(parent)
         self.equilibrate_button.setIcon(icon3)
         self.horizontalLayout_3.addWidget(self.equilibrate_button)
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
@@ -96,21 +95,21 @@ class UiGroupBox(object):
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
         # TODO: Add tol and max_it spinboxes functionality
         # TODO: Add log button
-        self.label_3 = QtGui.QLabel(GroupBox)
+        self.label_3 = QtGui.QLabel(parent)
         self.label_3.setObjectName(_fromUtf8("max_it_label"))
         self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_3)
-        self.spinBox_3 = QtGui.QSpinBox(GroupBox)
+        self.spinBox_3 = QtGui.QSpinBox(parent)
         self.spinBox_3.setMaximum(2000)
         self.spinBox_3.setMinimum(2)
         self.spinBox_3.setProperty("value", 1000)
         self.spinBox_3.setObjectName(_fromUtf8("max_it_spinbox"))
         self.horizontalLayout_5.addWidget(self.spinBox_3)
-        self.label_4 = QtGui.QLabel(GroupBox)
+        self.label_4 = QtGui.QLabel(parent)
         self.label_4.setObjectName(_fromUtf8("tol_label"))
         self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_4)
-        self.doubleSpinBox_5 = ScientificDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_5 = ScientificDoubleSpinBox(parent)
         self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
         self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
@@ -118,16 +117,16 @@ class UiGroupBox(object):
         self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
         self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
         self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
-        self.label = QtGui.QLabel(GroupBox)
+        self.label = QtGui.QLabel(parent)
         self.label.setObjectName(_fromUtf8("label"))
         self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label)
-        self.spinBox = QtGui.QSpinBox(GroupBox)
+        self.spinBox = QtGui.QSpinBox(parent)
         self.spinBox.setProperty("value", 0)
         self.spinBox.setObjectName(_fromUtf8("spinBox"))
         self.horizontalLayout_5.addWidget(self.spinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
-        self.tableComps = QtGui.QTableWidget(GroupBox)
+        self.tableComps = QtGui.QTableWidget(parent)
         self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
         self.tableComps.setObjectName(_fromUtf8("tableComps"))
         item = QtGui.QTableWidgetItem()
@@ -138,67 +137,67 @@ class UiGroupBox(object):
         self.tableComps.horizontalHeader().setSortIndicatorShown(True)
         self.tableComps.verticalHeader().setVisible(False)
         self.verticalLayout_2.addWidget(self.tableComps)
-        self.label_9 = QtGui.QLabel(GroupBox)
+        self.label_9 = QtGui.QLabel(parent)
         self.verticalLayout_2.addWidget(self.label_9)
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
-        self.cancelButton = QtGui.QPushButton(GroupBox)
+        self.cancelButton = QtGui.QPushButton(parent)
         self.cancelButton.setVisible(False)
-        self.progressBar = QtGui.QProgressBar(GroupBox, visible=True)
+        self.progressBar = QtGui.QProgressBar(parent, visible=True)
         self.horizontalLayout_7.addWidget(self.cancelButton)
         self.horizontalLayout_7.addWidget(self.progressBar)
         self.verticalLayout_2.addLayout(self.horizontalLayout_7)
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
-        self.label_5 = QtGui.QLabel(GroupBox)
+        self.label_5 = QtGui.QLabel(parent)
         self.label_5.setObjectName(_fromUtf8("solvent_label"))
         self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_5)
-        self.comboBox_3 = QtGui.QComboBox(GroupBox)
+        self.comboBox_3 = QtGui.QComboBox(parent)
         self.horizontalLayout_6.addWidget(self.comboBox_3)
-        self.label_6 = QtGui.QLabel(GroupBox)
+        self.label_6 = QtGui.QLabel(parent)
         self.label_6.setObjectName(_fromUtf8("C_solvent_Tref"))
         self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_6)
-        self.doubleSpinBox_6 = QtGui.QDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_6 = QtGui.QDoubleSpinBox(parent)
         self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_6.setMaximum(float(1000))
         self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
         self.doubleSpinBox_6.setSingleStep(1.0e-2)
         self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
         self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
-        self.label_2 = QtGui.QLabel(GroupBox)
+        self.label_2 = QtGui.QLabel(parent)
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_2)
-        self.spinBox_2 = QtGui.QSpinBox(GroupBox)
+        self.spinBox_2 = QtGui.QSpinBox(parent)
         self.spinBox_2.setProperty("value", 0)
         self.spinBox_2.setObjectName(_fromUtf8("spinBox_2"))
         self.horizontalLayout_6.addWidget(self.spinBox_2)
         self.verticalLayout_2.addLayout(self.horizontalLayout_6)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.tableReacs = QtGui.QTableWidget(GroupBox)
+        self.tableReacs = QtGui.QTableWidget(parent)
         self.tableReacs.setObjectName(_fromUtf8("tableReacs"))
         self.tableReacs.horizontalHeader().setVisible(True)
         self.tableReacs.verticalHeader().setVisible(False)
         self.horizontalLayout.addWidget(self.tableReacs)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.label_7 = QtGui.QLabel(GroupBox)
+        self.label_7 = QtGui.QLabel(parent)
         self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
         self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
         self.verticalLayout.addWidget(self.label_7)
-        self.comboBox = QtGui.QComboBox(GroupBox)
+        self.comboBox = QtGui.QComboBox(parent)
         self.comboBox.setObjectName(_fromUtf8("comboBox"))
         self.verticalLayout.addWidget(self.comboBox)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.doubleSpinBox = ScientificDoubleSpinBox(GroupBox)
+        self.doubleSpinBox = ScientificDoubleSpinBox(parent)
         self.doubleSpinBox.setObjectName(_fromUtf8("doubleSpinBox"))
         self.doubleSpinBox.setMinimum(0.0)
         self.horizontalLayout_3.addWidget(self.doubleSpinBox)
-        self.doubleSpinBox_2 = ScientificDoubleSpinBox(GroupBox)
+        self.doubleSpinBox_2 = ScientificDoubleSpinBox(parent)
         self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
         self.doubleSpinBox_2.setMinimum(0.0)
         self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
@@ -206,7 +205,7 @@ class UiGroupBox(object):
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
         self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.pushButton = QtGui.QPushButton(GroupBox)
+        self.pushButton = QtGui.QPushButton(parent)
         self.pushButton.setObjectName(_fromUtf8("pushButton"))
         self.pushButton.setIcon(icon2)
         self.verticalLayout.addWidget(self.pushButton)
@@ -220,28 +219,28 @@ class UiGroupBox(object):
         self.info_button.clicked.connect(partial(display_about_info, self))
         self.log_button.clicked.connect(partial(show_log))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
-        self.retranslateUi(GroupBox)
-        QtCore.QMetaObject.connectSlotsByName(GroupBox)
+        self.retranslateUi(parent)
+        QtCore.QMetaObject.connectSlotsByName(parent)
 
-    def retranslateUi(self, GroupBox):
-        GroupBox.setWindowTitle(_translate("GroupBox", "Simplistic EC.", None))
-        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "EC", None))
+    def retranslateUi(self, parent):
+        parent.setWindowTitle(_translate("parent", "Simplistic EC.", None))
+        parent.setTitle(QtGui.QApplication.translate("parent", "EC", None))
         __sortingEnabled = self.tableComps.isSortingEnabled()
-        self.open_button.setText(_translate("GroupBox", "Open", None))
-        self.save_button.setText(_translate("GroupBox", "Save", None))
-        self.log_button.setText(_translate("GroupBox", "Log", None))
-        self.info_button.setText(_translate("GroupBox", "About", None))
-        self.equilibrate_button.setText(_translate("GroupBox", "Equilibrate", None))
+        self.open_button.setText(_translate("parent", "Open", None))
+        self.save_button.setText(_translate("parent", "Save", None))
+        self.log_button.setText(_translate("parent", "Log", None))
+        self.info_button.setText(_translate("parent", "About", None))
+        self.equilibrate_button.setText(_translate("parent", "Equilibrate", None))
         self.tableComps.setSortingEnabled(__sortingEnabled)
-        self.pushButton.setText(_translate("GroupBox", "Plot", None))
-        self.label_2.setText(_translate("GroupBox", "Nr (Reac.)", None))
-        self.label.setText(_translate("GroupBox", "n (Comp.)", None))
-        self.label_3.setText(_translate("GroupBox", "max. it", None))
-        self.label_4.setText(_translate("GroupBox", "tol", None))
-        self.label_5.setText(_translate("GroupBox", "solvent", None))
-        self.label_6.setText(_translate("GroupBox", "C_solvent (25C)", None))
-        self.label_7.setText(_translate("GroupBox", "Horizontal 'X' axis", None))
-        self.label_9.setText(_translate("GroupBox", 'Currently unequilibrated', None))
+        self.pushButton.setText(_translate("parent", "Plot", None))
+        self.label_2.setText(_translate("parent", "Nr (Reac.)", None))
+        self.label.setText(_translate("parent", "n (Comp.)", None))
+        self.label_3.setText(_translate("parent", "max. it", None))
+        self.label_4.setText(_translate("parent", "tol", None))
+        self.label_5.setText(_translate("parent", "solvent", None))
+        self.label_6.setText(_translate("parent", "C_solvent (25C)", None))
+        self.label_7.setText(_translate("parent", "Horizontal 'X' axis", None))
+        self.label_9.setText(_translate("parent", 'Currently unequilibrated', None))
         self.cancelButton.setText('cancel')
 
 
@@ -259,10 +258,10 @@ class UiGroupBox(object):
 
 
 class UiGroupBoxPlot(object):
-    def setupUi(self, GroupBox):
-        GroupBox.setObjectName("GroupBox")
-        GroupBox.resize(762, 450)
-        self.horizontalLayoutWidget = QtGui.QWidget(GroupBox)
+    def __init__(self, parent):
+        parent.setObjectName("GroupBox")
+        parent.resize(762, 450)
+        self.horizontalLayoutWidget = QtGui.QWidget(parent)
         self.horizontalLayoutWidget.setGeometry(QtCore.QRect(9, 19, 741, 421))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.horizontalLayout = QtGui.QHBoxLayout(self.horizontalLayoutWidget)
@@ -272,7 +271,6 @@ class UiGroupBoxPlot(object):
         self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
-        self.ax.plot([0, 1])
         # Generate the canvas to display the plot
         self.canvas = FigureCanvas(self.figure)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Expanding)
@@ -302,16 +300,16 @@ class UiGroupBoxPlot(object):
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
 
-        self.retranslateUi(GroupBox)
-        QtCore.QMetaObject.connectSlotsByName(GroupBox)
+        self.retranslateUi(parent)
+        QtCore.QMetaObject.connectSlotsByName(parent)
 
-    def retranslateUi(self, GroupBox):
-        GroupBox.setWindowTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        GroupBox.setTitle(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("GroupBox", "Displayed", None, QtGui.QApplication.UnicodeUTF8))
+    def retranslateUi(self, parent):
+        parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+        parent.setTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("parent", "Displayed", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(
-            QtGui.QApplication.translate("GroupBox", "Available", None, QtGui.QApplication.UnicodeUTF8))
-        self.pushButton.setText(QtGui.QApplication.translate("GroupBox", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
 
 
 def open_file(form):
@@ -618,12 +616,18 @@ def save_file(form):
 
 
 def plot_intervals(form):
+    index_of_variable = form.comboBox.currentIndex()
+    min_value = form.doubleSpinBox.value()
+    max_value = form.doubleSpinBox_2.value()
+    n_points = 50
+    indep_var_values = \
+        [min_value + x
+         for x in np.arange(n_points+1)*(max_value-min_value)/(n_points)]
+
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot()
-    form.groupBox.plotBox.setupUi(form.groupBox)
+    form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
+    form.groupBox.plotBox.ax.plot(indep_var_values)
     form.groupBox.show()
-
-
 
 
 def calc_Xieq(form):
@@ -1193,15 +1197,6 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
             return float(self.text()) < float(y.text())
 
 
-class MainForm(QtGui.QGroupBox):
-    def __init__(self, parent=None):
-        QtGui.QGroupBox.__init__(self, parent)
-        self.setWindowIcon(QtGui.QIcon(
-            os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
-        self.ui = UiGroupBox()
-        self.ui.setupUi(self)
-
-
 # Following classes from git@gist.github.com:0be2e44981159d0854f5.git
 # Regular expression to find floats. Match groups are the whole string, the
 # whole coefficient, the decimal part of the coefficient, and the exponent
@@ -1268,7 +1263,11 @@ def main():
     if not app:  # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
 
-    main_form = MainForm()
+    main_form = QtGui.QGroupBox()
+    icon = QtGui.QIcon(
+            os.path.join(sys.path[0], *['utils', 'icon_batch.png']))
+    main_form.setWindowIcon(icon)
+    main_form.ui = UiGroupBox(main_form)
     main_form.show()
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
     gui_setup_and_variables(main_form.ui)
