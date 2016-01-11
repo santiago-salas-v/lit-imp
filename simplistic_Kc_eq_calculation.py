@@ -211,6 +211,7 @@ class UiGroupBox(object):
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
+        # Events
         self.open_button.clicked.connect(partial(open_file, self))
         self.save_button.clicked.connect(partial(save_file, self))
         self.pushButton.clicked.connect(partial(plot_intervals, self))
@@ -219,6 +220,7 @@ class UiGroupBox(object):
         self.info_button.clicked.connect(partial(display_about_info, self))
         self.log_button.clicked.connect(partial(show_log))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
+        self.comboBox.currentIndexChanged.connect(partial(self.populate_input_spinboxes))
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
@@ -247,6 +249,13 @@ class UiGroupBox(object):
     def cancel_loop(self):
         self._was_canceled = True
         self.progressBar.setVisible(False)
+
+
+    def populate_input_spinboxes(self, index):
+        comps = self.comps
+        C0_component = self.C0_i[index]
+        self.doubleSpinBox.setValue(C0_component *(1-20/100.0))
+        self.doubleSpinBox_2.setValue(C0_component *(1+20/100.0))
 
 
     def remove_canceled_status(self):
@@ -414,11 +423,6 @@ def gui_setup_and_variables(form):
     comps = form.comps
     reacs = form.reacs
     # Gui setup with calculated values
-    form.comboBox.clear()
-    form.comboBox_3.clear()
-    for item in comps[:, 0:2]:
-        form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
-        form.comboBox_3.addItem(item[1])
 
     C0_i = np.matrix([row[3] for row in comps], dtype=float).T
     highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
@@ -440,6 +444,11 @@ def gui_setup_and_variables(form):
     form.tol = float(form.doubleSpinBox_5.value())
     form.C_second_highest_C0_Tref = C_second_highest_C0_Tref
 
+    form.comboBox.clear()
+    form.comboBox_3.clear()
+    for item in comps[:, 0:2]:
+        form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
+        form.comboBox_3.addItem(item[1])
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
     form.doubleSpinBox.setValue(C_second_highest_C0_Tref*(1-20/100.0))
     form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref*(1+20/100.0))
@@ -560,9 +569,6 @@ def retabulate(form):
     form.tableComps.setSortingEnabled(False)
     form.tableReacs.setSortingEnabled(False)
 
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-
     for column in j:
         for row in i:
             if column < 4:
@@ -607,27 +613,56 @@ def retabulate(form):
     form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-
 
 def save_file(form):
     pass
 
 
 def plot_intervals(form):
+    comps = form.comps
+    reacs = form.reacs
+    C0_i = form.C0_i
     index_of_variable = form.comboBox.currentIndex()
     min_value = form.doubleSpinBox.value()
     max_value = form.doubleSpinBox_2.value()
-    n_points = 50
+    n_points = 20
     indep_var_values = \
         [min_value + x
          for x in np.arange(n_points+1)*(max_value-min_value)/(n_points)]
-
-    form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
-    form.groupBox.plotBox.ax.plot(indep_var_values)
-    form.groupBox.show()
+    C0_mid_point = np.mean(indep_var_values)
+    C0_variable_comp = C0_i[index_of_variable]
+    if C0_mid_point == C0_variable_comp:
+        Xieq_j = form.Xieq_j
+        Ceq_i = form.Ceq_i
+        Ceq_series = np.matrix(np.zeros([n_points+1,len(Ceq_i)]))
+        Xieq_series = np.matrix(np.zeros([n_points+1,len(Xieq_j)]))
+        # Keep current solution intact for after plotting range
+        form.stored_solution_Ceq_i = form.Ceq_i
+        form.stored_solution_Xieq_j = form.Xieq_j
+        for j in range(n_points/2-1,-1,-1):
+            form.C0_i[index_of_variable] = indep_var_values[j]
+            gui_setup_and_variables(form)
+            equilibrate(form)
+            Ceq_series[j,:] = form.Ceq_i.T
+            Xieq_series[j,:] = form.Xieq_j.T
+        form.Ceq_i = form.stored_solution_Ceq_i
+        form.Xieq_j = form.stored_solution_Xieq_j
+        for j in range(n_points/2,n_points+1,+1):
+            form.C0_i[index_of_variable] = indep_var_values[j]
+            gui_setup_and_variables(form)
+            equilibrate(form)
+            Ceq_series[j,:] = form.Ceq_i.T
+            Xieq_series[j,:] = form.Xieq_j.T
+        form.Ceq_i = form.stored_solution_Ceq_i
+        form.Xieq_j = form.stored_solution_Xieq_j
+        form.groupBox = QtGui.QGroupBox()
+        form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
+        plotted_series = form.groupBox.plotBox.ax.plot(indep_var_values, Ceq_series)
+        form.groupBox.plotBox.ax.legend(
+            ['Ceq_' + item[0] + '{' + item[1] + '}' for item in comps[:,0:2]],
+            loc='upper left', ncol=len(plotted_series)/2, bbox_to_anchor=(0, 1),
+            fancybox=True).draggable(True)
+        form.groupBox.show()
 
 
 def calc_Xieq(form):
@@ -1269,12 +1304,18 @@ def main():
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
+    main_form.ui.tableComps.blockSignals(True)
+    main_form.ui.tableReacs.blockSignals(True)
+    main_form.ui.comboBox.blockSignals(True)
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
     gui_setup_and_variables(main_form.ui)
     equilibrate(main_form.ui)
     retabulate(main_form.ui)
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    main_form.ui.tableComps.blockSignals(False)
+    main_form.ui.tableReacs.blockSignals(False)
+    main_form.ui.comboBox.blockSignals(False)
     app.exec_()
 
 
