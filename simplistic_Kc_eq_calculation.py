@@ -1275,7 +1275,7 @@ def main():
     retabulate(main_form.ui)
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
-    sys.exit(app.exec_())
+    app.exec_()
 
 
 if __name__ == '__main__':
