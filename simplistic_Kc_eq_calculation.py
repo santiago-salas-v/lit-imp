@@ -458,14 +458,26 @@ def gui_setup_and_variables(form):
 
 
 def recalculate_after_cell_edit(form, row, column):
+    form.tableComps.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+    form.comboBox.blockSignals(True)
     gui_equilibrate(form)
+    form.tableComps.blockSignals(False)
+    form.tableReacs.blockSignals(False)
+    form.comboBox.blockSignals(False)
 
 
 def gui_equilibrate(form):
+    form.tableComps.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+    form.comboBox.blockSignals(True)
     load_variables_from_form(form)
     gui_setup_and_variables(form)
     equilibrate(form)
     retabulate(form)
+    form.tableComps.blockSignals(False)
+    form.tableReacs.blockSignals(False)
+    form.comboBox.blockSignals(False)
 
 
 def equilibrate(form):
@@ -564,6 +576,9 @@ def retabulate(form):
         i = range(0, n)
     j = range(0, 4 + 3)
 
+    form.tableComps.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+    form.comboBox.blockSignals(True)
     # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
     # Therefore disable sorting, then set QTableWidgetItems and finally reenable sorting.
     form.tableComps.setSortingEnabled(False)
@@ -612,6 +627,10 @@ def retabulate(form):
     form.tableReacs.setSortingEnabled(True)
     form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
     form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+    form.tableComps.blockSignals(False)
+    form.tableReacs.blockSignals(False)
+    form.comboBox.blockSignals(False)
 
 
 def save_file(form):
@@ -1304,18 +1323,12 @@ def main():
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
-    main_form.ui.tableComps.blockSignals(True)
-    main_form.ui.tableReacs.blockSignals(True)
-    main_form.ui.comboBox.blockSignals(True)
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
     gui_setup_and_variables(main_form.ui)
     equilibrate(main_form.ui)
     retabulate(main_form.ui)
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
-    main_form.ui.tableComps.blockSignals(False)
-    main_form.ui.tableReacs.blockSignals(False)
-    main_form.ui.comboBox.blockSignals(False)
     app.exec_()
 
 
