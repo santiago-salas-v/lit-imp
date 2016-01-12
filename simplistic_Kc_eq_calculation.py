@@ -5,7 +5,8 @@ Created on Fri Nov 27 20:48:42 2015
 @author: Santiago Salas
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
-import matplotlib
+import matplotlib, colormaps
+
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -245,22 +246,18 @@ class UiGroupBox(object):
         self.label_9.setText(_translate("parent", 'Currently unequilibrated', None))
         self.cancelButton.setText('cancel')
 
-
     def cancel_loop(self):
         self._was_canceled = True
         self.progressBar.setVisible(False)
 
-
     def populate_input_spinboxes(self, index):
         comps = self.comps
         C0_component = self.C0_i[index]
-        self.doubleSpinBox.setValue(C0_component *(1-20/100.0))
-        self.doubleSpinBox_2.setValue(C0_component *(1+20/100.0))
-
+        self.doubleSpinBox.setValue(C0_component * (1 - 20 / 100.0))
+        self.doubleSpinBox_2.setValue(C0_component * (1 + 20 / 100.0))
 
     def remove_canceled_status(self):
         self._was_canceled = False
-
 
     def was_canceled(self):
         return self._was_canceled
@@ -297,6 +294,8 @@ class UiGroupBoxPlot(object):
         self.verticalLayout.addWidget(self.label)
         self.listWidget_2 = QtGui.QListWidget(self.horizontalLayoutWidget)
         self.listWidget_2.setObjectName("listWidget_2")
+        self.listWidget_2.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
         self.verticalLayout.addWidget(self.listWidget_2)
         self.label_2 = QtGui.QLabel(self.horizontalLayoutWidget)
         self.label_2.setObjectName("label_2")
@@ -383,7 +382,7 @@ def load_csv(form, filename):
         header_reacs + ['Xieq_j'])
 
     # Pass variables to form before loop start
-    variables_to_pass = ['header_comps' , 'comps', 'header_reacs', 'reacs',
+    variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
                          'n', 'Nr']
     for var in variables_to_pass:
         setattr(form, var, locals()[var])
@@ -410,7 +409,7 @@ def load_variables_from_form(form):
         for i in range(reacs.shape[0]):
             reacs[i, j] = form.tableReacs.item(i, j).text()
     # Pass variables to form before loop start
-    variables_to_pass = ['header_comps' , 'comps', 'header_reacs', 'reacs',
+    variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
                          'component_order_in_table']
     for var in variables_to_pass:
         setattr(form, var, locals()[var])
@@ -450,8 +449,8 @@ def gui_setup_and_variables(form):
         form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
         form.comboBox_3.addItem(item[1])
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
-    form.doubleSpinBox.setValue(C_second_highest_C0_Tref*(1-20/100.0))
-    form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref*(1+20/100.0))
+    form.doubleSpinBox.setValue(C_second_highest_C0_Tref * (1 - 20 / 100.0))
+    form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
     form.comboBox_3.setCurrentIndex(index_of_solvent)
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
     form.doubleSpinBox_6.setPrefix('(mol/L)')
@@ -503,7 +502,7 @@ def equilibrate(form):
     if not hasattr(form, 'acceptable_solution'):
         Ceq_i_0 = C0_i
         # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-        Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
+        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
         Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
     else:
         # Use previous solution as initial estimate, if it was valid.
@@ -527,7 +526,7 @@ def equilibrate(form):
     # Calculate equilibrium composition: Steepest descent / Newton method
     # TODO: Implement global homotopy-continuation method
     while not form.acceptable_solution \
-            and k < max_it and stop == False\
+            and k < max_it and stop == False \
             and not form.was_canceled():
         Ceq_i, Xieq_j = calc_Xieq(form)
         k += 1
@@ -541,7 +540,7 @@ def equilibrate(form):
             # Set aequilibrium composition to initial value + estimated conversion
             form.Ceq_i_0 = C0_i
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-            form.Ceq_i_0[C0_i==0] = min(C0_i[C0_i != 0].A1)*10**-6
+            form.Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
             form.initialEstimateAttempts += 1
             form.methodLoops = [0, 0]
 
@@ -551,8 +550,8 @@ def equilibrate(form):
         form.Ceq_i_0 = Ceq_i
         form.Xieq_j_0 = Xieq_j
         form.label_9.setText(form.label_9.text() +
-                             '\nsum(C0*z_i) = ' + str((z_i.T*C0_i).item()) +
-                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T*Ceq_i).item()))
+                             '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
+                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
 
     form.Ceq_i = Ceq_i
     form.Xieq_j = Xieq_j
@@ -570,7 +569,7 @@ def retabulate(form):
     header_reacs = form.header_reacs
     Ceq_i = form.Ceq_i
     Xieq_j = form.Xieq_j
-    if hasattr(form,'component_order_in_table'):
+    if hasattr(form, 'component_order_in_table'):
         i = getattr(form, 'component_order_in_table')
     else:
         i = range(0, n)
@@ -647,40 +646,49 @@ def plot_intervals(form):
     n_points = 20
     indep_var_values = \
         [min_value + x
-         for x in np.arange(n_points+1)*(max_value-min_value)/(n_points)]
+         for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
     C0_mid_point = np.mean(indep_var_values)
     C0_variable_comp = C0_i[index_of_variable]
     if C0_mid_point == C0_variable_comp:
         Xieq_j = form.Xieq_j
         Ceq_i = form.Ceq_i
-        Ceq_series = np.matrix(np.zeros([n_points+1,len(Ceq_i)]))
-        Xieq_series = np.matrix(np.zeros([n_points+1,len(Xieq_j)]))
+        Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
+        Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
         # Keep current solution intact for after plotting range
         form.stored_solution_Ceq_i = form.Ceq_i
         form.stored_solution_Xieq_j = form.Xieq_j
-        for j in range(n_points/2-1,-1,-1):
+        for j in range(n_points / 2 - 1, -1, -1):
             form.C0_i[index_of_variable] = indep_var_values[j]
             gui_setup_and_variables(form)
             equilibrate(form)
-            Ceq_series[j,:] = form.Ceq_i.T
-            Xieq_series[j,:] = form.Xieq_j.T
+            Ceq_series[j, :] = form.Ceq_i.T
+            Xieq_series[j, :] = form.Xieq_j.T
         form.Ceq_i = form.stored_solution_Ceq_i
         form.Xieq_j = form.stored_solution_Xieq_j
-        for j in range(n_points/2,n_points+1,+1):
+        for j in range(n_points / 2, n_points + 1, +1):
             form.C0_i[index_of_variable] = indep_var_values[j]
             gui_setup_and_variables(form)
             equilibrate(form)
-            Ceq_series[j,:] = form.Ceq_i.T
-            Xieq_series[j,:] = form.Xieq_j.T
+            Ceq_series[j, :] = form.Ceq_i.T
+            Xieq_series[j, :] = form.Xieq_j.T
         form.Ceq_i = form.stored_solution_Ceq_i
         form.Xieq_j = form.stored_solution_Xieq_j
         form.groupBox = QtGui.QGroupBox()
         form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
-        plotted_series = form.groupBox.plotBox.ax.plot(indep_var_values, Ceq_series)
+        colormap_colors = colormaps.viridis.colors
+        plotted_series = np.empty(len(Ceq_i) + len(Xieq_j), dtype=matplotlib.lines.Line2D)
+        Ceq_labels = ['Ceq_' + item[0] + '{' + item[1] + '}' for item in comps[:, 0:2]]
+        for i in range(len(Ceq_i)):
+            plotted_series[i] = form.groupBox.plotBox.ax.plot(
+                indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=Ceq_labels[i],
+                color=colormap_colors[np.random.randint(0, 255, 1)])
+            new_item = QtGui.QListWidgetItem(Ceq_labels[i], form.groupBox.plotBox.listWidget_2)
+            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                      *['utils', 'glyphicons-602-chevron-down.png'])))
         form.groupBox.plotBox.ax.legend(
-            ['Ceq_' + item[0] + '{' + item[1] + '}' for item in comps[:,0:2]],
-            loc='upper left', ncol=len(plotted_series)/2, bbox_to_anchor=(0, 1),
+            Ceq_labels, loc='upper left', ncol=len(plotted_series) / 2, bbox_to_anchor=(0, 1),
             fancybox=True).draggable(True)
+        form.groupBox.plotBox.listWidget_2.setMinimumWidth(form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
         form.groupBox.show()
 
 
@@ -1319,7 +1327,7 @@ def main():
 
     main_form = QtGui.QGroupBox()
     icon = QtGui.QIcon(
-            os.path.join(sys.path[0], *['utils', 'icon_batch.png']))
+        os.path.join(sys.path[0], *['utils', 'icon_batch.png']))
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
