@@ -277,6 +277,7 @@ class UiGroupBoxPlot(object):
         self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
+        self.ax.grid('on')
         # Generate the canvas to display the plot
         self.canvas = FigureCanvas(self.figure)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Expanding)
@@ -678,17 +679,22 @@ def plot_intervals(form):
         colormap_colors = colormaps.viridis.colors
         plotted_series = np.empty(len(Ceq_i) + len(Xieq_j), dtype=matplotlib.lines.Line2D)
         Ceq_labels = ['Ceq_' + item[0] + '{' + item[1] + '}' for item in comps[:, 0:2]]
+        markers = matplotlib.markers.MarkerStyle.filled_markers
+        fillstyles = matplotlib.markers.MarkerStyle.fillstyles
         for i in range(len(Ceq_i)):
             plotted_series[i] = form.groupBox.plotBox.ax.plot(
                 indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=Ceq_labels[i],
-                color=colormap_colors[np.random.randint(0, 255, 1)])
+                color=colormap_colors[np.random.randint(0, 255, 1)],
+                marker=markers[np.random.randint(0,len(markers)-1)],
+                fillstyle=fillstyles[np.random.randint(0,len(fillstyles)-1)])
             new_item = QtGui.QListWidgetItem(Ceq_labels[i], form.groupBox.plotBox.listWidget_2)
             new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                       *['utils', 'glyphicons-602-chevron-down.png'])))
         form.groupBox.plotBox.ax.legend(
-            Ceq_labels, loc='upper left', ncol=len(plotted_series) / 2, bbox_to_anchor=(0, 1),
-            fancybox=True).draggable(True)
-        form.groupBox.plotBox.listWidget_2.setMinimumWidth(form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
+            Ceq_labels, loc='upper left', ncol=len(plotted_series) / 3, bbox_to_anchor=(0, 1),
+            fancybox=True, borderaxespad=0.).draggable(True)
+        form.groupBox.plotBox.listWidget_2.setMinimumWidth(
+            form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
         form.groupBox.show()
 
 
