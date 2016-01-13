@@ -4,7 +4,7 @@ Created on Fri Nov 27 20:48:42 2015
 
 @author: Santiago Salas
 """
-import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv
+import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv, bisect
 import matplotlib, colormaps
 
 matplotlib.use('Qt4Agg')
@@ -660,7 +660,6 @@ def plot_intervals(form):
         form.stored_solution_Xieq_j = form.Xieq_j
         for j in range(n_points / 2 - 1, -1, -1):
             form.C0_i[index_of_variable] = indep_var_values[j]
-            gui_setup_and_variables(form)
             equilibrate(form)
             Ceq_series[j, :] = form.Ceq_i.T
             Xieq_series[j, :] = form.Xieq_j.T
@@ -668,7 +667,6 @@ def plot_intervals(form):
         form.Xieq_j = form.stored_solution_Xieq_j
         for j in range(n_points / 2, n_points + 1, +1):
             form.C0_i[index_of_variable] = indep_var_values[j]
-            gui_setup_and_variables(form)
             equilibrate(form)
             Ceq_series[j, :] = form.Ceq_i.T
             Xieq_series[j, :] = form.Xieq_j.T
