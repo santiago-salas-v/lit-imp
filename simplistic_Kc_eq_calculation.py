@@ -317,7 +317,6 @@ class UiGroupBoxPlot(object):
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
-
     def retranslateUi(self, parent):
         parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         parent.setTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
@@ -326,21 +325,30 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
 
-
     def move_to_available(self, item):
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                        *['utils', 'glyphicons-601-chevron-up.png'])))
+                                                  *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-
+        for line in self.ax.findobj(lambda x: getattr(x,'_label')==name):
+            line.set_visible(False)
+        self.ax.relim()
+        self.ax.autoscale_view(scalex=True, scaley=True)
+        self.canvas.draw()
 
     def move_to_displayed(self, item):
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget_2)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                        *['utils', 'glyphicons-602-chevron-down.png'])))
+                                                  *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
+        for line in self.ax.findobj(lambda x: getattr(x,'_label')==name):
+            line.set_visible(True)
+        self.ax.relim()
+        self.ax.autoscale_view(scalex=True, scaley=True)
+        self.canvas.draw()
+
 
 def open_file(form):
     (filename, _) = \
@@ -687,7 +695,7 @@ def plot_intervals(form):
             Xieq_series[j, :] = form.Xieq_j.T
         form.Ceq_i = form.stored_solution_Ceq_i
         form.Xieq_j = form.stored_solution_Xieq_j
-        for j in  range(mid_index + 1, n_points + 1, +1):
+        for j in range(mid_index + 1, n_points + 1, +1):
             form.C0_i[index_of_variable] = indep_var_values[j]
             equilibrate(form)
             Ceq_series[j, :] = form.Ceq_i.T
@@ -698,21 +706,22 @@ def plot_intervals(form):
         form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
         colormap_colors = colormaps.viridis.colors
         plotted_series = np.empty(len(Ceq_i) + len(Xieq_j), dtype=matplotlib.lines.Line2D)
-        Ceq_labels = ['Ceq_' + item[0] + '{' + item[1] + '}' for item in comps[:, 0:2]]
+        Ceq_labels = ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$' for item in comps[:, 0:2]]
         markers = matplotlib.markers.MarkerStyle.filled_markers
         fillstyles = matplotlib.markers.MarkerStyle.fillstyles
         for i in range(len(Ceq_i)):
             plotted_series[i] = form.groupBox.plotBox.ax.plot(
                 indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=Ceq_labels[i],
                 color=colormap_colors[np.random.randint(0, 255, 1)],
-                marker=markers[np.random.randint(0,len(markers)-1)],
-                fillstyle=fillstyles[np.random.randint(0,len(fillstyles)-1)])
+                marker=markers[np.random.randint(0, len(markers) - 1)],
+                fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
             new_item = QtGui.QListWidgetItem(Ceq_labels[i], form.groupBox.plotBox.listWidget_2)
             new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                       *['utils', 'glyphicons-602-chevron-down.png'])))
         form.groupBox.plotBox.ax.legend(
-            Ceq_labels, loc='upper left', ncol=len(plotted_series) / 3, bbox_to_anchor=(0, 1),
-            fancybox=True, borderaxespad=0.).draggable(True)
+            Ceq_labels, loc='best', ncol=len(plotted_series) / 3,  # bbox_to_anchor=(0, 1),
+            fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        form.groupBox.plotBox.ax.set_xlabel('C0', fontsize=14)
         form.groupBox.plotBox.listWidget_2.setMinimumWidth(
             form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
         form.groupBox.show()
