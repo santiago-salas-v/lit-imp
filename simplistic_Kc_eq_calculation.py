@@ -648,9 +648,10 @@ def plot_intervals(form):
     indep_var_values = \
         [min_value + x
          for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
-    C0_mid_point = np.mean(indep_var_values)
     C0_variable_comp = C0_i[index_of_variable]
-    if C0_mid_point == C0_variable_comp:
+    mid_index = bisect.bisect(indep_var_values, C0_variable_comp) - 1
+    conditions_to_continue = True
+    if conditions_to_continue:
         Xieq_j = form.Xieq_j
         Ceq_i = form.Ceq_i
         Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
@@ -658,14 +659,14 @@ def plot_intervals(form):
         # Keep current solution intact for after plotting range
         form.stored_solution_Ceq_i = form.Ceq_i
         form.stored_solution_Xieq_j = form.Xieq_j
-        for j in range(n_points / 2 - 1, -1, -1):
+        for j in range(mid_index, -1, -1):
             form.C0_i[index_of_variable] = indep_var_values[j]
             equilibrate(form)
             Ceq_series[j, :] = form.Ceq_i.T
             Xieq_series[j, :] = form.Xieq_j.T
         form.Ceq_i = form.stored_solution_Ceq_i
         form.Xieq_j = form.stored_solution_Xieq_j
-        for j in range(n_points / 2, n_points + 1, +1):
+        for j in  range(mid_index + 1, n_points + 1, +1):
             form.C0_i[index_of_variable] = indep_var_values[j]
             equilibrate(form)
             Ceq_series[j, :] = form.Ceq_i.T
