@@ -139,6 +139,7 @@ class UiGroupBox(object):
         self.tableComps.verticalHeader().setVisible(False)
         self.verticalLayout_2.addWidget(self.tableComps)
         self.label_9 = QtGui.QLabel(parent)
+        self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
         self.verticalLayout_2.addWidget(self.label_9)
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
@@ -888,13 +889,13 @@ def update_status_label(form, k, solved):
     else:
         solved = 'solution not found.'
 
-    form.label_9.setText('Loops: Steepest descent ' +
-                         str(form.methodLoops[0]) + ' | Newton ' +
+    form.label_9.setText('Loops: Steepest descent \t' +
+                         str(form.methodLoops[0]) + ' \t Newton \t' +
                          str(form.methodLoops[1]) +
-                         ' | Initial estimate attempts ' +
+                         ' \t Initial estimate attempts \t' +
                          str(form.initialEstimateAttempts) + '\n' +
-                         'Iteration k=' + str(k) +
-                         '; ' + str(solved))
+                         'Iteration (k) \t' + str(k) +
+                         '\n' + str(solved))
 
 
 def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
