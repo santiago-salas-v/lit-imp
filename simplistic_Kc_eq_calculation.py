@@ -298,20 +298,25 @@ class UiGroupBoxPlot(object):
         self.listWidget_2.setObjectName("listWidget_2")
         self.listWidget_2.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
+        self.listWidget_2.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget_2)
         self.label_2 = QtGui.QLabel(self.horizontalLayoutWidget)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
         self.listWidget = QtGui.QListWidget(self.horizontalLayoutWidget)
         self.listWidget.setObjectName("listWidget")
+        self.listWidget.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget)
         self.pushButton = QtGui.QPushButton(self.horizontalLayoutWidget)
         self.pushButton.setObjectName("pushButton")
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
+        self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
+        self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
 
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
+
 
     def retranslateUi(self, parent):
         parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
@@ -321,6 +326,21 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
 
+
+    def move_to_available(self, item):
+        name = item.text()
+        new_item = QtGui.QListWidgetItem(name, self.listWidget)
+        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                        *['utils', 'glyphicons-601-chevron-up.png'])))
+        self.listWidget_2.takeItem(self.listWidget_2.currentRow())
+
+
+    def move_to_displayed(self, item):
+        name = item.text()
+        new_item = QtGui.QListWidgetItem(name, self.listWidget_2)
+        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                        *['utils', 'glyphicons-602-chevron-down.png'])))
+        self.listWidget.takeItem(self.listWidget.currentRow())
 
 def open_file(form):
     (filename, _) = \
