@@ -321,7 +321,6 @@ class UiGroupBoxPlot(object):
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
-        self.toolbar.
 
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
@@ -345,14 +344,15 @@ class UiGroupBoxPlot(object):
         y_max = y_min
         for line in self.ax.findobj(lambda x: x.properties()['label']==name):
             line.set_visible(False)
-        #self.ax.relim()
-        #self.ax.autoscale_view(scalex=True, scaley=True)
         for line in self.ax.findobj(lambda x: \
                         x.properties()['visible']==True and \
                         type(x) == matplotlib.lines.Line2D and \
                         len(x.properties()['label'])>0):
             y_max = max([y_max, max(line.get_ydata())])
-        self.ax.set_ylim(0,y_max)
+        if y_min == y_max:
+            self.ax.relim()
+        else:
+            self.ax.set_ylim(y_min,y_max*1.05)
         self.canvas.draw()
 
     def move_to_displayed(self, item):
@@ -361,10 +361,20 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
+        y_lim = self.ax.get_ylim()
+        y_min = y_lim[0]
+        y_max = y_min
         for line in self.ax.findobj(lambda x: getattr(x,'_label')==name):
             line.set_visible(True)
-        self.ax.relim()
-        self.ax.autoscale_view(scalex=True, scaley=True)
+        for line in self.ax.findobj(lambda x: \
+                        x.properties()['visible']==True and \
+                        type(x) == matplotlib.lines.Line2D and \
+                        len(x.properties()['label'])>0):
+            y_max = max([y_max, max(line.get_ydata())])
+        if y_min == y_max:
+            self.ax.relim()
+        else:
+            self.ax.set_ylim(y_min,y_max*1.05)
         self.canvas.draw()
 
 
