@@ -10,6 +10,7 @@ import matplotlib, colormaps
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from PySide import QtGui, QtCore
 from functools import partial
@@ -268,12 +269,17 @@ class UiGroupBoxPlot(object):
     def __init__(self, parent):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
-        self.horizontalLayoutWidget = QtGui.QWidget(parent)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(9, 19, 741, 421))
-        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout = QtGui.QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_1Widget = QtGui.QWidget(parent)
+        self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
+        self.verticalLayout_1Widget.setObjectName("verticalLayout_1Widget")
+        self.verticalLayout_1 = QtGui.QVBoxLayout(self.verticalLayout_1Widget)
+        self.verticalLayout_1.setObjectName("verticalLayout_1")
+        self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
+        self.navigation_frame = QtGui.QFrame()
+        self.verticalLayout_1.addWidget(self.navigation_frame)
+        self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout_1.addLayout(self.horizontalLayout)
         # Generate the plot
         self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
@@ -291,28 +297,31 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.addWidget(self.canvas)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.label = QtGui.QLabel(self.horizontalLayoutWidget)
+        self.label = QtGui.QLabel(self.verticalLayout_1Widget)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
-        self.listWidget_2 = QtGui.QListWidget(self.horizontalLayoutWidget)
+        self.listWidget_2 = QtGui.QListWidget(self.verticalLayout_1Widget)
         self.listWidget_2.setObjectName("listWidget_2")
         self.listWidget_2.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
         self.listWidget_2.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget_2)
-        self.label_2 = QtGui.QLabel(self.horizontalLayoutWidget)
+        self.label_2 = QtGui.QLabel(self.verticalLayout_1Widget)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
-        self.listWidget = QtGui.QListWidget(self.horizontalLayoutWidget)
+        self.listWidget = QtGui.QListWidget(self.verticalLayout_1Widget)
         self.listWidget.setObjectName("listWidget")
         self.listWidget.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget)
-        self.pushButton = QtGui.QPushButton(self.horizontalLayoutWidget)
+        self.pushButton = QtGui.QPushButton(self.verticalLayout_1Widget)
         self.pushButton.setObjectName("pushButton")
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
+        self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
+        self.navigation_frame.setMinimumHeight(self.toolbar.height())
+        self.toolbar.
 
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
@@ -331,10 +340,19 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-        for line in self.ax.findobj(lambda x: getattr(x,'_label')==name):
+        y_lim = self.ax.get_ylim()
+        y_min = y_lim[0]
+        y_max = y_min
+        for line in self.ax.findobj(lambda x: x.properties()['label']==name):
             line.set_visible(False)
-        self.ax.relim()
-        self.ax.autoscale_view(scalex=True, scaley=True)
+        #self.ax.relim()
+        #self.ax.autoscale_view(scalex=True, scaley=True)
+        for line in self.ax.findobj(lambda x: \
+                        x.properties()['visible']==True and \
+                        type(x) == matplotlib.lines.Line2D and \
+                        len(x.properties()['label'])>0):
+            y_max = max([y_max, max(line.get_ydata())])
+        self.ax.set_ylim(0,y_max)
         self.canvas.draw()
 
     def move_to_displayed(self, item):
