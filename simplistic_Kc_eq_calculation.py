@@ -750,7 +750,8 @@ def plot_intervals(form):
         form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
         colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
         # dict, keys:ceq_labels; bindings: plottedseries
-        ceq_labels = ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$' for item in comps[:, 0:2]]
+        ceq_labels = \
+            ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$/(mol/L)' for item in comps[:, 0:2]]
         plotted_series = dict(zip(ceq_labels, np.empty(len(Ceq_i) + len(Xieq_j), dtype=object)))
         markers = matplotlib.markers.MarkerStyle.filled_markers
         fillstyles = matplotlib.markers.MarkerStyle.fillstyles
@@ -759,6 +760,7 @@ def plot_intervals(form):
             plotted_series[label] = form.groupBox.plotBox.ax.plot(
                 indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=ceq_labels[i],
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
             new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
@@ -768,7 +770,9 @@ def plot_intervals(form):
         form.groupBox.plotBox.ax.legend(
             loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         form.groupBox.plotBox.plotted_series = plotted_series
-        form.groupBox.plotBox.ax.set_xlabel('C0', fontsize=14)
+        form.groupBox.plotBox.ax.set_xlabel(
+            '$C0_{' + comps[index_of_variable,0] + ', ' +
+            comps[index_of_variable,1] + '}$/(g/mol)', fontsize=14)
         form.groupBox.plotBox.listWidget_2.setMinimumWidth(
             form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
         form.groupBox.show()
