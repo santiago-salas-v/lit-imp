@@ -346,21 +346,10 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-        plotted_series = self.plotted_series
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        if not hasattr(self, 'visible__legend_labels'):
-            self.visible__legend_labels = dict([(x.properties()['text'],
-                                                x.properties()['visible']) for x in
-                                               self.ax.legend().properties()['texts']])
-            self.visible__legend_labels[name] = False
-        else:
-            self.visible__legend_labels[name] = False
-        for line in self.ax.findobj(lambda x: x.properties()['label']==name):
-            line.set_visible(False)
-        for tag in self.ax.legend().properties()['texts']:
-            tag.set_visible(self.visible__legend_labels[tag.properties()['text']])
+        del self.ax.lines[np.where([x.properties()['label']==name for x in self.ax.lines])[0]]
         for line in self.ax.findobj(lambda x: \
                         x.properties()['visible']==True and \
                         type(x) == matplotlib.lines.Line2D and \
@@ -370,7 +359,10 @@ class UiGroupBoxPlot(object):
             self.ax.relim()
         else:
             self.ax.set_ylim(y_min,y_max*1.05)
-        self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        if len(self.ax.lines)>0:
+            self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        else:
+            del self.ax.legend
         self.canvas.draw()
 
     def move_to_displayed(self, item):
@@ -382,11 +374,7 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        for line in self.ax.findobj(lambda x: x.properties()['label']==name):
-            line.set_visible(True)
-        for tag in self.ax.legend().properties()['texts']:
-            if tag.get_text()==name:
-                tag.set_visible(True)
+        self.ax.add_line(self.plotted_series[name][0])
         for line in self.ax.findobj(lambda x: \
                         x.properties()['visible']==True and \
                         type(x) == matplotlib.lines.Line2D and \
@@ -396,6 +384,10 @@ class UiGroupBoxPlot(object):
             self.ax.relim()
         else:
             self.ax.set_ylim(y_min,y_max*1.05)
+        if len(self.ax.lines)>0:
+            self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        else:
+            del self.ax.legend
         self.canvas.draw()
 
 
@@ -757,26 +749,24 @@ def plot_intervals(form):
         form.groupBox = QtGui.QGroupBox()
         form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
         colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
-        # dict, keys:ceq_labels; bindings: [plottedseries[i], visible[i]]
+        # dict, keys:ceq_labels; bindings: plottedseries
         ceq_labels = ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$' for item in comps[:, 0:2]]
-        plotted_series = dict(zip(ceq_labels, np.empty([len(Ceq_i) + len(Xieq_j), 2], dtype=object)))
+        plotted_series = dict(zip(ceq_labels, np.empty(len(Ceq_i) + len(Xieq_j), dtype=object)))
         markers = matplotlib.markers.MarkerStyle.filled_markers
         fillstyles = matplotlib.markers.MarkerStyle.fillstyles
         for i in range(len(Ceq_i)):
             label = ceq_labels[i]
-            plotted_series[label][0] = form.groupBox.plotBox.ax.plot(
+            plotted_series[label] = form.groupBox.plotBox.ax.plot(
                 indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=ceq_labels[i],
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-            plotted_series[label][1] = True #start visible
             new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
             new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                       *['utils', 'glyphicons-602-chevron-down.png'])))
-            datacursor(plotted_series[label][0])
+            datacursor(plotted_series[label])
         form.groupBox.plotBox.ax.legend(
-            loc='best', ncol=len(plotted_series) / 3,
-            fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         form.groupBox.plotBox.plotted_series = plotted_series
         form.groupBox.plotBox.ax.set_xlabel('C0', fontsize=14)
         form.groupBox.plotBox.listWidget_2.setMinimumWidth(
