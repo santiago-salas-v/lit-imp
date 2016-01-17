@@ -16,6 +16,7 @@ from PySide import QtGui, QtCore
 from functools import partial
 from mat_Zerlegungen import gausselimination
 from datetime import datetime
+from mpldatacursor import datacursor
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -145,8 +146,14 @@ class UiGroupBox(object):
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
         self.cancelButton = QtGui.QPushButton(parent)
-        self.cancelButton.setVisible(False)
         self.progressBar = QtGui.QProgressBar(parent, visible=True)
+        self.cancelButton.setEnabled(False)
+        self.progressBar.setEnabled(False)
+        self.horizontalLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+        self.horizontalLayout_7.addStrut(max( \
+            [self.progressBar.frameSize().height(),
+             self.cancelButton.frameSize().height()]))
+        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignLeft)
         self.horizontalLayout_7.addWidget(self.cancelButton)
         self.horizontalLayout_7.addWidget(self.progressBar)
         self.verticalLayout_2.addLayout(self.horizontalLayout_7)
@@ -250,7 +257,7 @@ class UiGroupBox(object):
 
     def cancel_loop(self):
         self._was_canceled = True
-        self.progressBar.setVisible(False)
+        self.progressBar.setValue(0)
 
     def populate_input_spinboxes(self, index):
         comps = self.comps
@@ -339,11 +346,21 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
+        plotted_series = self.plotted_series
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
+        if not hasattr(self, 'visible__legend_labels'):
+            self.visible__legend_labels = dict([(x.properties()['text'],
+                                                x.properties()['visible']) for x in
+                                               self.ax.legend().properties()['texts']])
+            self.visible__legend_labels[name] = False
+        else:
+            self.visible__legend_labels[name] = False
         for line in self.ax.findobj(lambda x: x.properties()['label']==name):
             line.set_visible(False)
+        for tag in self.ax.legend().properties()['texts']:
+            tag.set_visible(self.visible__legend_labels[tag.properties()['text']])
         for line in self.ax.findobj(lambda x: \
                         x.properties()['visible']==True and \
                         type(x) == matplotlib.lines.Line2D and \
@@ -353,6 +370,7 @@ class UiGroupBoxPlot(object):
             self.ax.relim()
         else:
             self.ax.set_ylim(y_min,y_max*1.05)
+        self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.canvas.draw()
 
     def move_to_displayed(self, item):
@@ -364,8 +382,11 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        for line in self.ax.findobj(lambda x: getattr(x,'_label')==name):
+        for line in self.ax.findobj(lambda x: x.properties()['label']==name):
             line.set_visible(True)
+        for tag in self.ax.legend().properties()['texts']:
+            if tag.get_text()==name:
+                tag.set_visible(True)
         for line in self.ax.findobj(lambda x: \
                         x.properties()['visible']==True and \
                         type(x) == matplotlib.lines.Line2D and \
@@ -576,7 +597,8 @@ def equilibrate(form):
 
     k = 1
     stop = False
-    form.cancelButton.setVisible(True)
+    form.cancelButton.setEnabled(True)
+    form.progressBar.setEnabled(True)
     form.remove_canceled_status()
     form.acceptable_solution = False
     form.initialEstimateAttempts = 1
@@ -604,16 +626,18 @@ def equilibrate(form):
 
     if not form.acceptable_solution:
         delattr(form, 'acceptable_solution')
+        form.label_9.setText(form.label_9.text() + '\n')
     else:
         form.Ceq_i_0 = Ceq_i
         form.Xieq_j_0 = Xieq_j
         form.label_9.setText(form.label_9.text() +
                              '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
-                             ' | sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
+                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
 
     form.Ceq_i = Ceq_i
     form.Xieq_j = Xieq_j
-    form.cancelButton.setVisible(False)
+    form.cancelButton.setEnabled(False)
+    form.progressBar.setEnabled(False)
 
 
 def retabulate(form):
@@ -732,23 +756,28 @@ def plot_intervals(form):
         form.Xieq_j = form.stored_solution_Xieq_j
         form.groupBox = QtGui.QGroupBox()
         form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
-        colormap_colors = colormaps.viridis.colors
-        plotted_series = np.empty(len(Ceq_i) + len(Xieq_j), dtype=matplotlib.lines.Line2D)
-        Ceq_labels = ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$' for item in comps[:, 0:2]]
+        colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
+        # dict, keys:ceq_labels; bindings: [plottedseries[i], visible[i]]
+        ceq_labels = ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$' for item in comps[:, 0:2]]
+        plotted_series = dict(zip(ceq_labels, np.empty([len(Ceq_i) + len(Xieq_j), 2], dtype=object)))
         markers = matplotlib.markers.MarkerStyle.filled_markers
         fillstyles = matplotlib.markers.MarkerStyle.fillstyles
         for i in range(len(Ceq_i)):
-            plotted_series[i] = form.groupBox.plotBox.ax.plot(
-                indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=Ceq_labels[i],
-                color=colormap_colors[np.random.randint(0, 255, 1)],
+            label = ceq_labels[i]
+            plotted_series[label][0] = form.groupBox.plotBox.ax.plot(
+                indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=ceq_labels[i],
+                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-            new_item = QtGui.QListWidgetItem(Ceq_labels[i], form.groupBox.plotBox.listWidget_2)
+            plotted_series[label][1] = True #start visible
+            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
             new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                       *['utils', 'glyphicons-602-chevron-down.png'])))
+            datacursor(plotted_series[label][0])
         form.groupBox.plotBox.ax.legend(
-            Ceq_labels, loc='best', ncol=len(plotted_series) / 3,  # bbox_to_anchor=(0, 1),
+            loc='best', ncol=len(plotted_series) / 3,
             fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        form.groupBox.plotBox.plotted_series = plotted_series
         form.groupBox.plotBox.ax.set_xlabel('C0', fontsize=14)
         form.groupBox.plotBox.listWidget_2.setMinimumWidth(
             form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
@@ -803,7 +832,6 @@ def calc_Xieq(form):
     stop = False
     divergent = False
     form.progressBar.setValue(0)
-    form.progressBar.setVisible(True)
     update_status_label(form, k, stop)
     while k <= max_it and not stop:
         new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
@@ -818,7 +846,6 @@ def calc_Xieq(form):
         if magnitude_Y < tol:
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
-            form.progressBar.setVisible(False)
         else:
             # For progress bar, use log scale to compensate for quadratic convergence
             update_status_label(form, k, stop)
@@ -885,7 +912,6 @@ def steepest_descent(X0, f, J, g, tol, form):
     progressBar = form.progressBar
     label_9 = form.label_9
     progressBar.setValue(0)
-    progressBar.setVisible(True)
     update_status_label(form, k, False)
     while k < max_it and not stop:
         z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
@@ -924,7 +950,6 @@ def steepest_descent(X0, f, J, g, tol, form):
         if abs_gmin_minus_g1 < tol:
             stop = True  # Procedure successful
             progressBar.setValue(100.0)
-            progressBar.setVisible(False)
         else:
             progressBar.setValue(tol / abs_gmin_minus_g1 * 100)
             update_status_label(form, k, False)
