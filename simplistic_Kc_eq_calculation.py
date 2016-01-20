@@ -348,18 +348,18 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        del self.ax.lines[np.where([x.properties()['label']==name for x in self.ax.lines])[0]]
+        del self.ax.lines[np.where([x.properties()['label'] == name for x in self.ax.lines])[0]]
         for line in self.ax.findobj(lambda x: \
-                        x.properties()['visible']==True and \
-                        type(x) == matplotlib.lines.Line2D and \
-                        len(x.properties()['label'])>0):
+                                                                    x.properties()['visible'] == True and \
+                                                                    type(x) == matplotlib.lines.Line2D and \
+                                                            len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
             self.ax.relim()
         else:
-            self.ax.set_ylim(y_min,y_max*1.05)
-        if len(self.ax.lines)>0:
-            self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            self.ax.set_ylim(y_min, y_max * 1.05)
+        if len(self.ax.lines) > 0:
+            self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
         self.canvas.draw()
@@ -375,16 +375,16 @@ class UiGroupBoxPlot(object):
         y_max = y_min
         self.ax.add_line(self.plotted_series[name][0])
         for line in self.ax.findobj(lambda x: \
-                        x.properties()['visible']==True and \
-                        type(x) == matplotlib.lines.Line2D and \
-                        len(x.properties()['label'])>0):
+                                                                    x.properties()['visible'] == True and \
+                                                                    type(x) == matplotlib.lines.Line2D and \
+                                                            len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
             self.ax.relim()
         else:
-            self.ax.set_ylim(y_min,y_max*1.05)
-        if len(self.ax.lines)>0:
-            self.ax.legend(loc='best',fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            self.ax.set_ylim(y_min, y_max * 1.05)
+        if len(self.ax.lines) > 0:
+            self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
         self.canvas.draw()
@@ -525,6 +525,7 @@ def gui_setup_and_variables(form):
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
     form.doubleSpinBox_6.setPrefix('(mol/L)')
 
+
 def retabulate(form):
     # Collect variables
     n = form.n
@@ -664,8 +665,8 @@ def plot_intervals(form):
             loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         form.groupBox.plotBox.plotted_series = plotted_series
         form.groupBox.plotBox.ax.set_xlabel(
-            '$C0_{' + comps[index_of_variable,0] + ', ' +
-            comps[index_of_variable,1] + '}$/(g/mol)', fontsize=14)
+            '$C0_{' + comps[index_of_variable, 0] + ', ' +
+            comps[index_of_variable, 1] + '}$/(g/mol)', fontsize=14)
         form.groupBox.plotBox.listWidget_2.setMinimumWidth(
             form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
         form.groupBox.show()
@@ -744,8 +745,8 @@ def equilibrate(form):
     form.remove_canceled_status()
     form.acceptable_solution = False
     form.initialEstimateAttempts = 1
-    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
-    # Calculate equilibrium composition: Steepest descent / Newton method
+    form.methodLoops = [0, 0]  # loop numbers: [Line search, Newton]
+    # Calculate equilibrium composition: Newton method
     # TODO: Implement global homotopy-continuation method
     while not form.acceptable_solution \
             and k < max_it and stop == False \
@@ -760,7 +761,7 @@ def equilibrate(form):
             # TODO: scale to concentration sizes
             form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
             # Set aequilibrium composition to initial value + estimated conversion
-            form.Ceq_i_0 = C0_i # + nu_ij * form.Xieq_j_0
+            form.Ceq_i_0 = C0_i  # + nu_ij * form.Xieq_j_0
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
             form.Ceq_i_0[form.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
             form.initialEstimateAttempts += 1
@@ -799,8 +800,6 @@ def calc_Xieq(form):
     nu_ij = form.nu_ij
     Ceq_i_0 = form.Ceq_i_0
     Xieq_j_0 = form.Xieq_j_0
-    C_solvent_Tref = form.C_solvent_Tref
-    index_of_solvent = form.index_of_solvent
     max_it = form.max_it
     tol = form.tol
     z_i = form.z_i
@@ -812,9 +811,6 @@ def calc_Xieq(form):
 
     X0 = np.concatenate([Ceq_i_0, Xieq_j_0])
     X = X0
-    # Add progress bar & variable
-    # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    #X, F_val = steepest_descent(X, f, j, g, 1.0e-5, form)
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 0
     J_val = j(X)
@@ -829,17 +825,18 @@ def calc_Xieq(form):
     diff.fill(np.nan)
     stop = False
     divergent = False
+    # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, stop)
     lambda_ls = 1.0
-    j_it = 0
+    j_it = 1
     while k <= max_it and not stop:
         new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
         magnitude_Y = np.sqrt((Y.T * Y).item())
-        # First attempt no backtracking
+        # First attempt without backtracking
         X = X + 1.0 * Y
         diff = X - X_k_m_1
         if magnitude_Y < tol and all(X[0:n] >= 0):
@@ -863,15 +860,19 @@ def calc_Xieq(form):
                 QtGui.QApplication.processEvents()
                 # if form.progressBar.wasCanceled():
                 # stop = True
-        while j_it <= max_it and not all(X[0:n]>=0):
-            # backtrack if any conc<0
+        while j_it <= max_it and not all(X[0:n] >= 0):
+            # Backtrack if any conc < 0. Line search method.
+            # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
             lambda_ls = lambda_ls / 2.0
             X = X_k_m_1
             progress_k = progress_k_m_1
             X = X + lambda_ls * Y
             diff = X - X_k_m_1
-            new_log_entry('Newton', j_it, X, diff, F_val, Y, np.nan, np.nan, stop)
+            new_log_entry('Newton it. ' + str(k+1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: k',
+                          j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
             j_it += 1
+            form.methodLoops[0] += 1
+        j_it = 1
         lambda_ls = 1.0
         J_val = j(X)
         F_val = f(X)
@@ -910,6 +911,7 @@ def g_vec(X, C0_i, nu_ij, n, Nr, Kc_j):
 
 
 def steepest_descent(X0, f, J, g, tol, form):
+    # Skipping this method in favor of line search with Newton
     max_it = form.max_it
     X = X0
     f_val = f(X)
@@ -982,9 +984,9 @@ def update_status_label(form, k, solved):
     else:
         solved = 'solution not found.'
 
-    form.label_9.setText('Loops: Steepest descent \t' +
-                         str(form.methodLoops[0]) + ' \t Newton \t' +
-                         str(form.methodLoops[1]) +
+    form.label_9.setText('Loops: Newton \t' +
+                         str(form.methodLoops[1]) + ' \t Backtracking \t' +
+                         str(form.methodLoops[0]) +
                          ' \t Initial estimate attempts \t' +
                          str(form.initialEstimateAttempts) + '\n' +
                          'Iteration (k) \t' + str(k) +
@@ -992,8 +994,8 @@ def update_status_label(form, k, solved):
 
 
 def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
-    logging.debug(method + ' method loop;' +
-                  'k=' + str(k) +
+    logging.debug(method + ' ' +
+                  ';k=' + str(k) +
                   ';X=' + '[' + ','.join(map(str, X.T.A1)) + ']' +
                   ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
                   ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
