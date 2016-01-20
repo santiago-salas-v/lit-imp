@@ -96,7 +96,6 @@ class UiGroupBox(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_5 = QtGui.QHBoxLayout()
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
-        # TODO: Add tol and max_it spinboxes functionality
         # TODO: Add log button
         self.label_3 = QtGui.QLabel(parent)
         self.label_3.setObjectName(_fromUtf8("max_it_label"))
@@ -526,112 +525,6 @@ def gui_setup_and_variables(form):
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
     form.doubleSpinBox_6.setPrefix('(mol/L)')
 
-
-def recalculate_after_cell_edit(form, row, column):
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-    form.comboBox.blockSignals(True)
-    gui_equilibrate(form)
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-    form.comboBox.blockSignals(False)
-
-
-def gui_equilibrate(form):
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-    form.comboBox.blockSignals(True)
-    load_variables_from_form(form)
-    gui_setup_and_variables(form)
-    equilibrate(form)
-    retabulate(form)
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-    form.comboBox.blockSignals(False)
-
-
-def equilibrate(form):
-    # Collect variables
-    n = form.n
-    Nr = form.Nr
-    C0_i = form.C0_i
-    z_i = form.z_i
-    comps = form.comps
-    reacs = form.reacs
-    nu_ij = form.nu_ij
-    pKa_j = form.pKa_j
-    max_it = form.max_it
-    tol = form.tol
-
-    # Setup logging
-    if not os.path.exists('./logs'):
-        os.mkdir('./logs')
-    logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
-                        format='%(asctime)s;%(message)s')
-
-    # First estimates for eq. Composition Ceq and Reaction extent Xieq
-    if not hasattr(form, 'acceptable_solution'):
-        Ceq_i_0 = C0_i
-        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
-        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
-    else:
-        # Use previous solution as initial estimate, if it was valid.
-        Ceq_i_0 = form.Ceq_i_0
-        Xieq_j_0 = form.Xieq_j_0
-
-    # Pass variables to form before loop start
-    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
-                         'max_it', 'tol',
-                         'Ceq_i_0', 'Xieq_j_0']
-    for var in variables_to_pass:
-        setattr(form, var, locals()[var])
-
-    k = 1
-    stop = False
-    form.cancelButton.setEnabled(True)
-    form.progressBar.setEnabled(True)
-    form.remove_canceled_status()
-    form.acceptable_solution = False
-    form.initialEstimateAttempts = 1
-    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
-    # Calculate equilibrium composition: Steepest descent / Newton method
-    # TODO: Implement global homotopy-continuation method
-    while not form.acceptable_solution \
-            and k < max_it and stop == False \
-            and not form.was_canceled():
-        Ceq_i, Xieq_j = calc_Xieq(form)
-        k += 1
-        # TODO: if progressBar.wasCanceled() == True then stop
-        if all(Ceq_i > 0) and not any(np.isnan(Ceq_i)):
-            form.acceptable_solution = True
-        else:
-            # Set reactions to random extent and recalculate
-            # TODO: scale to concentration sizes
-            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
-            # Set aequilibrium composition to initial value + estimated conversion
-            form.Ceq_i_0 = C0_i
-            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-            form.Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
-            form.initialEstimateAttempts += 1
-            form.methodLoops = [0, 0]
-
-    if not form.acceptable_solution:
-        delattr(form, 'acceptable_solution')
-        form.label_9.setText(form.label_9.text() + '\n')
-    else:
-        form.Ceq_i_0 = Ceq_i
-        form.Xieq_j_0 = Xieq_j
-        form.label_9.setText(form.label_9.text() +
-                             '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
-                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
-
-    form.Ceq_i = Ceq_i
-    form.Xieq_j = Xieq_j
-    form.cancelButton.setEnabled(False)
-    form.progressBar.setEnabled(False)
-
-
 def retabulate(form):
     # Collect variables
     n = form.n
@@ -778,6 +671,117 @@ def plot_intervals(form):
         form.groupBox.show()
 
 
+def recalculate_after_cell_edit(form, row, column):
+    form.tableComps.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+    form.comboBox.blockSignals(True)
+    gui_equilibrate(form)
+    form.tableComps.blockSignals(False)
+    form.tableReacs.blockSignals(False)
+    form.comboBox.blockSignals(False)
+
+
+def gui_equilibrate(form):
+    form.tableComps.blockSignals(True)
+    form.tableReacs.blockSignals(True)
+    form.comboBox.blockSignals(True)
+    load_variables_from_form(form)
+    gui_setup_and_variables(form)
+    equilibrate(form)
+    retabulate(form)
+    form.tableComps.blockSignals(False)
+    form.tableReacs.blockSignals(False)
+    form.comboBox.blockSignals(False)
+
+
+def equilibrate(form):
+    # Collect variables
+    n = form.n
+    Nr = form.Nr
+    C0_i = form.C0_i
+    z_i = form.z_i
+    comps = form.comps
+    reacs = form.reacs
+    nu_ij = form.nu_ij
+    pKa_j = form.pKa_j
+    max_it = form.max_it
+    tol = form.tol
+    C_solvent_Tref = form.C_solvent_Tref
+    index_of_solvent = form.index_of_solvent
+
+    # Init. calculations
+    Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
+    form.Kc_j = Kc_j
+
+    # Setup logging
+    if not os.path.exists('./logs'):
+        os.mkdir('./logs')
+    logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
+                        format='%(asctime)s;%(message)s')
+
+    # First estimates for eq. Composition Ceq and Reaction extent Xieq
+    if not hasattr(form, 'acceptable_solution'):
+        Ceq_i_0 = C0_i
+        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
+        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+    else:
+        # Use previous solution as initial estimate, if it was valid.
+        Ceq_i_0 = form.Ceq_i_0
+        Xieq_j_0 = form.Xieq_j_0
+
+    # Pass variables to form before loop start
+    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
+                         'max_it', 'tol',
+                         'Ceq_i_0', 'Xieq_j_0']
+    for var in variables_to_pass:
+        setattr(form, var, locals()[var])
+
+    k = 1
+    stop = False
+    form.cancelButton.setEnabled(True)
+    form.progressBar.setEnabled(True)
+    form.remove_canceled_status()
+    form.acceptable_solution = False
+    form.initialEstimateAttempts = 1
+    form.methodLoops = [0, 0]  # loop numbers: [steepest descent, Newton]
+    # Calculate equilibrium composition: Steepest descent / Newton method
+    # TODO: Implement global homotopy-continuation method
+    while not form.acceptable_solution \
+            and k < max_it and stop == False \
+            and not form.was_canceled():
+        Ceq_i, Xieq_j = calc_Xieq(form)
+        k += 1
+        # TODO: if progressBar.wasCanceled() == True then stop
+        if all(Ceq_i >= 0) and not any(np.isnan(Ceq_i)):
+            form.acceptable_solution = True
+        else:
+            # Set reactions to random extent and recalculate
+            # TODO: scale to concentration sizes
+            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+            # Set aequilibrium composition to initial value + estimated conversion
+            form.Ceq_i_0 = C0_i # + nu_ij * form.Xieq_j_0
+            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+            form.Ceq_i_0[form.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
+            form.initialEstimateAttempts += 1
+            form.methodLoops = [0, 0]
+
+    if not form.acceptable_solution:
+        delattr(form, 'acceptable_solution')
+        form.label_9.setText(form.label_9.text() + '\n')
+    else:
+        form.Ceq_i_0 = Ceq_i
+        form.Xieq_j_0 = Xieq_j
+        form.label_9.setText(form.label_9.text() +
+                             '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
+                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
+
+    form.Ceq_i = Ceq_i
+    form.Xieq_j = Xieq_j
+    form.cancelButton.setEnabled(False)
+    form.progressBar.setEnabled(False)
+
+
 def calc_Xieq(form):
     """Steepest descent for good initial estimate, then Newton method for non-linear algebraic system
     :return: tuple with Ceq_i, Xieq_j, f_0
@@ -800,8 +804,8 @@ def calc_Xieq(form):
     max_it = form.max_it
     tol = form.tol
     z_i = form.z_i
+    Kc_j = form.Kc_j
 
-    Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
     f = lambda x: f_gl_0(x, C0_i, nu_ij, n, Nr, Kc_j)
     j = lambda x: jac(x, C0_i, nu_ij, n, Nr, Kc_j)
     g = lambda x: g_vec(x, C0_i, nu_ij, n, Nr, Kc_j)
@@ -809,12 +813,12 @@ def calc_Xieq(form):
     X0 = np.concatenate([Ceq_i_0, Xieq_j_0])
     X = X0
     # Add progress bar & variable
-    # TODO: Implement cancel button to cancel iterations
     # Steepest descent: min(g(X))=min(f(X).T*f(X))
-    X, F_val = steepest_descent(X, f, j, g, 1.0e-3, form)
+    #X, F_val = steepest_descent(X, f, j, g, 1.0e-5, form)
     # Newton method: G(X) = J(X)^-1 * F(X)
     k = 0
     J_val = j(X)
+    F_val = f(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
     magnitude_Y = np.sqrt((Y.T * Y).item())
     # For progress bar, use log scale to compensate for quadratic convergence
@@ -827,17 +831,18 @@ def calc_Xieq(form):
     divergent = False
     form.progressBar.setValue(0)
     update_status_label(form, k, stop)
+    lambda_ls = 1.0
+    j_it = 0
     while k <= max_it and not stop:
         new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
-        X = X + Y
-        diff = X - X_k_m_1
-        J_val = j(X)
-        F_val = f(X)
         magnitude_Y = np.sqrt((Y.T * Y).item())
-        if magnitude_Y < tol:
+        # First attempt no backtracking
+        X = X + 1.0 * Y
+        diff = X - X_k_m_1
+        if magnitude_Y < tol and all(X[0:n] >= 0):
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
@@ -858,6 +863,18 @@ def calc_Xieq(form):
                 QtGui.QApplication.processEvents()
                 # if form.progressBar.wasCanceled():
                 # stop = True
+        while j_it <= max_it and not all(X[0:n]>=0):
+            # backtrack if any conc<0
+            lambda_ls = lambda_ls / 2.0
+            X = X_k_m_1
+            progress_k = progress_k_m_1
+            X = X + lambda_ls * Y
+            diff = X - X_k_m_1
+            new_log_entry('Newton', j_it, X, diff, F_val, Y, np.nan, np.nan, stop)
+            j_it += 1
+        lambda_ls = 1.0
+        J_val = j(X)
+        F_val = f(X)
         k += 1
         form.methodLoops[1] += 1
     new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop and not divergent)
