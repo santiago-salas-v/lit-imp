@@ -41,7 +41,6 @@ class UiGroupBox(object):
     def __init__(self, parent):
         parent.setObjectName(_fromUtf8("GroupBox"))
         # Default size
-        # parent.resize(394, 357)
         parent.resize(500, 357)
         self.verticalLayout_2 = QtGui.QVBoxLayout(parent)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
@@ -224,7 +223,7 @@ class UiGroupBox(object):
         # Events
         self.open_button.clicked.connect(partial(open_file, self))
         self.save_button.clicked.connect(partial(save_file, self))
-        self.pushButton.clicked.connect(partial(plot_intervals, self))
+        self.pushButton.clicked.connect(partial(solve_intervals, self))
         self.equilibrate_button.clicked.connect(partial(recalculate_after_cell_edit, self, 0, 0))
         self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, self))
@@ -273,12 +272,14 @@ class UiGroupBox(object):
 
 
 class UiGroupBoxPlot(object):
-    def __init__(self, parent):
+    def __init__(self, parent, associated_form):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
+        #parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
         self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
         self.verticalLayout_1Widget.setObjectName("verticalLayout_1Widget")
+        self.verticalLayout_1Widget.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1 = QtGui.QVBoxLayout(self.verticalLayout_1Widget)
         self.verticalLayout_1.setObjectName("verticalLayout_1")
         self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
@@ -286,11 +287,16 @@ class UiGroupBoxPlot(object):
         self.horizontalTools.setAlignment(QtCore.Qt.AlignVCenter)
         self.toolsFrame = QtGui.QFrame()
         self.toolsFrame.setLayout(self.horizontalTools)
-        self.toggleLogButton = QtGui.QPushButton()
-        self.toggleLogButton.setCheckable(True)
+        self.toggleLogButtonX = QtGui.QPushButton()
+        self.toggleLogButtonY = QtGui.QPushButton()
+        self.toggleLogButtonX.setCheckable(True)
+        self.toggleLogButtonY.setCheckable(True)
+        self.toggleLogButtonX.setChecked(True)
+        self.toggleLogButtonY.setChecked(True)
         self.navigation_frame = QtGui.QFrame()
         self.horizontalTools.addWidget(self.navigation_frame)
-        self.horizontalTools.addWidget(self.toggleLogButton)
+        self.horizontalTools.addWidget(self.toggleLogButtonX)
+        self.horizontalTools.addWidget(self.toggleLogButtonY)
         self.verticalLayout_1.addWidget(self.toolsFrame)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -299,15 +305,10 @@ class UiGroupBoxPlot(object):
         self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
+        self.figure.subplots_adjust(bottom=0.15)
         self.ax.grid('on')
         # Generate the canvas to display the plot
         self.canvas = FigureCanvas(self.figure)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.canvas.sizePolicy().hasHeightForWidth())
-        self.canvas.setSizePolicy(sizePolicy)
-        self.canvas.setMinimumSize(QtCore.QSize(600, 0))
         self.canvas.setObjectName("canvas")
         self.horizontalLayout.addWidget(self.canvas)
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -334,6 +335,8 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
+        self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, associated_form))
+        self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, associated_form))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -347,8 +350,14 @@ class UiGroupBoxPlot(object):
         self.label_2.setText(
             QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        self.toggleLogButton.setText(
-            QtGui.QApplication.translate("parent", "-log10(x)", None, QtGui.QApplication.UnicodeUTF8))
+        self.toggleLogButtonX.setText(
+            QtGui.QApplication.translate("parent", "-log10(x) - horizontal", None, QtGui.QApplication.UnicodeUTF8))
+        self.toggleLogButtonY.setText(
+            QtGui.QApplication.translate("parent", "-log10(y) - vertical", None, QtGui.QApplication.UnicodeUTF8))
+
+    def plot_intervals(self, form, toggled):
+        plot_intervals(form)
+        form.groupBox.show()
 
     def move_to_available(self, item):
         name = item.text()
@@ -621,7 +630,12 @@ def save_file(form):
     pass
 
 
-def plot_intervals(form):
+def solve_intervals(form):
+    variables_to_check = ['Ceq_series', 'Xieq_series', 'indep_var_series', 'dep_var_series',
+                         'index_of_variable']
+    for var in variables_to_check:
+        if hasattr(form, var):
+            delattr(form, var)
     comps = form.comps
     reacs = form.reacs
     C0_i = form.C0_i
@@ -629,64 +643,96 @@ def plot_intervals(form):
     min_value = form.doubleSpinBox.value()
     max_value = form.doubleSpinBox_2.value()
     n_points = 20
-    indep_var_values = \
+    indep_var_series = \
         [min_value + x
          for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
     C0_variable_comp = C0_i[index_of_variable]
-    mid_index = bisect.bisect(indep_var_values, C0_variable_comp) - 1
-    conditions_to_continue = True
-    if conditions_to_continue:
-        Xieq_j = form.Xieq_j
-        Ceq_i = form.Ceq_i
-        Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
-        Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
-        # Keep current solution intact for after plotting range
-        form.stored_solution_Ceq_i = form.Ceq_i
-        form.stored_solution_Xieq_j = form.Xieq_j
-        for j in range(mid_index, -1, -1):
-            form.C0_i[index_of_variable] = indep_var_values[j]
-            equilibrate(form)
-            Ceq_series[j, :] = form.Ceq_i.T
-            Xieq_series[j, :] = form.Xieq_j.T
-        form.Ceq_i = form.stored_solution_Ceq_i
-        form.Xieq_j = form.stored_solution_Xieq_j
-        for j in range(mid_index + 1, n_points + 1, +1):
-            form.C0_i[index_of_variable] = indep_var_values[j]
-            equilibrate(form)
-            Ceq_series[j, :] = form.Ceq_i.T
-            Xieq_series[j, :] = form.Xieq_j.T
-        form.Ceq_i = form.stored_solution_Ceq_i
-        form.Xieq_j = form.stored_solution_Xieq_j
-        form.groupBox = QtGui.QGroupBox()
-        form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
-        colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
+    mid_index = bisect.bisect(indep_var_series, C0_variable_comp) - 1
+    Xieq_j = form.Xieq_j
+    Ceq_i = form.Ceq_i
+    Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
+    Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
+    # Keep current solution intact for after plotting range
+    form.stored_solution_Ceq_i = form.Ceq_i
+    form.stored_solution_Xieq_j = form.Xieq_j
+    for j in range(mid_index, -1, -1):
+        form.C0_i[index_of_variable] = indep_var_series[j]
+        equilibrate(form)
+        Ceq_series[j, :] = form.Ceq_i.T
+        Xieq_series[j, :] = form.Xieq_j.T
+    form.Ceq_i = form.stored_solution_Ceq_i
+    form.Xieq_j = form.stored_solution_Xieq_j
+    for j in range(mid_index + 1, n_points + 1, +1):
+        form.C0_i[index_of_variable] = indep_var_series[j]
+        equilibrate(form)
+        Ceq_series[j, :] = form.Ceq_i.T
+        Xieq_series[j, :] = form.Xieq_j.T
+    form.Ceq_i = form.stored_solution_Ceq_i
+    form.Xieq_j = form.stored_solution_Xieq_j
+    form.Ceq_series = Ceq_series
+    form.Xieq_series = Xieq_series
+    form.indep_var_series = indep_var_series
+    form.index_of_variable = index_of_variable
+    form.groupBox = QtGui.QGroupBox()
+    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox, associated_form=form)
+    plot_intervals(form)
+
+
+def plot_intervals(form):
+    Ceq_series = form.Ceq_series
+    Xieq_series = form.Xieq_series
+    indep_var_series = form.indep_var_series
+    index_of_variable = form.index_of_variable
+    n = form.n
+    Nr = form.Nr
+    comps = form.comps
+    colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
+    if not form.groupBox.plotBox.toggleLogButtonX.isChecked():
+        indep_var_label = '$C0_{' + comps[index_of_variable, 0] + ', ' + \
+                          comps[index_of_variable, 1] + '}$/(g/mol)'
+        indep_var_series = indep_var_series
+    else:
+        indep_var_series = -np.log10(indep_var_series)
+        indep_var_label = '-log10('+'$C0_{' + comps[index_of_variable, 0] + ', ' + \
+                          comps[index_of_variable, 1] + '}$/(g/mol)' + ')'
+    if not form.groupBox.plotBox.toggleLogButtonY.isChecked():
+        dep_var_values = Ceq_series
         # dict, keys:ceq_labels; bindings: plottedseries
-        ceq_labels = \
+        dep_var_labels = \
             ['$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$/(mol/L)' for item in comps[:, 0:2]]
-        plotted_series = dict(zip(ceq_labels, np.empty(len(Ceq_i) + len(Xieq_j), dtype=object)))
-        markers = matplotlib.markers.MarkerStyle.filled_markers
-        fillstyles = matplotlib.markers.MarkerStyle.fillstyles
-        for i in range(len(Ceq_i)):
-            label = ceq_labels[i]
-            plotted_series[label] = form.groupBox.plotBox.ax.plot(
-                indep_var_values, Ceq_series[:, i].A1.tolist(), 'go-', label=ceq_labels[i],
-                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-                marker=markers[np.random.randint(0, len(markers) - 1)],
-                fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
-            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                      *['utils', 'glyphicons-602-chevron-down.png'])))
-            datacursor(plotted_series[label])
-        form.groupBox.plotBox.ax.legend(
-            loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
-        form.groupBox.plotBox.plotted_series = plotted_series
-        form.groupBox.plotBox.ax.set_xlabel(
-            '$C0_{' + comps[index_of_variable, 0] + ', ' +
-            comps[index_of_variable, 1] + '}$/(g/mol)', fontsize=14)
-        form.groupBox.plotBox.listWidget_2.setMinimumWidth(
-            form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
-        form.groupBox.show()
+    else:
+        dep_var_values = -np.log10(Ceq_series)
+        # dict, keys:ceq_labels; bindings: plottedseries
+        dep_var_labels = \
+            ['-log10('+'$Ceq_' + '{' + item[0] + ', ' + item[1] + '}$/(mol/L)'+')' for item in comps[:, 0:2]]
+    plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+    markers = matplotlib.markers.MarkerStyle.filled_markers
+    fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+    #if len(form.groupBox.plotBox.ax.lines) > 0:
+    #    for n in range(len(form.groupBox.plotBox.ax.lines)):
+    #        form.groupBox.plotBox.ax.lines.pop(0).remove()
+    form.groupBox.plotBox.ax.clear()
+    form.groupBox.plotBox.listWidget.clear()
+    form.groupBox.plotBox.listWidget_2.clear()
+    for i in range(n):
+        label = dep_var_labels[i]
+        plotted_series[label] = form.groupBox.plotBox.ax.plot(
+            indep_var_series, dep_var_values[:, i].A1.tolist(), 'go-', label=dep_var_labels[i],
+            color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+            markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+            marker=markers[np.random.randint(0, len(markers) - 1)],
+            fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
+        new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
+        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                  *['utils', 'glyphicons-602-chevron-down.png'])))
+        datacursor(plotted_series[label])
+    form.groupBox.plotBox.ax.legend(
+        loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+    form.groupBox.plotBox.plotted_series = plotted_series
+    form.groupBox.plotBox.ax.set_xlabel(indep_var_label, fontsize=14)
+    form.groupBox.plotBox.listWidget_2.setMinimumWidth(
+        form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
+    form.groupBox.show()
 
 
 def recalculate_after_cell_edit(form, row, column):
@@ -998,7 +1044,7 @@ def update_status_label(form, k, solved):
         solved = 'solution not found.'
 
     form.label_9.setText('Loops: Newton \t' +
-                         str(form.methodLoops[1]) + ' \t Backtracking \t' +
+                         str(form.methodLoops[1]) + ' \t Line search (backtrack) \t' +
                          str(form.methodLoops[0]) +
                          ' \t Initial estimate attempts \t' +
                          str(form.initialEstimateAttempts) + '\n' +
