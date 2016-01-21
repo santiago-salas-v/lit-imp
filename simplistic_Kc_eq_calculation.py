@@ -224,7 +224,7 @@ class UiGroupBox(object):
         self.open_button.clicked.connect(partial(open_file, self))
         self.save_button.clicked.connect(partial(save_file, self))
         self.pushButton.clicked.connect(partial(plot_intervals, self))
-        self.equilibrate_button.clicked.connect(partial(gui_equilibrate, self))
+        self.equilibrate_button.clicked.connect(partial(recalculate_after_cell_edit, self, 0, 0))
         self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, self))
         self.log_button.clicked.connect(partial(show_log))
@@ -261,7 +261,7 @@ class UiGroupBox(object):
     def populate_input_spinboxes(self, index):
         comps = self.comps
         C0_component = self.C0_i[index]
-        self.doubleSpinBox.setValue(C0_component * (1 - 20 / 100.0))
+        self.doubleSpinBox.setValue(C0_component / 10.0**7)
         self.doubleSpinBox_2.setValue(C0_component * (1 + 20 / 100.0))
 
     def remove_canceled_status(self):
@@ -397,9 +397,15 @@ def open_file(form):
                                           dir=os.path.join(sys.path[0], 'DATA'),
                                           filter='*.csv')
     if os.path.isfile(filename):
-        header_comps, comps, header_reacs, reacs = \
-            load_csv(form, filename)
-        equilibrate(form, header_comps, comps, header_reacs, reacs)
+        # Reset solution state and order of items
+        del form.acceptable_solution
+        if hasattr(form, 'component_order_in_table'):
+            delattr(form, 'component_order_in_table')
+        # Load csv data into form variables
+        load_csv(form, filename)
+
+        # Continue with typical solution and table population procedure
+        gui_equilibrate(form)
         form.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
         form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
 
@@ -519,7 +525,7 @@ def gui_setup_and_variables(form):
         form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
         form.comboBox_3.addItem(item[1])
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
-    form.doubleSpinBox.setValue(C_second_highest_C0_Tref * (1 - 20 / 100.0))
+    form.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0**7)
     form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
     form.comboBox_3.setCurrentIndex(index_of_solvent)
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
@@ -673,23 +679,18 @@ def plot_intervals(form):
 
 
 def recalculate_after_cell_edit(form, row, column):
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-    form.comboBox.blockSignals(True)
+    load_variables_from_form(form)
     gui_equilibrate(form)
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-    form.comboBox.blockSignals(False)
 
 
 def gui_equilibrate(form):
     form.tableComps.blockSignals(True)
     form.tableReacs.blockSignals(True)
     form.comboBox.blockSignals(True)
-    load_variables_from_form(form)
     gui_setup_and_variables(form)
     equilibrate(form)
     retabulate(form)
+
     form.tableComps.blockSignals(False)
     form.tableReacs.blockSignals(False)
     form.comboBox.blockSignals(False)
@@ -1083,7 +1084,7 @@ def display_about_info(form):
             else:
                 htmlStream += stringToAdd
     htmlStream += unicode('<hr />', 'utf_8')
-    htmlStream += unicode("<footer><p>code:" +
+    htmlStream += unicode("<footer><p>" +
                           '<a href=' + '"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' + '>' +
                           'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
                           'utf_8')
@@ -1433,9 +1434,7 @@ def main():
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
     load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
-    gui_setup_and_variables(main_form.ui)
-    equilibrate(main_form.ui)
-    retabulate(main_form.ui)
+    gui_equilibrate(main_form.ui)
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
     app.exec_()
