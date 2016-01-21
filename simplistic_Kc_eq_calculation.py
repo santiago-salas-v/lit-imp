@@ -140,6 +140,7 @@ class UiGroupBox(object):
         self.tableComps.verticalHeader().setVisible(False)
         self.verticalLayout_2.addWidget(self.tableComps)
         self.label_9 = QtGui.QLabel(parent)
+        self.label_9.setAlignment(QtCore.Qt.AlignTop)
         self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
         self.verticalLayout_2.addWidget(self.label_9)
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
@@ -261,7 +262,7 @@ class UiGroupBox(object):
     def populate_input_spinboxes(self, index):
         comps = self.comps
         C0_component = self.C0_i[index]
-        self.doubleSpinBox.setValue(C0_component / 10.0**7)
+        self.doubleSpinBox.setValue(C0_component / 10.0 ** 7)
         self.doubleSpinBox_2.setValue(C0_component * (1 + 20 / 100.0))
 
     def remove_canceled_status(self):
@@ -281,8 +282,16 @@ class UiGroupBoxPlot(object):
         self.verticalLayout_1 = QtGui.QVBoxLayout(self.verticalLayout_1Widget)
         self.verticalLayout_1.setObjectName("verticalLayout_1")
         self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
+        self.horizontalTools = QtGui.QHBoxLayout()
+        self.horizontalTools.setAlignment(QtCore.Qt.AlignVCenter)
+        self.toolsFrame = QtGui.QFrame()
+        self.toolsFrame.setLayout(self.horizontalTools)
+        self.toggleLogButton = QtGui.QPushButton()
+        self.toggleLogButton.setCheckable(True)
         self.navigation_frame = QtGui.QFrame()
-        self.verticalLayout_1.addWidget(self.navigation_frame)
+        self.horizontalTools.addWidget(self.navigation_frame)
+        self.horizontalTools.addWidget(self.toggleLogButton)
+        self.verticalLayout_1.addWidget(self.toolsFrame)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_1.addLayout(self.horizontalLayout)
@@ -338,6 +347,8 @@ class UiGroupBoxPlot(object):
         self.label_2.setText(
             QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+        self.toggleLogButton.setText(
+            QtGui.QApplication.translate("parent", "-log10(x)", None, QtGui.QApplication.UnicodeUTF8))
 
     def move_to_available(self, item):
         name = item.text()
@@ -525,7 +536,7 @@ def gui_setup_and_variables(form):
         form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
         form.comboBox_3.addItem(item[1])
     form.comboBox.setCurrentIndex(index_of_second_highest_C0)
-    form.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0**7)
+    form.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0 ** 7)
     form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
     form.comboBox_3.setCurrentIndex(index_of_solvent)
     form.doubleSpinBox_6.setValue(C_solvent_Tref)
@@ -869,10 +880,11 @@ def calc_Xieq(form):
             progress_k = progress_k_m_1
             X = X + lambda_ls * Y
             diff = X - X_k_m_1
-            new_log_entry('Newton it. ' + str(k+1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: k',
+            new_log_entry('Newton it. ' + str(k + 1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: k',
                           j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
             j_it += 1
             form.methodLoops[0] += 1
+            update_status_label(form, k, stop)
         j_it = 1
         lambda_ls = 1.0
         J_val = j(X)
