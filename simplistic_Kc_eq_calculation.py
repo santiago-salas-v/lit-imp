@@ -474,7 +474,7 @@ def load_variables_from_form(form):
     component_order_in_table = []
     for i in range(form.tableComps.rowCount()):
         component_order_in_table.append(int(form.tableComps.item(i, 0).text()) - 1)
-    for i in range(comps.shape[0]):
+    for i in range(comps.shape[1]):
         header_comps.append(form.tableComps.horizontalHeaderItem(i).data(0))
     for i in range(reacs.shape[1]):
         header_reacs.append(form.tableReacs.horizontalHeaderItem(i).data(0))
