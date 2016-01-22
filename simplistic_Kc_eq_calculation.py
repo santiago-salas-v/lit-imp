@@ -698,7 +698,7 @@ def plot_intervals(form):
         indep_var_label = '$' + indep_var_label + '$'
     else:
         indep_var_series = -np.log10(indep_var_series)
-        indep_var_label = '$-log10(' + ')$'
+        indep_var_label = '$-log10(' + indep_var_label + ')$'
     if not form.groupBox.plotBox.toggleLogButtonY.isChecked():
         dep_var_values = Ceq_series
     else:
@@ -725,7 +725,10 @@ def plot_intervals(form):
         new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
-        dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple')
+        dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple',
+                               arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
+                               bbox=dict(fc='white', alpha=0.5),
+                               formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
     form.groupBox.plotBox.ax.legend(
         loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
     form.groupBox.plotBox.plotted_series = plotted_series
