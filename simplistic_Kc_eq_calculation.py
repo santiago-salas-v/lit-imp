@@ -357,7 +357,6 @@ class UiGroupBoxPlot(object):
 
     def plot_intervals(self, form, toggled):
         plot_intervals(form)
-        form.groupBox.show()
 
     def move_to_available(self, item):
         name = item.text()
@@ -675,6 +674,7 @@ def solve_intervals(form):
     form.index_of_variable = index_of_variable
     form.groupBox = QtGui.QGroupBox()
     form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox, associated_form=form)
+    form.groupBox.show()
     plot_intervals(form)
 
 
@@ -708,9 +708,6 @@ def plot_intervals(form):
     plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
     markers = matplotlib.markers.MarkerStyle.filled_markers
     fillstyles = matplotlib.markers.MarkerStyle.fillstyles
-    #if len(form.groupBox.plotBox.ax.lines) > 0:
-    #    for n in range(len(form.groupBox.plotBox.ax.lines)):
-    #        form.groupBox.plotBox.ax.lines.pop(0).remove()
     form.groupBox.plotBox.ax.clear()
     form.groupBox.plotBox.listWidget.clear()
     form.groupBox.plotBox.listWidget_2.clear()
@@ -725,14 +722,14 @@ def plot_intervals(form):
         new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
-        datacursor(plotted_series[label])
+        annot1 = datacursor(plotted_series[label], draggable=True)
     form.groupBox.plotBox.ax.legend(
         loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
     form.groupBox.plotBox.plotted_series = plotted_series
     form.groupBox.plotBox.ax.set_xlabel(indep_var_label, fontsize=14)
     form.groupBox.plotBox.listWidget_2.setMinimumWidth(
         form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
-    form.groupBox.show()
+    form.groupBox.plotBox.canvas.draw()
 
 
 def recalculate_after_cell_edit(form, row, column):
