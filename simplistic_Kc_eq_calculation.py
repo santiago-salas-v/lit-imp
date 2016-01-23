@@ -275,7 +275,7 @@ class UiGroupBoxPlot(object):
     def __init__(self, parent, associated_form):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
-        #parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
         self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
         self.verticalLayout_1Widget.setObjectName("verticalLayout_1Widget")
@@ -356,6 +356,9 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "-log10(y) - vertical", None, QtGui.QApplication.UnicodeUTF8))
 
     def plot_intervals(self, form, toggled):
+        for name in form.groupBox.plotBox.dc.keys():
+            if not form.groupBox.plotBox.dc[name] is None:
+                form.groupBox.plotBox.dc[name].hide()
         plot_intervals(form)
 
     def move_to_available(self, item):
@@ -369,7 +372,8 @@ class UiGroupBoxPlot(object):
         y_max = y_min
         # TODO: Really delete this datacursor
         self.dc[name].hide()
-        del self.ax.lines[np.where([x.properties()['label'] == name for x in self.ax.lines])[0]]
+        del self.ax.lines[np.where(
+            [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0]]
         for line in self.ax.findobj(lambda x: \
                                                                     x.properties()['visible'] == True and \
                                                                     type(x) == matplotlib.lines.Line2D and \
@@ -394,7 +398,10 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        self.ax.add_line(self.plotted_series[name][0])
+        if self.plotted_series[name] is None:
+            plot_intervals(self.main_form, [name])
+        else:
+            self.ax.add_line(self.plotted_series[name][0])
         for line in self.ax.findobj(lambda x: \
                                                                     x.properties()['visible'] == True and \
                                                                     type(x) == matplotlib.lines.Line2D and \
@@ -633,14 +640,21 @@ def save_file(form):
 
 def solve_intervals(form):
     variables_to_check = ['Ceq_series', 'Xieq_series', 'indep_var_series', 'dep_var_series',
-                         'index_of_variable']
+                          'index_of_variable']
     for var in variables_to_check:
         if hasattr(form, var):
             delattr(form, var)
     comps = form.comps
     reacs = form.reacs
     C0_i = form.C0_i
+    n = form.n
+    Nr = form.Nr
     index_of_variable = form.comboBox.currentIndex()
+    indep_var_label = 'C0_{' + comps[index_of_variable, 0] + ', ' + \
+                      comps[index_of_variable, 1] + '}/(mol/L)'
+    dep_var_labels = \
+        ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
+        ['\\xi eq_' + '{' + str(item) + '}' for item in range(1, Nr + 1, 1)]
     min_value = form.doubleSpinBox.value()
     max_value = form.doubleSpinBox_2.value()
     n_points = 20
@@ -653,6 +667,7 @@ def solve_intervals(form):
     Ceq_i = form.Ceq_i
     Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
     Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
+    dep_var_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
     # Keep current solution intact for after plotting range
     form.stored_solution_Ceq_i = form.Ceq_i
     form.stored_solution_Xieq_j = form.Xieq_j
@@ -668,63 +683,83 @@ def solve_intervals(form):
         equilibrate(form)
         Ceq_series[j, :] = form.Ceq_i.T
         Xieq_series[j, :] = form.Xieq_j.T
+    for j in range(n):
+        dep_var_series[dep_var_labels[j]] = Ceq_series[:, j]
+    for j in range(Nr):
+        dep_var_series[dep_var_labels[n + j]] = Xieq_series[:, j]
     form.Ceq_i = form.stored_solution_Ceq_i
     form.Xieq_j = form.stored_solution_Xieq_j
     form.Ceq_series = Ceq_series
     form.Xieq_series = Xieq_series
     form.indep_var_series = indep_var_series
+    form.dep_var_series = dep_var_series
+    form.dep_var_labels = dep_var_labels
+    form.indep_var_label = indep_var_label
     form.index_of_variable = index_of_variable
     form.groupBox = QtGui.QGroupBox()
     form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox, associated_form=form)
+    form.groupBox.plotBox.main_form = form
     form.groupBox.show()
-    plot_intervals(form)
+    initiate_plot(form)
+    plot_intervals(form, None)
 
-
-def plot_intervals(form):
-    Ceq_series = form.Ceq_series
-    Xieq_series = form.Xieq_series
-    indep_var_series = form.indep_var_series
-    index_of_variable = form.index_of_variable
+def initiate_plot(form):
     n = form.n
     Nr = form.Nr
-    comps = form.comps
+    dep_var_labels = form.dep_var_labels
+    form.groupBox.plotBox.ax.clear()
+    form.groupBox.plotBox.listWidget.clear()
+    form.groupBox.plotBox.listWidget_2.clear()
+    for label in dep_var_labels:
+        if label.find('Ceq') >= 0:
+            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
+            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                      *['utils', 'glyphicons-602-chevron-down.png'])))
+        else:
+            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget)
+            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                      *['utils', 'glyphicons-601-chevron-up.png'])))
+    # dict, keys:ceq_labels; bindings: plottedseries
+    form.groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+    form.groupBox.plotBox.dc = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+
+
+def plot_intervals(form, item_texts=None):
+    dep_var_series = form.dep_var_series
+    dep_var_labels = form.dep_var_labels
+    indep_var_label = form.indep_var_label
+    indep_var_series = form.indep_var_series
     colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
-    indep_var_label = 'C0_{' + comps[index_of_variable, 0] + ', ' + \
-                      comps[index_of_variable, 1] + '}/(g/mol)'
-    dep_var_labels = \
-        ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]]
+    markers = matplotlib.markers.MarkerStyle.filled_markers
+    fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+    dc = form.groupBox.plotBox.dc
+    plotted_series = form.groupBox.plotBox.plotted_series
+    for annotation in form.groupBox.plotBox.figure.findobj(matplotlib.text.Annotation):
+        annotation.set_visible(False)
     if not form.groupBox.plotBox.toggleLogButtonX.isChecked():
         indep_var_series = indep_var_series
         indep_var_label = '$' + indep_var_label + '$'
     else:
         indep_var_series = -np.log10(indep_var_series)
         indep_var_label = '$-log10(' + indep_var_label + ')$'
-    if not form.groupBox.plotBox.toggleLogButtonY.isChecked():
-        dep_var_values = Ceq_series
-    else:
-        dep_var_values = -np.log10(Ceq_series)
-        dep_var_labels = ['$-log10(' + item + ')$' for item in dep_var_labels]
-    # dict, keys:ceq_labels; bindings: plottedseries
-    plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-    dc = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-    markers = matplotlib.markers.MarkerStyle.filled_markers
-    fillstyles = matplotlib.markers.MarkerStyle.fillstyles
-    form.groupBox.plotBox.ax.clear()
-    form.groupBox.plotBox.listWidget.clear()
-    form.groupBox.plotBox.listWidget_2.clear()
-    for annotation in form.groupBox.plotBox.figure.findobj(matplotlib.text.Annotation):
-        annotation.set_visible(False)
-    for i in range(n):
-        label = dep_var_labels[i]
+    if item_texts is None:
+        item_texts = []
+        for i in range(form.groupBox.plotBox.listWidget_2.count()):
+            item_texts.append(form.groupBox.plotBox.listWidget_2.item(i).text())
+        form.groupBox.plotBox.ax.clear()
+    for label in item_texts:
+        if not form.groupBox.plotBox.toggleLogButtonY.isChecked():
+            dep_var_values = dep_var_series[label]
+            series_label = '$' + label + '$'
+        else:
+            dep_var_values = -np.log10(dep_var_series[label])
+            series_label = '$-log10(' + label + ')$'
         plotted_series[label] = form.groupBox.plotBox.ax.plot(
-            indep_var_series, dep_var_values[:, i].A1.tolist(), 'go-', label=dep_var_labels[i],
+            indep_var_series, dep_var_values.A1.tolist(), 'go-', label=series_label,
             color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
             markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
             marker=markers[np.random.randint(0, len(markers) - 1)],
             fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-        new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
-        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                  *['utils', 'glyphicons-602-chevron-down.png'])))
         dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple',
                                arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
                                bbox=dict(fc='white', alpha=0.5),
