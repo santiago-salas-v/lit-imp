@@ -289,14 +289,18 @@ class UiGroupBoxPlot(object):
         self.toolsFrame.setLayout(self.horizontalTools)
         self.toggleLogButtonX = QtGui.QPushButton()
         self.toggleLogButtonY = QtGui.QPushButton()
+        self.eraseAnnotationsB = QtGui.QPushButton()
         self.toggleLogButtonX.setCheckable(True)
         self.toggleLogButtonY.setCheckable(True)
         self.toggleLogButtonX.setChecked(True)
         self.toggleLogButtonY.setChecked(True)
+        self.eraseAnnotationsB.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                                *['utils', 'glyphicons-551-erase.png'])))
         self.navigation_frame = QtGui.QFrame()
-        self.horizontalTools.addWidget(self.navigation_frame)
-        self.horizontalTools.addWidget(self.toggleLogButtonX)
+        self.verticalLayout_1.addWidget(self.navigation_frame)
         self.horizontalTools.addWidget(self.toggleLogButtonY)
+        self.horizontalTools.addWidget(self.toggleLogButtonX)
+        self.horizontalTools.addWidget(self.eraseAnnotationsB)
         self.verticalLayout_1.addWidget(self.toolsFrame)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -337,6 +341,7 @@ class UiGroupBoxPlot(object):
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
         self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, associated_form))
         self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, associated_form))
+        self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -354,6 +359,8 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "-log10(x) - horizontal", None, QtGui.QApplication.UnicodeUTF8))
         self.toggleLogButtonY.setText(
             QtGui.QApplication.translate("parent", "-log10(y) - vertical", None, QtGui.QApplication.UnicodeUTF8))
+        self.eraseAnnotationsB.setText(
+            QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
     def plot_intervals(self, form, toggled):
         for name in form.groupBox.plotBox.dc.keys():
@@ -361,7 +368,17 @@ class UiGroupBoxPlot(object):
                 form.groupBox.plotBox.dc[name].hide()
         plot_intervals(form)
 
+    def erase_annotations(self):
+        for i in range(len(self.figure.texts)):
+            l = self.figure.texts.pop(0)
+            del l
+        self.canvas.draw()
+
+
     def move_to_available(self, item):
+        for annotation in self.figure.findobj(matplotlib.text.Annotation):
+            annotation.set_visible(True)
+        self.canvas.draw()
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
@@ -702,6 +719,7 @@ def solve_intervals(form):
     form.groupBox.show()
     initiate_plot(form)
     plot_intervals(form, None)
+
 
 def initiate_plot(form):
     n = form.n
