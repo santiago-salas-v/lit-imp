@@ -363,19 +363,21 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
     def plot_intervals(self, form, toggled):
-        for name in form.groupBox.plotBox.dc.keys():
-            if not form.groupBox.plotBox.dc[name] is None:
-                form.groupBox.plotBox.dc[name].hide()
+        self.erase_annotations()
         plot_intervals(form)
 
     def erase_annotations(self, text_list=None):
         if text_list is None:
-            text_list =  [x.get_text() for x in self.figure.texts]
+            text_list = [x.get_text() for x in self.figure.texts]
         for text in text_list:
-            index_of_text = \
-                np.where([x.get_text().find(text)>=0 for x in self.figure.texts])[0].item()
-            l = self.figure.texts.pop(index_of_text)
-            del l
+            indexes_of_text = \
+                np.where([x.get_text().find(text)>=0 for x in self.figure.texts])[0]
+            if len(indexes_of_text)>1:
+                l = self.figure.texts.pop(indexes_of_text[0].item())
+                del l
+            else:
+                l = self.figure.texts.pop(indexes_of_text.item())
+                del l
         self.canvas.draw()
 
 
@@ -387,22 +389,24 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-        y_lim = self.ax.get_ylim()
-        y_min = y_lim[0]
-        y_max = y_min
         associated_annotations = \
             [self.figure.texts[x].get_text() for x in
              np.where([x.get_text().find(name)>=0 for x in self.figure.texts])[0]]
         self.erase_annotations(associated_annotations)
-        del self.ax.lines[np.where(
-            [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0]]
+        l = self.ax.lines.pop(np.where(
+            [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
+        del l
+        self.ax.relim()
+        y_lim = self.ax.get_ylim()
+        y_min = y_lim[0]
+        y_max = y_min
         for line in self.ax.findobj(lambda x: \
                                                                     x.properties()['visible'] == True and \
                                                                     type(x) == matplotlib.lines.Line2D and \
                                                             len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
-            self.ax.relim()
+            pass
         else:
             self.ax.set_ylim(y_min, y_max * 1.05)
         if len(self.ax.lines) > 0:
@@ -417,20 +421,18 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
+        plot_intervals(self.main_form, [name])
+        self.ax.relim()
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        if self.plotted_series[name] is None:
-            plot_intervals(self.main_form, [name])
-        else:
-            self.ax.add_line(self.plotted_series[name][0])
         for line in self.ax.findobj(lambda x: \
                                                                     x.properties()['visible'] == True and \
                                                                     type(x) == matplotlib.lines.Line2D and \
                                                             len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
-            self.ax.relim()
+            pass
         else:
             self.ax.set_ylim(y_min, y_max * 1.05)
         if len(self.ax.lines) > 0:
