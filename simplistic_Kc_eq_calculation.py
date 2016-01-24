@@ -368,17 +368,20 @@ class UiGroupBoxPlot(object):
                 form.groupBox.plotBox.dc[name].hide()
         plot_intervals(form)
 
-    def erase_annotations(self):
-        for i in range(len(self.figure.texts)):
-            l = self.figure.texts.pop(0)
+    def erase_annotations(self, text_list=None):
+        if text_list is None:
+            text_list =  [x.get_text() for x in self.figure.texts]
+        for text in text_list:
+            index_of_text = \
+                np.where([x.get_text().find(text)>=0 for x in self.figure.texts])[0].item()
+            l = self.figure.texts.pop(index_of_text)
             del l
         self.canvas.draw()
 
 
     def move_to_available(self, item):
-        for annotation in self.figure.findobj(matplotlib.text.Annotation):
-            annotation.set_visible(True)
-        self.canvas.draw()
+        if self.listWidget_2.count() <= 1:
+            return
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
@@ -387,8 +390,10 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        # TODO: Really delete this datacursor
-        self.dc[name].hide()
+        associated_annotations = \
+            [self.figure.texts[x].get_text() for x in
+             np.where([x.get_text().find(name)>=0 for x in self.figure.texts])[0]]
+        self.erase_annotations(associated_annotations)
         del self.ax.lines[np.where(
             [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0]]
         for line in self.ax.findobj(lambda x: \
@@ -671,7 +676,7 @@ def solve_intervals(form):
                       comps[index_of_variable, 1] + '}/(mol/L)'
     dep_var_labels = \
         ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
-        ['\\xi eq_' + '{' + str(item) + '}' for item in range(1, Nr + 1, 1)]
+        ['\\xi eq_' + '{' + str(item) + '}/(mol/L)' for item in range(1, Nr + 1, 1)]
     min_value = form.doubleSpinBox.value()
     max_value = form.doubleSpinBox_2.value()
     n_points = 20
@@ -743,6 +748,7 @@ def initiate_plot(form):
 
 
 def plot_intervals(form, item_texts=None):
+    form.groupBox.plotBox.erase_annotations()
     dep_var_series = form.dep_var_series
     dep_var_labels = form.dep_var_labels
     indep_var_label = form.indep_var_label
@@ -752,8 +758,6 @@ def plot_intervals(form, item_texts=None):
     fillstyles = matplotlib.markers.MarkerStyle.fillstyles
     dc = form.groupBox.plotBox.dc
     plotted_series = form.groupBox.plotBox.plotted_series
-    for annotation in form.groupBox.plotBox.figure.findobj(matplotlib.text.Annotation):
-        annotation.set_visible(False)
     if not form.groupBox.plotBox.toggleLogButtonX.isChecked():
         indep_var_series = indep_var_series
         indep_var_label = '$' + indep_var_label + '$'
