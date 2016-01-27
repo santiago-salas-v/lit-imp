@@ -342,6 +342,7 @@ class UiGroupBoxPlot(object):
         self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, associated_form))
         self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, associated_form))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
+        self.pushButton.clicked.connect(partial(plot_intervals,associated_form,None))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -896,7 +897,9 @@ def equilibrate(form):
         form.Xieq_j_0 = Xieq_j
         form.label_9.setText(form.label_9.text() +
                              '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
-                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()))
+                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()) +
+                             '\nI_0 = ' + str((1/2.0*np.power(z_i,2).T * C0_i).item()) +
+                             '\t\t\t\t I_eq = ' + str((1/2.0*np.power(z_i,2).T * Ceq_i).item()))
 
     form.Ceq_i = Ceq_i
     form.Xieq_j = Xieq_j
