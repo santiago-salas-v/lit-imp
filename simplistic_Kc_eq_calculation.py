@@ -3,6 +3,7 @@
 Created on Fri Nov 27 20:48:42 2015
 
 @author: Santiago Salas
+@ref: Denbigh, p. 298
 """
 import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv, bisect
 import matplotlib, colormaps
@@ -470,17 +471,24 @@ def load_csv(form, filename):
         header_comps = []
         header_reacs = []
         reader = csv.reader(csv_file, dialect='excel')
+        reading_comps = False
+        reading_reacs = False
         for row in reader:
-            if 'COMP' in row:
+            if len(filter(lambda x: len(x.replace(' ', '')) > 0, row)) == 0:
+                next(reader)
+            elif 'COMP' in row:
+                reading_comps = True
+                reading_reacs = False
                 header_comps = next(reader)[0:4]
-                next(reader)
             elif 'REAC' in row:
+                reading_reacs = True
+                reading_comps = False
                 header_reacs = next(reader)
-                next(reader)
-            if len(header_reacs) == 0 and len(header_comps) > 0:
-                n = n + 1
-            elif len(header_reacs) > 0 and len(header_comps) > 0:
-                Nr = Nr + 1
+                header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
+            elif reading_comps:
+                n += 1
+            elif reading_reacs:
+                Nr += 1
         csv_file.close()
         form.spinBox.setProperty("value", n)
         form.spinBox_2.setProperty("value", Nr)
@@ -496,17 +504,17 @@ def load_csv(form, filename):
                 comps[i] = map(lambda x: '0' if x == '' else x, comps[i])
                 i = i + 1
             elif reader.line_num > n + 2 + 2:
-                reacs[j] = np.array(row)
+                reacs[j] = np.array(row[0:n + 2])
                 reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
                 j = j + 1
         csv_file.close()
-    form.tableComps.setRowCount(n)
+        form.tableComps.setRowCount(n)
     form.tableComps.setColumnCount(len(header_comps) + 3)
     form.tableComps.setHorizontalHeaderLabels(
         header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
 
     form.tableReacs.setRowCount(Nr)
-    form.tableReacs.setColumnCount(len(header_reacs) + 1)
+    form.tableReacs.setColumnCount(n + 2 + 1)
     form.tableReacs.setHorizontalHeaderLabels(
         header_reacs + ['Xieq_j'])
 
@@ -636,13 +644,13 @@ def retabulate(form):
                 newItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
     i = range(0, Nr)
-    j = range(0, len(header_reacs) + 1)
+    j = range(0, n + 2 + 1)
 
     for column in j:
         for row in i:
-            if column != len(header_reacs):
+            if column != n + 2:
                 form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
-            elif column == len(header_reacs):
+            elif column == n + 2:
                 form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
     # Widths and heights, re-enable sorting
