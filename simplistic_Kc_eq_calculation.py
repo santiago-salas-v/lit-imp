@@ -473,9 +473,12 @@ def load_csv(form, filename):
         reader = csv.reader(csv_file, dialect='excel')
         reading_comps = False
         reading_reacs = False
+        comps = []
+        reacs = []
         for row in reader:
-            if len(filter(lambda x: len(x.replace(' ', '')) > 0, row)) == 0:
-                next(reader)
+            row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
+            if len(row_without_blanks) == 0:
+                next(reader) #skip empty line
             elif 'COMP' in row:
                 reading_comps = True
                 reading_reacs = False
@@ -487,28 +490,17 @@ def load_csv(form, filename):
                 header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
             elif reading_comps:
                 n += 1
+                comps.append(map(lambda x: '0' if x=='' or x==' ' else x, row_without_blanks))
             elif reading_reacs:
                 Nr += 1
+                reacs.append(map(lambda x: '0' if x=='' or x==' ' else x, row[0 : n + 2]))
         csv_file.close()
-        form.spinBox.setProperty("value", n)
-        form.spinBox_2.setProperty("value", Nr)
-    with open(filename) as csv_file:
-        reader = csv.reader(csv_file, dialect='excel')
-        comps = np.empty([n, 4], dtype='S50')
-        reacs = np.empty([Nr, n + 2], dtype='S50')
-        i = 0
-        j = 0
-        for row in reader:
-            if reader.line_num > 2 and reader.line_num <= n + 2:
-                comps[i] = np.array(row[0:4])
-                comps[i] = map(lambda x: '0' if x == '' else x, comps[i])
-                i = i + 1
-            elif reader.line_num > n + 2 + 2:
-                reacs[j] = np.array(row[0:n + 2])
-                reacs[j] = map(lambda x: '0' if x == '' else x, reacs[j])
-                j = j + 1
-        csv_file.close()
-        form.tableComps.setRowCount(n)
+    comps = np.array(comps)
+    reacs = np.array(reacs)
+
+    form.spinBox.setProperty("value", n)
+    form.spinBox_2.setProperty("value", Nr)
+    form.tableComps.setRowCount(n)
     form.tableComps.setColumnCount(len(header_comps) + 3)
     form.tableComps.setHorizontalHeaderLabels(
         header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
