@@ -343,7 +343,7 @@ class UiGroupBoxPlot(object):
         self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, associated_form))
         self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, associated_form))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
-        self.pushButton.clicked.connect(partial(plot_intervals,associated_form,None))
+        self.pushButton.clicked.connect(partial(plot_intervals, associated_form, None))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -373,15 +373,14 @@ class UiGroupBoxPlot(object):
             text_list = [x.get_text() for x in self.figure.texts]
         for text in text_list:
             indexes_of_text = \
-                np.where([x.get_text().find(text)>=0 for x in self.figure.texts])[0]
-            if len(indexes_of_text)>1:
+                np.where([x.get_text().find(text) >= 0 for x in self.figure.texts])[0]
+            if len(indexes_of_text) > 1:
                 l = self.figure.texts.pop(indexes_of_text[0].item())
                 del l
             else:
                 l = self.figure.texts.pop(indexes_of_text.item())
                 del l
         self.canvas.draw()
-
 
     def move_to_available(self, item):
         if self.listWidget_2.count() <= 1:
@@ -393,7 +392,7 @@ class UiGroupBoxPlot(object):
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
         associated_annotations = \
             [self.figure.texts[x].get_text() for x in
-             np.where([x.get_text().find(name)>=0 for x in self.figure.texts])[0]]
+             np.where([x.get_text().find(name) >= 0 for x in self.figure.texts])[0]]
         self.erase_annotations(associated_annotations)
         l = self.ax.lines.pop(np.where(
             [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
@@ -478,7 +477,7 @@ def load_csv(form, filename):
         for row in reader:
             row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
             if len(row_without_blanks) == 0:
-                next(reader) #skip empty line
+                next(reader)  # skip empty line
             elif 'COMP' in row:
                 reading_comps = True
                 reading_reacs = False
@@ -490,14 +489,15 @@ def load_csv(form, filename):
                 header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
             elif reading_comps:
                 n += 1
-                comps.append(map(lambda x: '0' if x=='' or x==' ' else x, row_without_blanks))
+                comps.append(map(lambda x: '0' if x == '' or x == ' ' else x, row_without_blanks))
             elif reading_reacs:
                 Nr += 1
-                reacs.append(map(lambda x: '0' if x=='' or x==' ' else x, row[0 : n + 2]))
-        csv_file.close()
+                reacs.append(
+                    map(lambda x: '0' if x == '' or x == ' ' else x, row[0: len(header_reacs) - 2 + 2])
+                )
+    csv_file.close()
     comps = np.array(comps)
     reacs = np.array(reacs)
-
     form.spinBox.setProperty("value", n)
     form.spinBox_2.setProperty("value", Nr)
     form.tableComps.setRowCount(n)
@@ -898,8 +898,8 @@ def equilibrate(form):
         form.label_9.setText(form.label_9.text() +
                              '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
                              ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()) +
-                             '\nI_0 = ' + str((1/2.0*np.power(z_i,2).T * C0_i).item()) +
-                             '\t\t\t\t I_eq = ' + str((1/2.0*np.power(z_i,2).T * Ceq_i).item()))
+                             '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * C0_i).item()) +
+                             '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * Ceq_i).item()))
 
     form.Ceq_i = Ceq_i
     form.Xieq_j = Xieq_j
@@ -955,7 +955,8 @@ def calc_Xieq(form):
     lambda_ls = 1.0
     j_it = 1
     while k <= max_it and not stop:
-        new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop)
+        new_log_entry('Newton', k, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+        lambda_ls = 1.0
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
@@ -991,14 +992,14 @@ def calc_Xieq(form):
             X = X_k_m_1
             progress_k = progress_k_m_1
             X = X + lambda_ls * Y
+            F_val = f(X) # könnte übersprungen werden
             diff = X - X_k_m_1
-            new_log_entry('Newton it. ' + str(k + 1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: k',
-                          j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+            new_log_entry('Newton it. ' + str(k + 1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: '
+                          + str(j_it), j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
             j_it += 1
             form.methodLoops[0] += 1
             update_status_label(form, k, stop)
         j_it = 1
-        lambda_ls = 1.0
         J_val = j(X)
         F_val = f(X)
         k += 1
