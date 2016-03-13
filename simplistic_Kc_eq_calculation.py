@@ -951,7 +951,7 @@ def calc_Xieq(form):
     divergent = False
     # Add progress bar & variable
     form.progressBar.setValue(0)
-    update_status_label(form, k, stop)
+    update_status_label(form, k, 'solving...' if not stop else 'solved.')
     # Line search variable lambda
     lambda_ls = 1.0
     j_it = 1
@@ -970,7 +970,7 @@ def calc_Xieq(form):
             form.progressBar.setValue(100.0)
         else:
             # For progress bar, use log scale to compensate for quadratic convergence
-            update_status_label(form, k, stop)
+            update_status_label(form, k, 'solving...' if not stop else 'solved.')
             progress_k = \
                 (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
             # FIXME: case in which magnitude_F == inf (divergent)
@@ -1000,14 +1000,14 @@ def calc_Xieq(form):
                           + str(j_it), j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
             j_it += 1
             form.methodLoops[0] += 1
-            update_status_label(form, k, stop)
+            update_status_label(form, k, 'solving...' if not stop else 'solved.')
         j_it = 1
         J_val = j(X)
         F_val = f(X)
         k += 1
         form.methodLoops[1] += 1
     new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop and not divergent)
-    update_status_label(form, k, stop and not divergent)
+    update_status_label(form, k, 'solved.' if stop and not divergent else 'solution not found.')
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
@@ -1107,11 +1107,6 @@ def steepest_descent(X0, f, J, g, tol, form):
 
 
 def update_status_label(form, k, solved):
-    if solved:
-        solved = 'solved.'
-    else:
-        solved = 'solution not found.'
-
     form.label_9.setText('Loops: Newton \t' +
                          str(form.methodLoops[1]) + ' \t Line search (backtrack) \t' +
                          str(form.methodLoops[0]) +
