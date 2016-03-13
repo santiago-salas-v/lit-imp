@@ -477,7 +477,7 @@ def load_csv(form, filename):
         for row in reader:
             row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
             if len(row_without_blanks) == 0:
-                next(reader)  # skip empty line
+                pass # skip empty line
             elif 'COMP' in row:
                 reading_comps = True
                 reading_reacs = False
@@ -846,7 +846,7 @@ def equilibrate(form):
     if not hasattr(form, 'acceptable_solution'):
         Ceq_i_0 = C0_i
         # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
+        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
         Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
     else:
         # Use previous solution as initial estimate, if it was valid.
@@ -960,11 +960,11 @@ def calc_Xieq(form):
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
-        magnitude_Y = np.sqrt((Y.T * Y).item())
+        magnitude_F = np.sqrt((F_val.T * F_val).item())
         # First attempt without backtracking
         X = X + 1.0 * Y
         diff = X - X_k_m_1
-        if magnitude_Y < tol and all(X[0:n] >= 0):
+        if magnitude_F < tol and all(X[0:n] >= 0): # TODO: Fix magnitude_Y ~ 10E-12 and magnitude_F_val > 10E+´38
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
