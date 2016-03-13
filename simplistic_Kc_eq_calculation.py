@@ -885,7 +885,7 @@ def equilibrate(form):
             # Set aequilibrium composition to initial value + estimated conversion
             form.Ceq_i_0 = C0_i  # + nu_ij * form.Xieq_j_0
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-            form.Ceq_i_0[form.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * 10 ** -6
+            form.Ceq_i_0[form.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
             form.initialEstimateAttempts += 1
             form.methodLoops = [0, 0]
 
