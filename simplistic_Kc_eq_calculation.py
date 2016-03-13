@@ -942,9 +942,9 @@ def calc_Xieq(form):
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
     magnitude_F = np.sqrt((F_val.T * F_val).item())
     # For progress bar, use log scale to compensate for quadratic convergence
-    log10_to_o_max_magnityde_f = np.log10(tol / magnitude_F)
+    log10_to_o_max_magnitude_f = np.log10(tol / magnitude_F)
     progress_k = \
-        (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0
+        (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
@@ -952,6 +952,12 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, stop)
+    # Setup solution path plot thread
+    fig1 = matplotlib.pyplot.figure()
+    ax1 = fig1.add_subplot(1,1,1)
+    ax1.plot([],[])
+    fig1.show()
+    # Line search variable lambda
     lambda_ls = 1.0
     j_it = 1
     while k <= max_it and not stop:
@@ -971,16 +977,17 @@ def calc_Xieq(form):
             # For progress bar, use log scale to compensate for quadratic convergence
             update_status_label(form, k, stop)
             progress_k = \
-                (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0
+                (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
+            update_convergence_line(ax1, [(X.T * X).item(), (F_val.T * F_val).item()])
             # FIXME: case in which magnitude_F == inf (divergent)
             if np.isnan(magnitude_F) or np.isinf(magnitude_F):
                 stop = True  # Divergent method
                 divergent = True
                 form.progressBar.setValue(
-                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_f) * 100.0)
+                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnitude_f) * 100.0)
             else:
                 form.progressBar.setValue(
-                    (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0)
+                    (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0)
             if round(progress_k) == round(progress_k_m_1):
                 QtGui.QApplication.processEvents()
                 # if form.progressBar.wasCanceled():
@@ -1000,6 +1007,7 @@ def calc_Xieq(form):
             j_it += 1
             form.methodLoops[0] += 1
             update_status_label(form, k, stop)
+            update_convergence_line(ax1, [(X.T * X).item(), (F_val.T * F_val).item()]) # FIXME: Sehr langsam.
         j_it = 1
         J_val = j(X)
         F_val = f(X)
@@ -1158,6 +1166,13 @@ def g_test(X):
     f_0 = f_test(X)
     return (f_0.T * f_0).item()
 
+def update_convergence_line(ax1, new_data):
+    hl = ax1.get_lines()[0]
+    hl.set_xdata(np.append(hl.get_xdata(), new_data[0]))
+    hl.set_ydata(np.append(hl.get_ydata(), new_data[1]))
+    ax1.relim()
+    ax1.autoscale_view(True,True,True)
+    ax1.get_figure().canvas.draw()
 
 def display_about_info(form):
     rowString = unicode('', 'utf_8')
