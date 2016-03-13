@@ -940,11 +940,11 @@ def calc_Xieq(form):
     J_val = j(X)
     F_val = f(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
-    magnitude_Y = np.sqrt((Y.T * Y).item())
+    magnitude_F = np.sqrt((F_val.T * F_val).item())
     # For progress bar, use log scale to compensate for quadratic convergence
-    log10_to_o_max_magnityde_y = np.log10(tol / magnitude_Y)
+    log10_to_o_max_magnityde_f = np.log10(tol / magnitude_F)
     progress_k = \
-        (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
+        (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
@@ -964,23 +964,23 @@ def calc_Xieq(form):
         # First attempt without backtracking
         X = X + 1.0 * Y
         diff = X - X_k_m_1
-        if magnitude_F < tol and all(X[0:n] >= 0): # TODO: Fix magnitude_Y ~ 10E-12 and magnitude_F_val > 10E+´38
+        if magnitude_F < tol and all(X[0:n] >= 0): # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
             # For progress bar, use log scale to compensate for quadratic convergence
             update_status_label(form, k, stop)
             progress_k = \
-                (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0
-            # TODO: Fix case in which magnitude_Y == inf (divergent)
-            if np.isnan(magnitude_Y) or np.isinf(magnitude_Y):
+                (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0
+            # FIXME: case in which magnitude_F == inf (divergent)
+            if np.isnan(magnitude_F) or np.isinf(magnitude_F):
                 stop = True  # Divergent method
                 divergent = True
                 form.progressBar.setValue(
-                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_y) * 100.0)
+                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnityde_f) * 100.0)
             else:
                 form.progressBar.setValue(
-                    (1.0 - np.log10(tol / magnitude_Y) / log10_to_o_max_magnityde_y) * 100.0)
+                    (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnityde_f) * 100.0)
             if round(progress_k) == round(progress_k_m_1):
                 QtGui.QApplication.processEvents()
                 # if form.progressBar.wasCanceled():
@@ -988,6 +988,7 @@ def calc_Xieq(form):
         while j_it <= max_it and not all(X[0:n] >= 0):
             # Backtrack if any conc < 0. Line search method.
             # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
+            # TODO: Gleichzeitig - aber unabhängig der Lösung - den Lösungspfad aufzeichnen.
             lambda_ls = lambda_ls / 2.0
             X = X_k_m_1
             progress_k = progress_k_m_1
