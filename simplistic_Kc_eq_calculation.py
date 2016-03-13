@@ -952,11 +952,6 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, stop)
-    # Setup solution path plot thread
-    fig1 = matplotlib.pyplot.figure()
-    ax1 = fig1.add_subplot(1,1,1)
-    ax1.plot([],[])
-    fig1.show()
     # Line search variable lambda
     lambda_ls = 1.0
     j_it = 1
@@ -978,7 +973,6 @@ def calc_Xieq(form):
             update_status_label(form, k, stop)
             progress_k = \
                 (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
-            update_convergence_line(ax1, [(X.T * X).item(), (F_val.T * F_val).item()])
             # FIXME: case in which magnitude_F == inf (divergent)
             if np.isnan(magnitude_F) or np.isinf(magnitude_F):
                 stop = True  # Divergent method
@@ -1007,7 +1001,6 @@ def calc_Xieq(form):
             j_it += 1
             form.methodLoops[0] += 1
             update_status_label(form, k, stop)
-            update_convergence_line(ax1, [(X.T * X).item(), (F_val.T * F_val).item()]) # FIXME: Sehr langsam.
         j_it = 1
         J_val = j(X)
         F_val = f(X)
