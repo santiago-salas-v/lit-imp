@@ -5,7 +5,7 @@ Created on Fri Nov 27 20:48:42 2015
 @author: Santiago Salas
 @ref: Denbigh, p. 298
 """
-import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv, bisect
+import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv, bisect, uuid
 import matplotlib, colormaps
 
 matplotlib.use('Qt4Agg')
@@ -952,8 +952,8 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, 'solving...' if not stop else 'solved.')
-    j_it = 0
-    new_log_entry('Newton', k, 0, 0, X, diff, F_val, 0 * Y, np.nan, np.nan, stop)
+    series_id = str(uuid.uuid1()) # Unique identifier for plotting logged solutions
+    new_log_entry('Newton', k, 0, 0, X, diff, F_val, 0 * Y, np.nan, np.nan, stop, series_id)
     # Line search variable lambda
     lambda_ls = 1.0
     while k <= max_it and not stop:
@@ -970,7 +970,7 @@ def calc_Xieq(form):
         diff = X - X_k_m_1
         J_val = j(X)
         F_val = f(X)
-        new_log_entry('Newton', k, j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+        new_log_entry('Newton', k, j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop, series_id)
         if magnitude_F < tol and all(X[0:n] >= 0):  # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
@@ -1004,7 +1004,8 @@ def calc_Xieq(form):
             diff = X - X_k_m_1
             J_val = j(X)
             F_val = f(X)
-            new_log_entry('Newton', k , j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+            new_log_entry('Newton', k , j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, \
+                          np.nan, np.nan, stop, series_id)
             form.methodLoops[0] += 1
             update_status_label(form, k, 'solving...' if not stop else 'solved.')
     update_status_label(form, k, 'solved.' if stop and not divergent else 'solution not found.')
@@ -1116,7 +1117,7 @@ def update_status_label(form, k, solved):
                          '\n' + str(solved))
 
 
-def new_log_entry(method, k, backtrack, lambda_ls, X, diff, f_val, Y, g_min, g1, stop):
+def new_log_entry(method, k, backtrack, lambda_ls, X, diff, f_val, Y, g_min, g1, stop, series_id):
     logging.debug(method + ' ' +
                   ';k=' + str(k) +
                   ';backtrack=' + str(backtrack) +
@@ -1129,7 +1130,8 @@ def new_log_entry(method, k, backtrack, lambda_ls, X, diff, f_val, Y, g_min, g1,
                   ';||Y||=' + str(np.sqrt((Y.T * Y).item())) +
                   ';g=' + str(g_min) +
                   ';|g-g1|=' + str(abs(g_min - g1)) +
-                  ';stop=' + str(stop))
+                  ';stop=' + str(stop) +
+                  ';' + series_id)
 
 
 def f_test(X):
@@ -1244,7 +1246,8 @@ def show_log():
          ('||Y||', float),
          ('g', float),
          ('|g-g1|', float),
-         ('stop', bool)))
+         ('stop', bool),
+         ('series_id', str)))
 
     headers_and_types_dict = dict(headers_and_types)
     col_numbers_with_float = \
