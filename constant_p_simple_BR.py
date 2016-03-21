@@ -8,6 +8,7 @@ matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 matplotlib.rcParams['figure.subplot.hspace'] = 0.2
 import matplotlib.pylab as plt
+from matplotlib import widgets as mpl_widgets
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from PySide import QtGui, QtCore
 from PySide.QtGui import QFontMetrics, QFont
@@ -128,7 +129,12 @@ class MainForm(QtGui.QWidget):
         self.fig, self.axes = plt.subplots(2, 2, sharex=True)
         self.fig.set_figheight(5)
         self.axes.resize(self.axes.size)
+        self.adjustment_fig = plt.Figure(figsize=(6, 3))
+        self.adjustment_fig.subplots_adjust(top=0.9)
+        self.crosshair = np.empty(self.axes.shape, dtype=object)
         self.canvas = FigureCanvas(self.fig)
+        self.canvas2 = FigureCanvas(self.adjustment_fig)
+        self.sptool = mpl_widgets.SubplotTool(self.fig, self.adjustment_fig)
         dep_variables_to_plot = [('T', 'K'),
                                  ('V', 'm^3'),
                                  ('X[O2]', '(adim)'),
@@ -148,10 +154,13 @@ class MainForm(QtGui.QWidget):
                                  ', ' + dep_variables_to_plot[i][1] + '$'])\
                 .draggable(True)
             self.axes[i].hold(False)
+            self.crosshair[i] = mpl_widgets.Cursor(self.axes[i],
+                                                   horizOn=True, vertOn=True)
 
         vertical_layout = QtGui.QVBoxLayout(self)
         vertical_layout.addWidget(self.table)
         vertical_layout.addWidget(self.canvas)
+        vertical_layout.addWidget(self.canvas2)
         self.setLayout(vertical_layout)
         self.setWindowIcon(QtGui.QIcon('./utils/ch_pot.png'))
 
