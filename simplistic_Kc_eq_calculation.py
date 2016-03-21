@@ -477,7 +477,7 @@ def load_csv(form, filename):
         for row in reader:
             row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
             if len(row_without_blanks) == 0:
-                pass # skip empty line
+                pass  # skip empty line
             elif 'COMP' in row:
                 reading_comps = True
                 reading_reacs = False
@@ -952,20 +952,26 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, 'solving...' if not stop else 'solved.')
+    j_it = 0
+    new_log_entry('Newton', k, 0, 0, X, diff, F_val, 0 * Y, np.nan, np.nan, stop)
     # Line search variable lambda
     lambda_ls = 1.0
-    j_it = 1
     while k <= max_it and not stop:
-        new_log_entry('Newton', k, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+        k += 1
+        form.methodLoops[1] += 1
+        j_it = 0
         lambda_ls = 1.0
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
         magnitude_F = np.sqrt((F_val.T * F_val).item())
         # First attempt without backtracking
-        X = X + 1.0 * Y
+        X = X + lambda_ls * Y
         diff = X - X_k_m_1
-        if magnitude_F < tol and all(X[0:n] >= 0): # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
+        J_val = j(X)
+        F_val = f(X)
+        new_log_entry('Newton', k, j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
+        if magnitude_F < tol and all(X[0:n] >= 0):  # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
@@ -990,23 +996,17 @@ def calc_Xieq(form):
             # Backtrack if any conc < 0. Line search method.
             # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
             # TODO: Gleichzeitig - aber unabhängig der Lösung - den Lösungspfad aufzeichnen.
+            j_it += 1
             lambda_ls = lambda_ls / 2.0
             X = X_k_m_1
             progress_k = progress_k_m_1
             X = X + lambda_ls * Y
-            F_val = f(X) # könnte übersprungen werden
             diff = X - X_k_m_1
-            new_log_entry('Newton it. ' + str(k + 1) + ' - lambda: ' + str(lambda_ls) + ' backtrack: '
-                          + str(j_it), j_it, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
-            j_it += 1
+            J_val = j(X)
+            F_val = f(X)
+            new_log_entry('Newton', k , j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop)
             form.methodLoops[0] += 1
             update_status_label(form, k, 'solving...' if not stop else 'solved.')
-        j_it = 1
-        J_val = j(X)
-        F_val = f(X)
-        k += 1
-        form.methodLoops[1] += 1
-    new_log_entry('Newton', k, X, diff, F_val, Y, np.nan, np.nan, stop and not divergent)
     update_status_label(form, k, 'solved.' if stop and not divergent else 'solution not found.')
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
@@ -1094,7 +1094,7 @@ def steepest_descent(X0, f, J, g, tol, form):
         else:
             progressBar.setValue(tol / abs_gmin_minus_g1 * 100)
             update_status_label(form, k, False)
-        new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
+        new_log_entry('Steepest descent', k, 0, 1.0, X, diff, f_val, Y, g_min, g1, stop)
         update_status_label(form, k, False)
         X_k_m_1 = X
         X = X - alpha * z
@@ -1102,7 +1102,7 @@ def steepest_descent(X0, f, J, g, tol, form):
         f_val = f(X)
         k += 1
         form.methodLoops[0] += 1
-    new_log_entry('Steepest descent', k, X, diff, f_val, Y, g_min, g1, stop)
+    new_log_entry('Steepest descent', k, 0, 1.0, X, diff, f_val, Y, g_min, g1, stop)
     return X, f_val
 
 
@@ -1116,9 +1116,11 @@ def update_status_label(form, k, solved):
                          '\n' + str(solved))
 
 
-def new_log_entry(method, k, X, diff, f_val, Y, g_min, g1, stop):
+def new_log_entry(method, k, backtrack, lambda_ls, X, diff, f_val, Y, g_min, g1, stop):
     logging.debug(method + ' ' +
                   ';k=' + str(k) +
+                  ';backtrack=' + str(backtrack) +
+                  ';lambda_ls=' + str(lambda_ls) +
                   ';X=' + '[' + ','.join(map(str, X.T.A1)) + ']' +
                   ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
                   ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
@@ -1154,13 +1156,15 @@ def g_test(X):
     f_0 = f_test(X)
     return (f_0.T * f_0).item()
 
+
 def update_convergence_line(ax1, new_data):
     hl = ax1.get_lines()[0]
     hl.set_xdata(np.append(hl.get_xdata(), new_data[0]))
     hl.set_ydata(np.append(hl.get_ydata(), new_data[1]))
     ax1.relim()
-    ax1.autoscale_view(True,True,True)
+    ax1.autoscale_view(True, True, True)
     ax1.get_figure().canvas.draw()
+
 
 def display_about_info(form):
     rowString = unicode('', 'utf_8')
@@ -1230,6 +1234,8 @@ def show_log():
         (('date', str),
          ('method', str),
          ('k', int),
+         ('backtrack', int),
+         ('lambda_ls', float),
          ('X', list),
          ('||X(k)-X(k-1)||', float),
          ('f(X)', list),
