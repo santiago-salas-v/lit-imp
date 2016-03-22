@@ -941,6 +941,9 @@ def calc_Xieq(form):
     F_val = f(X)
     Y = np.matrix(np.ones(len(X))).T * tol / (np.sqrt(len(X)) * tol)
     magnitude_F = np.sqrt((F_val.T * F_val).item())
+    # Line search variable lambda
+    lambda_ls = 0.0
+    accum_step = 0.0
     # For progress bar, use log scale to compensate for quadratic convergence
     log10_to_o_max_magnitude_f = np.log10(tol / magnitude_F)
     progress_k = \
@@ -953,14 +956,13 @@ def calc_Xieq(form):
     form.progressBar.setValue(0)
     update_status_label(form, k, 'solving...' if not stop else 'solved.')
     series_id = str(uuid.uuid1()) # Unique identifier for plotting logged solutions
-    new_log_entry('Newton', k, 0, 0, X, diff, F_val, 0 * Y, np.nan, np.nan, stop, series_id)
-    # Line search variable lambda
-    lambda_ls = 1.0
+    new_log_entry('Newton', k, 0, 0, accum_step, X, diff, F_val, 0 * Y, np.nan, np.nan, stop, series_id)
     while k <= max_it and not stop:
         k += 1
         form.methodLoops[1] += 1
         j_it = 0
         lambda_ls = 1.0
+        accum_step += lambda_ls
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
@@ -970,7 +972,8 @@ def calc_Xieq(form):
         diff = X - X_k_m_1
         J_val = j(X)
         F_val = f(X)
-        new_log_entry('Newton', k, j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, np.nan, np.nan, stop, series_id)
+        new_log_entry('Newton', k, j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
+                      np.nan, np.nan, stop, series_id)
         if magnitude_F < tol and all(X[0:n] >= 0):  # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
@@ -998,13 +1001,14 @@ def calc_Xieq(form):
             # TODO: Gleichzeitig - aber unabhängig der Lösung - den Lösungspfad aufzeichnen.
             j_it += 1
             lambda_ls = lambda_ls / 2.0
+            accum_step += -lambda_ls
             X = X_k_m_1
             progress_k = progress_k_m_1
             X = X + lambda_ls * Y
             diff = X - X_k_m_1
             J_val = j(X)
             F_val = f(X)
-            new_log_entry('Newton', k , j_it, lambda_ls, X, diff, F_val, lambda_ls * Y, \
+            new_log_entry('Newton', k , j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
                           np.nan, np.nan, stop, series_id)
             form.methodLoops[0] += 1
             update_status_label(form, k, 'solving...' if not stop else 'solved.')
@@ -1117,11 +1121,12 @@ def update_status_label(form, k, solved):
                          '\n' + str(solved))
 
 
-def new_log_entry(method, k, backtrack, lambda_ls, X, diff, f_val, Y, g_min, g1, stop, series_id):
+def new_log_entry(method, k, backtrack, lambda_ls, accum_step, X, diff, f_val, Y, g_min, g1, stop, series_id):
     logging.debug(method + ' ' +
                   ';k=' + str(k) +
                   ';backtrack=' + str(backtrack) +
                   ';lambda_ls=' + str(lambda_ls) +
+                  ';accum_step=' + str(accum_step) +
                   ';X=' + '[' + ','.join(map(str, X.T.A1)) + ']' +
                   ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
                   ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
@@ -1238,6 +1243,7 @@ def show_log():
          ('k', int),
          ('backtrack', int),
          ('lambda_ls', float),
+         ('accum_step', float),
          ('X', list),
          ('||X(k)-X(k-1)||', float),
          ('f(X)', list),
