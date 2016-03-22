@@ -36,6 +36,10 @@ except AttributeError:
         return QtGui.QApplication.translate(context, text, disambig)
 
 
+colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
+markers = matplotlib.markers.MarkerStyle.filled_markers
+fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+
 class UiGroupBox(object):
     _was_canceled = False
 
@@ -756,9 +760,6 @@ def plot_intervals(form, item_texts=None):
     dep_var_labels = form.dep_var_labels
     indep_var_label = form.indep_var_label
     indep_var_series = form.indep_var_series
-    colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
-    markers = matplotlib.markers.MarkerStyle.filled_markers
-    fillstyles = matplotlib.markers.MarkerStyle.fillstyles
     dc = form.groupBox.plotBox.dc
     plotted_series = form.groupBox.plotBox.plotted_series
     if not form.groupBox.plotBox.toggleLogButtonX.isChecked():
@@ -955,7 +956,7 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, 'solving...' if not stop else 'solved.')
-    series_id = str(uuid.uuid1()) # Unique identifier for plotting logged solutions
+    series_id = str(uuid.uuid1())  # Unique identifier for plotting logged solutions
     new_log_entry('Newton', k, 0, 0, accum_step, X, diff, F_val, 0 * Y, np.nan, np.nan, stop, series_id)
     while k <= max_it and not stop:
         k += 1
@@ -966,15 +967,15 @@ def calc_Xieq(form):
         X_k_m_1 = X
         progress_k_m_1 = progress_k
         Y = gausselimination(J_val, -F_val)
-        magnitude_F = np.sqrt((F_val.T * F_val).item())
         # First attempt without backtracking
         X = X + lambda_ls * Y
         diff = X - X_k_m_1
         J_val = j(X)
         F_val = f(X)
+        magnitude_F = np.sqrt((F_val.T * F_val).item())
         new_log_entry('Newton', k, j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
                       np.nan, np.nan, stop, series_id)
-        if magnitude_F < tol and all(X[0:n] >= 0):  # FIXME: Fix magnitude_F ~ 10E-12 and magnitude_F_val > 10E+´38
+        if magnitude_F < tol and all(X[0:n] >= 0):
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
@@ -982,7 +983,6 @@ def calc_Xieq(form):
             update_status_label(form, k, 'solving...' if not stop else 'solved.')
             progress_k = \
                 (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
-            # FIXME: case in which magnitude_F == inf (divergent)
             if np.isnan(magnitude_F) or np.isinf(magnitude_F):
                 stop = True  # Divergent method
                 divergent = True
@@ -1008,7 +1008,7 @@ def calc_Xieq(form):
             diff = X - X_k_m_1
             J_val = j(X)
             F_val = f(X)
-            new_log_entry('Newton', k , j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
+            new_log_entry('Newton', k, j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
                           np.nan, np.nan, stop, series_id)
             form.methodLoops[0] += 1
             update_status_label(form, k, 'solving...' if not stop else 'solved.')
@@ -1331,9 +1331,11 @@ class LogWidget(QtGui.QWidget):
         self.totPagesLabel = QtGui.QLabel(self.group_2)
         self.pageBox = QtGui.QLineEdit(self.group_2)
         self.exportButton = QtGui.QPushButton(self.group_2)
+        self.plotButton = QtGui.QPushButton(self.group_2)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.addWidget(self.pandasView)
         self.verticalLayout.addWidget(self.exportButton)
+        self.verticalLayout.addWidget(self.plotButton)
         self.horizontalLayout.addWidget(self.firstButton)
         self.horizontalLayout.addWidget(self.previousButton)
         self.horizontalLayout.addWidget(self.pageLabel)
@@ -1347,6 +1349,7 @@ class LogWidget(QtGui.QWidget):
         self.nextButton.clicked.connect(partial(self.nextPage))
         self.previousButton.clicked.connect(partial(self.previousPage))
         self.exportButton.clicked.connect(partial(self.exportData))
+        self.plotButton.clicked.connect(partial(self.plotData))
         self.pageBox.editingFinished.connect(partial(self.goToPageNo))
 
         # To ensure full display, first set resize modes, then resize columns to contents
@@ -1363,6 +1366,7 @@ class LogWidget(QtGui.QWidget):
         self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
         self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
         self.exportButton.setText('Export (csv)')
+        self.plotButton.setText('Plot solution paths')
 
         self.displayItemsByPage = 50
         self.currentPageFirstEntry = len(self.log.values) \
@@ -1370,7 +1374,7 @@ class LogWidget(QtGui.QWidget):
         self.display()
 
     def firstPage(self):
-        self.currentPageFirstEntry = 1
+        self.currentPageFirstEntry = 0
         self.displayItemsByPage = self.displayItemsByPage
         self.display()
 
@@ -1451,6 +1455,31 @@ class LogWidget(QtGui.QWidget):
             # elif selectedFilter == supportedFilters[1] or \
             #                selectedFilter == supportedFilters[2]:
             #    self.log.to_excel(fileName)
+
+    def plotData(self):
+        grouped = self.log.groupby('series_id')
+        # Generate the plot
+        self.fig1 = Figure(figsize=(8, 8), dpi=72, facecolor=(1, 1, 1),
+                             edgecolor=(0, 0, 0))
+        self.ax = self.fig1.add_subplot(111)
+        self.fig1.subplots_adjust(bottom=0.15)
+        self.ax.grid('on')
+        # Generate the canvas to display the plot
+        self.canvas = FigureCanvas(self.fig1)
+        self.canvas.setObjectName("canvas")
+        for name, group  in grouped:
+            self.ax.plot(
+                group['accum_step'], group['||f(X)||'], label=str(group['date'].head(1).values[0]),
+                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                marker=markers[np.random.randint(0, len(markers) - 1)],
+                fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
+        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.ax.set_xlabel('step', fontsize=14)
+        self.ax.set_ylabel('||f(X)||', fontsize=14)
+        self.ax.set_yscale('log')
+        self.ax.set_xscale('log')
+        self.canvas.show()
 
 
 class PandasModel(QtCore.QAbstractTableModel):
