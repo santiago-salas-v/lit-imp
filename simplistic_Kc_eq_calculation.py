@@ -35,10 +35,10 @@ except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-
 colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
 markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+
 
 class UiGroupBox(object):
     _was_canceled = False
@@ -281,13 +281,16 @@ class UiGroupBoxPlot(object):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
 
-        #Variables to be set
-        self.plotted_series = dict() # space to store data series
-        self.dc = dict()    # space to store data cursors for each series
+        # Variables to be set
+        self.plotted_series = dict()  # space to store data series
+        self.dc = dict()  # space to store data cursors for each series
         self.dep_var_series = None
         self.dep_var_labels = None
         self.indep_var_label = None
         self.indep_var_series = None
+        # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
+        # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
+        self.set_log_scale_func_list([('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))])
 
         # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
@@ -363,6 +366,14 @@ class UiGroupBoxPlot(object):
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
+    def set_log_scale_func_list(self, log_scale_func_list):
+        self.log_scale_string = log_scale_func_list[0][0]
+        self.log_scale_func = log_scale_func_list[0][1]
+        self.invlog_scale_string = log_scale_func_list[1][0]
+        self.invlog_scale_func = log_scale_func_list[1][1]
+        self.find_log_variable = re.compile(
+            '\$?(?P<log>' + self.log_scale_string + '\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?')
+
     def retranslateUi(self, parent):
         parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         parent.setTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
@@ -371,29 +382,31 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.toggleLogButtonX.setText(
-            QtGui.QApplication.translate("parent", "-log10(x) - horizontal", None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate("parent", self.log_scale_string + "(x) - horizontal",
+                                         None, QtGui.QApplication.UnicodeUTF8))
         self.toggleLogButtonY.setText(
-            QtGui.QApplication.translate("parent", "-log10(y) - vertical", None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate("parent", self.log_scale_string + "(y) - vertical",
+                                         None, QtGui.QApplication.UnicodeUTF8))
         self.eraseAnnotationsB.setText(
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
     def toggled_toggleLogButtonX(self, checked):
         x_label = self.ax.get_xlabel()
-        match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?', x_label)
+        match = self.find_log_variable.search(x_label)
         if not checked and (match.group('log') is not None):
             self.ax.set_xlabel(u'$' + match.group('id') + u'$')
         else:
-            self.ax.set_xlabel('$' + '-log10(' + match.group('id2') + ')' + '$')
+            self.ax.set_xlabel('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
         for line in self.ax.findobj(
                 lambda x: x.properties()['visible'] == True and
                                 type(x) == matplotlib.lines.Line2D and
                                 len(x.properties()['label']) > 0):
             line_xdata = line.get_xdata()
             if not checked and (match.group('log') is not None):
-                line.set_xdata(10 ** (-line_xdata))
+                line.set_xdata(self.invlog_scale_func(line_xdata))
             else:
                 # TODO: Check first if any data are nan due to conversion.
-                line.set_xdata(-1.0 * np.log10(line_xdata))
+                line.set_xdata(self.log_scale_func(line_xdata))
         self.ax.relim()
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.canvas.draw()
@@ -405,19 +418,17 @@ class UiGroupBoxPlot(object):
                                 len(x.properties()['label']) > 0):
             line_label = line.get_label()
             line_ydata = line.get_ydata()
-            match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?', line_label)
+            match = self.find_log_variable.search(line_label)
             if not checked and (match.group('log') is not None):
-                line.set_ydata(10 ** (-line_ydata))
+                line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
                 # TODO: Check first if any data are nan due to conversion.
-                line.set_ydata(-1.0 * np.log10(line_ydata))
-                line.set_label('$' + '-log10(' + match.group('id2') + ')' + '$')
+                line.set_ydata(self.log_scale_func(line_ydata))
+                line.set_label('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
         self.ax.relim()
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.canvas.draw()
-
-
 
     def plot_intervals(self, item_texts=None):
         self.erase_annotations()
@@ -428,7 +439,7 @@ class UiGroupBoxPlot(object):
             indep_var_label = '$' + self.indep_var_label + '$'
         else:
             indep_var_series = -np.log10(self.indep_var_series)
-            indep_var_label = '$-log10(' + self.indep_var_label + ')$'
+            indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
         if item_texts is None:
             item_texts = []
             for i in range(self.listWidget_2.count()):
@@ -440,7 +451,7 @@ class UiGroupBoxPlot(object):
                 series_label = '$' + label + '$'
             else:
                 dep_var_values = -np.log10(self.dep_var_series[label])
-                series_label = '$-log10(' + label + ')$'
+                series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
                 indep_var_series, dep_var_values.A1.tolist(), 'go-', label=series_label,
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
@@ -459,7 +470,6 @@ class UiGroupBoxPlot(object):
         self.listWidget_2.setMinimumWidth(
             self.listWidget_2.sizeHintForColumn(0))
         self.canvas.draw()
-
 
     def erase_annotations(self, text_list=None):
         if text_list is None:
@@ -494,10 +504,10 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        for line in self.ax.findobj(lambda x: \
-                                                                    x.properties()['visible'] == True and \
-                                                                    type(x) == matplotlib.lines.Line2D and \
-                                                            len(x.properties()['label']) > 0):
+        for line in self.ax.findobj(
+                lambda x: x.properties()['visible'] == True and
+                                type(x) == matplotlib.lines.Line2D and
+                                len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
             pass
@@ -520,10 +530,10 @@ class UiGroupBoxPlot(object):
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
         y_max = y_min
-        for line in self.ax.findobj(lambda x: \
-                                                                    x.properties()['visible'] == True and \
-                                                                    type(x) == matplotlib.lines.Line2D and \
-                                                            len(x.properties()['label']) > 0):
+        for line in self.ax.findobj(
+                lambda x: x.properties()['visible'] == True and
+                                type(x) == matplotlib.lines.Line2D and
+                                len(x.properties()['label']) > 0):
             y_max = max([y_max, max(line.get_ydata())])
         if y_min == y_max:
             pass
@@ -830,7 +840,6 @@ def initiate_plot(form):
     n = form.n
     Nr = form.Nr
     dep_var_labels = form.dep_var_labels
-    form.groupBox.plotBox.clearAll()
     for label in dep_var_labels:
         if label.find('Ceq') >= 0:
             new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
@@ -1402,17 +1411,17 @@ class LogWidget(QtGui.QWidget):
         grouped = self.log.groupby('series_id')
         # Generate the plot
         groupBox = QtGui.QGroupBox()
-        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox, associated_form=self)
+        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox)
         groupBox.show()
         self.fig1 = Figure(figsize=(8, 8), dpi=72, facecolor=(1, 1, 1),
-                             edgecolor=(0, 0, 0))
+                           edgecolor=(0, 0, 0))
         self.ax = self.fig1.add_subplot(111)
         self.fig1.subplots_adjust(bottom=0.15)
         self.ax.grid('on')
         # Generate the canvas to display the plot
         self.canvas = FigureCanvas(self.fig1)
         self.canvas.setObjectName("canvas")
-        for name, group  in grouped:
+        for name, group in grouped:
             self.ax.plot(
                 group['accum_step'], group['||f(X)||'], label=str(group['date'].head(1).values[0]),
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
