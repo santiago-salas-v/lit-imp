@@ -378,6 +378,24 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
     def toggled_toggleLogButtonX(self, checked):
+        x_label = self.ax.get_xlabel()
+        match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?', x_label)
+        if not checked and (match.group('log') is not None):
+            self.ax.set_xlabel(u'$' + match.group('id') + u'$')
+        else:
+            self.ax.set_xlabel('$' + '-log10(' + match.group('id2') + ')' + '$')
+        for line in self.ax.findobj(
+                lambda x: x.properties()['visible'] == True and
+                                type(x) == matplotlib.lines.Line2D and
+                                len(x.properties()['label']) > 0):
+            line_xdata = line.get_xdata()
+            if not checked and (match.group('log') is not None):
+                line.set_xdata(10 ** (-line_xdata))
+            else:
+                # TODO: Check first if any data are nan due to conversion.
+                line.set_xdata(-1.0 * np.log10(line_xdata))
+        self.ax.relim()
+        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.canvas.draw()
 
     def toggled_toggleLogButtonY(self, checked):
@@ -387,16 +405,16 @@ class UiGroupBoxPlot(object):
                                 len(x.properties()['label']) > 0):
             line_label = line.get_label()
             line_ydata = line.get_ydata()
-            match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?',line_label)
+            match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?', line_label)
             if not checked and (match.group('log') is not None):
-                line.set_ydata(10**(-line_ydata))
+                line.set_ydata(10 ** (-line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
                 # TODO: Check first if any data are nan due to conversion.
-                line.set_ydata(-1.0*np.log10(line_ydata))
+                line.set_ydata(-1.0 * np.log10(line_ydata))
                 line.set_label('$' + '-log10(' + match.group('id2') + ')' + '$')
-        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.ax.relim()
+        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.canvas.draw()
 
 
