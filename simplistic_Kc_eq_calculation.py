@@ -353,10 +353,10 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
-        self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, None))
-        self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, None))
+        self.toggleLogButtonX.toggled.connect(partial(self.toggled_toggleLogButtonX))
+        self.toggleLogButtonY.toggled.connect(partial(self.toggled_toggleLogButtonY))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
-        self.pushButton.clicked.connect(partial(self.plot_intervals, None))
+        self.pushButton.clicked.connect(partial(self.plot_intervals))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -376,6 +376,28 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "-log10(y) - vertical", None, QtGui.QApplication.UnicodeUTF8))
         self.eraseAnnotationsB.setText(
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
+
+    def toggled_toggleLogButtonX(self, checked):
+        self.canvas.draw()
+
+    def toggled_toggleLogButtonY(self, checked):
+        for line in self.ax.findobj(
+                lambda x: x.properties()['visible'] == True and
+                                type(x) == matplotlib.lines.Line2D and
+                                len(x.properties()['label']) > 0):
+            line_label = line.get_label()
+            line_ydata = line.get_ydata()
+            match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?',line_label)
+            if checked and (match.group('log') is not None):
+                line.set_ydata(-1.0*np.log10(line_ydata))
+                line.set_label(u'$' + match.group('id') + u'$')
+            else:
+                # TODO: Check first if any data are nan due to conversion.
+                line.set_ydata(10**-(line_ydata))
+                line.set_label(line_label),
+        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.canvas.draw()
+
 
 
     def plot_intervals(self, item_texts=None):
