@@ -388,14 +388,15 @@ class UiGroupBoxPlot(object):
             line_label = line.get_label()
             line_ydata = line.get_ydata()
             match = re.search('\$?(?P<log>-log10\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?',line_label)
-            if checked and (match.group('log') is not None):
-                line.set_ydata(-1.0*np.log10(line_ydata))
+            if not checked and (match.group('log') is not None):
+                line.set_ydata(10**(-line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
                 # TODO: Check first if any data are nan due to conversion.
-                line.set_ydata(10**-(line_ydata))
-                line.set_label(line_label),
+                line.set_ydata(-1.0*np.log10(line_ydata))
+                line.set_label('$' + '-log10(' + match.group('id2') + ')' + '$')
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.ax.relim()
         self.canvas.draw()
 
 
