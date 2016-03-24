@@ -277,9 +277,18 @@ class UiGroupBox(object):
 
 
 class UiGroupBoxPlot(object):
-    def __init__(self, parent, associated_form):
+    def __init__(self, parent):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
+
+        #Variables to be set
+        self.plotted_series = dict() # space to store data series
+        self.dc = dict()    # space to store data cursors for each series
+        self.dep_var_series = None
+        self.dep_var_labels = None
+        self.indep_var_label = None
+        self.indep_var_series = None
+
         # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
         self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
@@ -311,7 +320,7 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_1.addLayout(self.horizontalLayout)
         # Generate the plot
-        self.figure = Figure(figsize=(600, 450), dpi=72, facecolor=(1, 1, 1),
+        self.figure = Figure(dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
         self.figure.subplots_adjust(bottom=0.15)
@@ -344,10 +353,10 @@ class UiGroupBoxPlot(object):
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
-        self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, associated_form))
-        self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, associated_form))
+        self.toggleLogButtonX.toggled.connect(partial(self.plot_intervals, None))
+        self.toggleLogButtonY.toggled.connect(partial(self.plot_intervals, None))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
-        self.pushButton.clicked.connect(partial(plot_intervals, associated_form, None))
+        self.pushButton.clicked.connect(partial(self.plot_intervals, None))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -368,9 +377,48 @@ class UiGroupBoxPlot(object):
         self.eraseAnnotationsB.setText(
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
-    def plot_intervals(self, form, toggled):
+
+    def plot_intervals(self, item_texts=None):
         self.erase_annotations()
-        plot_intervals(form)
+        dc = self.dc
+        plotted_series = self.plotted_series
+        if not self.toggleLogButtonX.isChecked():
+            indep_var_series = self.indep_var_series
+            indep_var_label = '$' + self.indep_var_label + '$'
+        else:
+            indep_var_series = -np.log10(self.indep_var_series)
+            indep_var_label = '$-log10(' + self.indep_var_label + ')$'
+        if item_texts is None:
+            item_texts = []
+            for i in range(self.listWidget_2.count()):
+                item_texts.append(self.listWidget_2.item(i).text())
+            self.ax.clear()
+        for label in item_texts:
+            if not self.toggleLogButtonY.isChecked():
+                dep_var_values = self.dep_var_series[label]
+                series_label = '$' + label + '$'
+            else:
+                dep_var_values = -np.log10(self.dep_var_series[label])
+                series_label = '$-log10(' + label + ')$'
+            plotted_series[label] = self.ax.plot(
+                indep_var_series, dep_var_values.A1.tolist(), 'go-', label=series_label,
+                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                marker=markers[np.random.randint(0, len(markers) - 1)],
+                fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
+            dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple',
+                                   arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
+                                   bbox=dict(fc='white', alpha=0.5),
+                                   formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
+        self.ax.legend(
+            loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.plotted_series = plotted_series
+        self.dc = dc
+        self.ax.set_xlabel(indep_var_label, fontsize=14)
+        self.listWidget_2.setMinimumWidth(
+            self.listWidget_2.sizeHintForColumn(0))
+        self.canvas.draw()
+
 
     def erase_annotations(self, text_list=None):
         if text_list is None:
@@ -426,7 +474,7 @@ class UiGroupBoxPlot(object):
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
-        plot_intervals(self.main_form, [name])
+        self.plot_intervals([name])
         self.ax.relim()
         y_lim = self.ax.get_ylim()
         y_min = y_lim[0]
@@ -445,6 +493,11 @@ class UiGroupBoxPlot(object):
         else:
             del self.ax.legend
         self.canvas.draw()
+
+    def clearAll(self):
+        self.ax.clear()
+        self.listWidget.clear()
+        self.listWidget_2.clear()
 
 
 def open_file(form):
@@ -726,20 +779,17 @@ def solve_intervals(form):
     form.indep_var_label = indep_var_label
     form.index_of_variable = index_of_variable
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox, associated_form=form)
+    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox)
     form.groupBox.plotBox.main_form = form
     form.groupBox.show()
     initiate_plot(form)
-    plot_intervals(form, None)
 
 
 def initiate_plot(form):
     n = form.n
     Nr = form.Nr
     dep_var_labels = form.dep_var_labels
-    form.groupBox.plotBox.ax.clear()
-    form.groupBox.plotBox.listWidget.clear()
-    form.groupBox.plotBox.listWidget_2.clear()
+    form.groupBox.plotBox.clearAll()
     for label in dep_var_labels:
         if label.find('Ceq') >= 0:
             new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
@@ -752,52 +802,11 @@ def initiate_plot(form):
     # dict, keys:ceq_labels; bindings: plottedseries
     form.groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
     form.groupBox.plotBox.dc = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-
-
-def plot_intervals(form, item_texts=None):
-    form.groupBox.plotBox.erase_annotations()
-    dep_var_series = form.dep_var_series
-    dep_var_labels = form.dep_var_labels
-    indep_var_label = form.indep_var_label
-    indep_var_series = form.indep_var_series
-    dc = form.groupBox.plotBox.dc
-    plotted_series = form.groupBox.plotBox.plotted_series
-    if not form.groupBox.plotBox.toggleLogButtonX.isChecked():
-        indep_var_series = indep_var_series
-        indep_var_label = '$' + indep_var_label + '$'
-    else:
-        indep_var_series = -np.log10(indep_var_series)
-        indep_var_label = '$-log10(' + indep_var_label + ')$'
-    if item_texts is None:
-        item_texts = []
-        for i in range(form.groupBox.plotBox.listWidget_2.count()):
-            item_texts.append(form.groupBox.plotBox.listWidget_2.item(i).text())
-        form.groupBox.plotBox.ax.clear()
-    for label in item_texts:
-        if not form.groupBox.plotBox.toggleLogButtonY.isChecked():
-            dep_var_values = dep_var_series[label]
-            series_label = '$' + label + '$'
-        else:
-            dep_var_values = -np.log10(dep_var_series[label])
-            series_label = '$-log10(' + label + ')$'
-        plotted_series[label] = form.groupBox.plotBox.ax.plot(
-            indep_var_series, dep_var_values.A1.tolist(), 'go-', label=series_label,
-            color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-            markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-            marker=markers[np.random.randint(0, len(markers) - 1)],
-            fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-        dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple',
-                               arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
-                               bbox=dict(fc='white', alpha=0.5),
-                               formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
-    form.groupBox.plotBox.ax.legend(
-        loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
-    form.groupBox.plotBox.plotted_series = plotted_series
-    form.groupBox.plotBox.dc = dc
-    form.groupBox.plotBox.ax.set_xlabel(indep_var_label, fontsize=14)
-    form.groupBox.plotBox.listWidget_2.setMinimumWidth(
-        form.groupBox.plotBox.listWidget_2.sizeHintForColumn(0))
-    form.groupBox.plotBox.canvas.draw()
+    form.groupBox.plotBox.dep_var_labels = form.dep_var_labels
+    form.groupBox.plotBox.dep_var_series = form.dep_var_series
+    form.groupBox.plotBox.indep_var_series = form.indep_var_series
+    form.groupBox.plotBox.indep_var_label = form.indep_var_label
+    form.groupBox.plotBox.plot_intervals(None)
 
 
 def recalculate_after_cell_edit(form, row, column):
@@ -932,7 +941,6 @@ def calc_Xieq(form):
 
     f = lambda x: f_gl_0(x, C0_i, nu_ij, n, Nr, Kc_j)
     j = lambda x: jac(x, C0_i, nu_ij, n, Nr, Kc_j)
-    g = lambda x: g_vec(x, C0_i, nu_ij, n, Nr, Kc_j)
 
     X0 = np.concatenate([Ceq_i_0, Xieq_j_0])
     X = X0
@@ -1038,79 +1046,6 @@ def jac(X, C0_i, nu_ij, n, Nr, Kc_j):
     return jac
 
 
-def g_vec(X, C0_i, nu_ij, n, Nr, Kc_j):
-    f_0 = f_gl_0(X, C0_i, nu_ij, n, Nr, Kc_j)
-    return (f_0.T * f_0).item()
-
-
-def steepest_descent(X0, f, J, g, tol, form):
-    # Skipping this method in favor of line search with Newton
-    max_it = form.max_it
-    X = X0
-    f_val = f(X)
-    k = 0
-    stop = False
-    diff = np.matrix(np.empty([len(X), 1]))
-    diff.fill(np.nan)
-    Y = np.matrix(np.empty([len(X), 1]))
-    Y.fill(np.nan)
-    abs_gmin_minus_g1 = np.nan
-    progressBar = form.progressBar
-    label_9 = form.label_9
-    progressBar.setValue(0)
-    update_status_label(form, k, False)
-    while k < max_it and not stop:
-        z = 2 * J(X).T * f(X)  # z(X) = nabla(g(X)) = 2*J(X).T*F(X)
-        z0 = np.sqrt((z.T * z).item())
-        if z0 == 0:
-            # Zero gradient
-            stop = True
-            break
-        z = z / z0
-        alpha1 = 0
-        alpha3 = 1
-        g1 = g(X - alpha1 * z)
-        g3 = g(X - alpha3 * z)
-        while g3 >= g1 and alpha3 > tol / 2.0:
-            alpha3 = alpha3 / 2.0
-            g3 = g(X - alpha3 * z)
-        alpha2 = alpha3 / 2.0
-        g2 = g(X - alpha2 * z)
-        """
-        (Note: Newton’s forward divided-difference formula is used to find
-        the quadratic P(α) = g1 + h1α + h3α(α − α2) that interpolates
-        h(α) at α = 0, α = α2, α = α3.)
-        """
-        h1 = (g2 - g1) / alpha2
-        h2 = (g3 - g2) / (alpha3 - alpha2)
-        h3 = (h2 - h1) / alpha3
-        alpha0 = 0.5 * (alpha2 - h1 / h3)  # (The critical point of P occurs at α0.)
-        g0 = g(X - alpha0 * z)
-        if g0 < g3:
-            alpha = alpha0
-            g_min = g0
-        else:
-            alpha = alpha3
-            g_min = g3
-        abs_gmin_minus_g1 = abs(g_min - g1)
-        if abs_gmin_minus_g1 < tol:
-            stop = True  # Procedure successful
-            progressBar.setValue(100.0)
-        else:
-            progressBar.setValue(tol / abs_gmin_minus_g1 * 100)
-            update_status_label(form, k, False)
-        new_log_entry('Steepest descent', k, 0, 1.0, X, diff, f_val, Y, g_min, g1, stop)
-        update_status_label(form, k, False)
-        X_k_m_1 = X
-        X = X - alpha * z
-        diff = X_k_m_1 - X
-        f_val = f(X)
-        k += 1
-        form.methodLoops[0] += 1
-    new_log_entry('Steepest descent', k, 0, 1.0, X, diff, f_val, Y, g_min, g1, stop)
-    return X, f_val
-
-
 def update_status_label(form, k, solved):
     form.label_9.setText('Loops: Newton \t' +
                          str(form.methodLoops[1]) + ' \t Line search (backtrack) \t' +
@@ -1137,40 +1072,6 @@ def new_log_entry(method, k, backtrack, lambda_ls, accum_step, X, diff, f_val, Y
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';stop=' + str(stop) +
                   ';' + series_id)
-
-
-def f_test(X):
-    X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
-    f = np.matrix([ \
-        3 * X1 - np.cos(X2 * X3) - 1.0 / 2.0, \
-        X1 ** 2 - 81.0 * (X2 + 0.1) ** 2 + np.sin(X3) + 1.06, \
-        np.exp(-X1 * X2) + 20.0 * X3 + (10 * np.pi - 3) / 3.0
-    ]).T
-    return f
-
-
-def J_test(X):
-    X1, X2, X3 = X[0].item(), X[1].item(), X[2].item()
-    J = np.matrix([ \
-        [3, X2 * np.sin(X3), X3 * np.sin(X2)], \
-        [2 * X1, -81.0 * 2 * (X2 + 0.1), np.cos(X3)], \
-        [-X2 * np.exp(-X1 * X2), -X1 * np.exp(-X1 * X2), 20.0]
-    ])
-    return J
-
-
-def g_test(X):
-    f_0 = f_test(X)
-    return (f_0.T * f_0).item()
-
-
-def update_convergence_line(ax1, new_data):
-    hl = ax1.get_lines()[0]
-    hl.set_xdata(np.append(hl.get_xdata(), new_data[0]))
-    hl.set_ydata(np.append(hl.get_ydata(), new_data[1]))
-    ax1.relim()
-    ax1.autoscale_view(True, True, True)
-    ax1.get_figure().canvas.draw()
 
 
 def display_about_info(form):
@@ -1459,6 +1360,9 @@ class LogWidget(QtGui.QWidget):
     def plotData(self):
         grouped = self.log.groupby('series_id')
         # Generate the plot
+        groupBox = QtGui.QGroupBox()
+        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox, associated_form=self)
+        groupBox.show()
         self.fig1 = Figure(figsize=(8, 8), dpi=72, facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.fig1.add_subplot(111)
