@@ -432,20 +432,23 @@ class UiGroupBoxPlot(object):
 
     def plot_intervals(self, item_texts=None):
         self.erase_annotations()
-        dc = self.dc
         plotted_series = self.plotted_series
-        if not self.toggleLogButtonX.isChecked():
-            indep_var_series = self.indep_var_series
-            indep_var_label = '$' + self.indep_var_label + '$'
-        else:
-            indep_var_series = -np.log10(self.indep_var_series)
-            indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
+        indep_var_series = self.indep_var_series
+        dc = dict(zip(self.dep_var_labels, np.empty(len(self.dep_var_labels))))
         if item_texts is None:
             item_texts = []
             for i in range(self.listWidget_2.count()):
                 item_texts.append(self.listWidget_2.item(i).text())
             self.ax.clear()
+        if not self.toggleLogButtonX.isChecked():
+            indep_var_label = '$' + self.indep_var_label + '$'
+        else:
+            indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
         for label in item_texts:
+            if not self.toggleLogButtonX.isChecked():
+                indep_var_series[label] = self.indep_var_series
+            else:
+                indep_var_series[label] = self.log_scale_func(self.indep_var_series[label])
             if not self.toggleLogButtonY.isChecked():
                 dep_var_values = self.dep_var_series[label]
                 series_label = '$' + label + '$'
@@ -453,7 +456,7 @@ class UiGroupBoxPlot(object):
                 dep_var_values = -np.log10(self.dep_var_series[label])
                 series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
-                indep_var_series, dep_var_values.A1.tolist(), 'go-', label=series_label,
+                indep_var_series[label], dep_var_values.A1.tolist(), 'go-', label=series_label,
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
@@ -791,28 +794,29 @@ def solve_intervals(form):
     min_value = form.doubleSpinBox.value()
     max_value = form.doubleSpinBox_2.value()
     n_points = 20
-    indep_var_series = \
+    indep_var_series_single = \
         [min_value + x
          for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
     C0_variable_comp = C0_i[index_of_variable]
-    mid_index = bisect.bisect(indep_var_series, C0_variable_comp) - 1
+    mid_index = bisect.bisect(indep_var_series_single, C0_variable_comp) - 1
     Xieq_j = form.Xieq_j
     Ceq_i = form.Ceq_i
     Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
     Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
     dep_var_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
+    indep_var_series = dict.fromkeys(dep_var_labels, indep_var_series_single)
     # Keep current solution intact for after plotting range
     form.stored_solution_Ceq_i = form.Ceq_i
     form.stored_solution_Xieq_j = form.Xieq_j
     for j in range(mid_index, -1, -1):
-        form.C0_i[index_of_variable] = indep_var_series[j]
+        form.C0_i[index_of_variable] = indep_var_series_single[j]
         equilibrate(form)
         Ceq_series[j, :] = form.Ceq_i.T
         Xieq_series[j, :] = form.Xieq_j.T
     form.Ceq_i = form.stored_solution_Ceq_i
     form.Xieq_j = form.stored_solution_Xieq_j
     for j in range(mid_index + 1, n_points + 1, +1):
-        form.C0_i[index_of_variable] = indep_var_series[j]
+        form.C0_i[index_of_variable] = indep_var_series_single[j]
         equilibrate(form)
         Ceq_series[j, :] = form.Ceq_i.T
         Xieq_series[j, :] = form.Xieq_j.T
@@ -831,7 +835,6 @@ def solve_intervals(form):
     form.index_of_variable = index_of_variable
     form.groupBox = QtGui.QGroupBox()
     form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox)
-    form.groupBox.plotBox.main_form = form
     form.groupBox.show()
     initiate_plot(form)
 
@@ -851,7 +854,6 @@ def initiate_plot(form):
                                                       *['utils', 'glyphicons-601-chevron-up.png'])))
     # dict, keys:ceq_labels; bindings: plottedseries
     form.groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-    form.groupBox.plotBox.dc = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
     form.groupBox.plotBox.dep_var_labels = form.dep_var_labels
     form.groupBox.plotBox.dep_var_series = form.dep_var_series
     form.groupBox.plotBox.indep_var_series = form.indep_var_series
@@ -1413,27 +1415,23 @@ class LogWidget(QtGui.QWidget):
         groupBox = QtGui.QGroupBox()
         groupBox.plotBox = UiGroupBoxPlot(parent=groupBox)
         groupBox.show()
-        self.fig1 = Figure(figsize=(8, 8), dpi=72, facecolor=(1, 1, 1),
-                           edgecolor=(0, 0, 0))
-        self.ax = self.fig1.add_subplot(111)
-        self.fig1.subplots_adjust(bottom=0.15)
-        self.ax.grid('on')
-        # Generate the canvas to display the plot
-        self.canvas = FigureCanvas(self.fig1)
-        self.canvas.setObjectName("canvas")
+        # dict, keys:ceq_labels; bindings: plottedseries
+        dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
+        indep_var_label = 'accum step'
+        dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+
         for name, group in grouped:
-            self.ax.plot(
-                group['accum_step'], group['||f(X)||'], label=str(group['date'].head(1).values[0]),
-                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-                marker=markers[np.random.randint(0, len(markers) - 1)],
-                fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
-        self.ax.set_xlabel('step', fontsize=14)
-        self.ax.set_ylabel('||f(X)||', fontsize=14)
-        self.ax.set_yscale('log')
-        self.ax.set_xscale('log')
-        self.canvas.show()
+            index = group['date'].head(1).apply(lambda x: str(x)).values.item()
+            indep_var_series[index] = group['accum_step']
+            dep_var_series[index] = group['||f(X)||']
+
+        groupBox.plotBox.dep_var_labels = dep_var_labels
+        groupBox.plotBox.dep_var_series = dep_var_series
+        groupBox.plotBox.indep_var_series = indep_var_series
+        groupBox.plotBox.indep_var_label = indep_var_label
+        groupBox.plotBox.plot_intervals(None)
 
 
 class PandasModel(QtCore.QAbstractTableModel):
