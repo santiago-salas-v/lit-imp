@@ -277,7 +277,7 @@ class UiGroupBox(object):
 
 
 class UiGroupBoxPlot(object):
-    def __init__(self, parent):
+    def __init__(self, parent, logXChecked=True, logYChecked=True):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
 
@@ -309,8 +309,8 @@ class UiGroupBoxPlot(object):
         self.eraseAnnotationsB = QtGui.QPushButton()
         self.toggleLogButtonX.setCheckable(True)
         self.toggleLogButtonY.setCheckable(True)
-        self.toggleLogButtonX.setChecked(True)
-        self.toggleLogButtonY.setChecked(True)
+        self.toggleLogButtonX.setChecked(logXChecked)
+        self.toggleLogButtonY.setChecked(logYChecked)
         self.eraseAnnotationsB.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                                 *['utils', 'glyphicons-551-erase.png'])))
         self.navigation_frame = QtGui.QFrame()
@@ -446,7 +446,7 @@ class UiGroupBoxPlot(object):
             indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
         for label in item_texts:
             if not self.toggleLogButtonX.isChecked():
-                indep_var_series[label] = self.indep_var_series
+                indep_var_series[label] = self.indep_var_series[label]
             else:
                 indep_var_series[label] = self.log_scale_func(self.indep_var_series[label])
             if not self.toggleLogButtonY.isChecked():
@@ -1413,7 +1413,7 @@ class LogWidget(QtGui.QWidget):
         grouped = self.log.groupby('series_id')
         # Generate the plot
         groupBox = QtGui.QGroupBox()
-        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox)
+        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox, logXChecked=False, logYChecked=False)
         groupBox.show()
         # dict, keys:ceq_labels; bindings: plottedseries
         dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
@@ -1424,14 +1424,15 @@ class LogWidget(QtGui.QWidget):
 
         for name, group in grouped:
             index = group['date'].head(1).apply(lambda x: str(x)).values.item()
-            indep_var_series[index] = group['accum_step']
-            dep_var_series[index] = group['||f(X)||']
+            indep_var_series[index] = group['accum_step'].values
+            dep_var_series[index] = np.matrix(group['||f(X)||'].values)
 
         groupBox.plotBox.dep_var_labels = dep_var_labels
         groupBox.plotBox.dep_var_series = dep_var_series
         groupBox.plotBox.indep_var_series = indep_var_series
         groupBox.plotBox.indep_var_label = indep_var_label
-        groupBox.plotBox.plot_intervals(None)
+        groupBox.plotBox.plot_intervals(dep_var_labels[0:4])
+        self.groupBox = groupBox
 
 
 class PandasModel(QtCore.QAbstractTableModel):
