@@ -451,6 +451,7 @@ class UiGroupBoxPlot(object):
         plotted_series = self.plotted_series
         indep_var_series = self.indep_var_series
         dc = dict(zip(self.dep_var_labels, np.empty(len(self.dep_var_labels))))
+        self.ax.clear() # prevent duplicating existing plots
         if item_texts is None:
             item_texts = []
             for i in range(self.listWidget_2.count()):
@@ -1441,19 +1442,18 @@ class LogWidget(QtGui.QWidget):
         indep_var_series = indep_var_series
         indep_var_label = indep_var_label
         # Generate the plot
-        groupBox = QtGui.QGroupBox()
-        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox,
+        self.groupBox = QtGui.QGroupBox()
+        self.groupBox.plotBox = UiGroupBoxPlot(parent=self.groupBox,
                                           plotted_series=plotted_series,
                                           dep_var_series=dep_var_series,
                                           dep_var_labels=dep_var_labels,
-                                          dep_var_labels_to_plot=dep_var_labels[0:4],
+                                          dep_var_labels_to_plot=[dep_var_labels[-1]],
                                           indep_var_label=indep_var_label,
                                           indep_var_series=indep_var_series,
                                           logXChecked=False, logYChecked=False)
-        groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
-        groupBox.plotBox.ax.set_ylabel('||f(X)||')
-        groupBox.show()
-        self.groupBox = groupBox
+        self.groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
+        self.groupBox.plotBox.ax.set_ylabel('||f(X)||')
+        self.groupBox.show()
 
 
 class PandasModel(QtCore.QAbstractTableModel):
