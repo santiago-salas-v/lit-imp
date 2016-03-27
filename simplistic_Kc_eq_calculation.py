@@ -277,21 +277,12 @@ class UiGroupBox(object):
 
 
 class UiGroupBoxPlot(object):
-    def __init__(self, parent, logXChecked=True, logYChecked=True):
+    def __init__(self, parent, plotted_series, dep_var_series,
+                 dep_var_labels, indep_var_label, indep_var_series,
+                 dep_var_labels_to_plot=None,
+                 logXChecked=True, logYChecked=True, log_scale_func_list=None):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
-
-        # Variables to be set
-        self.plotted_series = dict()  # space to store data series
-        self.dc = dict()  # space to store data cursors for each series
-        self.dep_var_series = None
-        self.dep_var_labels = None
-        self.indep_var_label = None
-        self.indep_var_series = None
-        # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
-        # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
-        self.set_log_scale_func_list([('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))])
-
         # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
         self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
@@ -363,6 +354,31 @@ class UiGroupBoxPlot(object):
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
+        # Variables to be set
+        self.dc = dict()  # space to store data cursors for each series
+        self.plotted_series = plotted_series
+        self.dep_var_series = dep_var_series
+        self.dep_var_labels = dep_var_labels
+        self.indep_var_label = indep_var_label
+        self.indep_var_series = indep_var_series
+        self.logXChecked = logXChecked
+        self.logYChecked = logYChecked
+        self.log_scale_func_list = log_scale_func_list
+        # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
+        # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
+        if log_scale_func_list == None:
+            log_scale_func_list = [('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
+        self.set_log_scale_func_list(log_scale_func_list)
+        # Populate lists with displayed / available functions
+        for label in dep_var_labels:
+            if label in dep_var_labels_to_plot:
+                new_item = QtGui.QListWidgetItem(label, self.listWidget_2)
+                new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                          *['utils', 'glyphicons-602-chevron-down.png'])))
+            else:
+                new_item = QtGui.QListWidgetItem(label, self.listWidget)
+                new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
+                                                          *['utils', 'glyphicons-601-chevron-up.png'])))
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
@@ -439,7 +455,6 @@ class UiGroupBoxPlot(object):
             item_texts = []
             for i in range(self.listWidget_2.count()):
                 item_texts.append(self.listWidget_2.item(i).text())
-            self.ax.clear()
         if not self.toggleLogButtonX.isChecked():
             indep_var_label = '$' + self.indep_var_label + '$'
         else:
@@ -833,9 +848,6 @@ def solve_intervals(form):
     form.dep_var_labels = dep_var_labels
     form.indep_var_label = indep_var_label
     form.index_of_variable = index_of_variable
-    form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox)
-    form.groupBox.show()
     initiate_plot(form)
 
 
@@ -843,22 +855,23 @@ def initiate_plot(form):
     n = form.n
     Nr = form.Nr
     dep_var_labels = form.dep_var_labels
-    for label in dep_var_labels:
-        if label.find('Ceq') >= 0:
-            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget_2)
-            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                      *['utils', 'glyphicons-602-chevron-down.png'])))
-        else:
-            new_item = QtGui.QListWidgetItem(label, form.groupBox.plotBox.listWidget)
-            new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                      *['utils', 'glyphicons-601-chevron-up.png'])))
+    labels_to_plot = [x for x in form.dep_var_labels if x.find('Ceq') >= 0]
     # dict, keys:ceq_labels; bindings: plottedseries
-    form.groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-    form.groupBox.plotBox.dep_var_labels = form.dep_var_labels
-    form.groupBox.plotBox.dep_var_series = form.dep_var_series
-    form.groupBox.plotBox.indep_var_series = form.indep_var_series
-    form.groupBox.plotBox.indep_var_label = form.indep_var_label
-    form.groupBox.plotBox.plot_intervals(None)
+    plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+    dep_var_labels = form.dep_var_labels
+    dep_var_series = form.dep_var_series
+    indep_var_series = form.indep_var_series
+    indep_var_label = form.indep_var_label
+    form.groupBox = QtGui.QGroupBox()
+    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox,
+                                           plotted_series=plotted_series,
+                                           dep_var_series=dep_var_series,
+                                           dep_var_labels=dep_var_labels,
+                                           dep_var_labels_to_plot=labels_to_plot,
+                                           indep_var_label=indep_var_label,
+                                           indep_var_series=indep_var_series)
+    form.groupBox.show()
+    form.groupBox.plotBox.plot_intervals(labels_to_plot)
 
 
 def recalculate_after_cell_edit(form, row, column):
@@ -1411,27 +1424,35 @@ class LogWidget(QtGui.QWidget):
 
     def plotData(self):
         grouped = self.log.groupby('series_id')
-        # Generate the plot
-        groupBox = QtGui.QGroupBox()
-        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox, logXChecked=False, logYChecked=False)
-        groupBox.show()
         # dict, keys:ceq_labels; bindings: plottedseries
         dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
         indep_var_label = 'accum step'
         dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
         indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        groupBox.plotBox.plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
 
         for name, group in grouped:
             index = group['date'].head(1).apply(lambda x: str(x)).values.item()
             indep_var_series[index] = group['accum_step'].values
             dep_var_series[index] = np.matrix(group['||f(X)||'].values)
 
-        groupBox.plotBox.dep_var_labels = dep_var_labels
-        groupBox.plotBox.dep_var_series = dep_var_series
-        groupBox.plotBox.indep_var_series = indep_var_series
-        groupBox.plotBox.indep_var_label = indep_var_label
-        groupBox.plotBox.plot_intervals(dep_var_labels[0:4])
+        dep_var_labels = dep_var_labels
+        dep_var_series = dep_var_series
+        indep_var_series = indep_var_series
+        indep_var_label = indep_var_label
+        # Generate the plot
+        groupBox = QtGui.QGroupBox()
+        groupBox.plotBox = UiGroupBoxPlot(parent=groupBox,
+                                          plotted_series=plotted_series,
+                                          dep_var_series=dep_var_series,
+                                          dep_var_labels=dep_var_labels,
+                                          dep_var_labels_to_plot=dep_var_labels[0:4],
+                                          indep_var_label=indep_var_label,
+                                          indep_var_series=indep_var_series,
+                                          logXChecked=False, logYChecked=False)
+        groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
+        groupBox.plotBox.ax.set_ylabel('||f(X)||')
+        groupBox.show()
         self.groupBox = groupBox
 
 
