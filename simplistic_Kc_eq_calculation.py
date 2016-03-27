@@ -350,7 +350,7 @@ class UiGroupBoxPlot(object):
         self.toggleLogButtonX.toggled.connect(partial(self.toggled_toggleLogButtonX))
         self.toggleLogButtonY.toggled.connect(partial(self.toggled_toggleLogButtonY))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
-        self.pushButton.clicked.connect(partial(self.plot_intervals))
+        self.pushButton.clicked.connect(partial(self.force_update_plot))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
 
@@ -393,6 +393,7 @@ class UiGroupBoxPlot(object):
     def force_update_plot(self):
         ylabel = self.ax.get_ylabel()
         self.ax.clear()
+        self.plot_intervals()
         self.ax.set_ylabel(ylabel)
 
     def set_log_scale_func_list(self, log_scale_func_list):
@@ -432,12 +433,19 @@ class UiGroupBoxPlot(object):
                                 len(x.properties()['label']) > 0):
             line_xdata = line.get_xdata()
             if not checked and (match.group('log') is not None):
-                line.set_xdata(self.invlog_scale_func(line_xdata))
+                if match.group('id') in self.indep_var_series.keys():
+                    line.set_xdata(self.indep_var_series[match.group('id')])
+                else:
+                    line.set_xdata(self.invlog_scale_func(line_xdata))
             else:
-                # TODO: Check first if any data are nan due to conversion.
-                line.set_xdata(self.log_scale_func(line_xdata))
-        self.ax.relim()
+                if match.group('id2') in self.indep_var_series.keys():
+                    line.set_xdata(self.indep_var_series[match.group('id2')])
+                else:
+                    # TODO: Check first if any data are nan due to conversion.
+                    line.set_xdata(self.log_scale_func(line_xdata))
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.ax.relim()
+        self.ax.autoscale_view()
         self.canvas.draw()
 
     def toggled_toggleLogButtonY(self, checked):
@@ -449,14 +457,21 @@ class UiGroupBoxPlot(object):
             line_ydata = line.get_ydata()
             match = self.find_log_variable.search(line_label)
             if not checked and (match.group('log') is not None):
-                line.set_ydata(self.invlog_scale_func(line_ydata))
+                if match.group('id') in self.dep_var_series.keys():
+                    line.set_ydata(self.dep_var_series[match.group('id')])
+                else:
+                    line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
-                # TODO: Check first if any data are nan due to conversion.
-                line.set_ydata(self.log_scale_func(line_ydata))
+                if match.group('id2') in self.dep_var_series.keys():
+                    line.set_ydata(self.log_dep_var_series[match.group('id2')])
+                else:
+                    # TODO: Check first if any data are nan due to conversion.
+                    line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
-        self.ax.relim()
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+        self.ax.relim()
+        self.ax.autoscale_view()
         self.canvas.draw()
 
     def plot_intervals(self, item_texts=None):
@@ -543,23 +558,12 @@ class UiGroupBoxPlot(object):
         l = self.ax.lines.pop(np.where(
             [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
         del l
-        self.ax.relim()
-        y_lim = self.ax.get_ylim()
-        y_min = y_lim[0]
-        y_max = y_min
-        for line in self.ax.findobj(
-                lambda x: x.properties()['visible'] == True and
-                                type(x) == matplotlib.lines.Line2D and
-                                len(x.properties()['label']) > 0):
-            y_max = max([y_max, max(line.get_ydata())])
-        if y_min == y_max:
-            pass
-        else:
-            self.ax.set_ylim(y_min, y_max * 1.05)
         if len(self.ax.lines) > 0:
             self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
+        self.ax.relim()
+        self.ax.autoscale_view()
         self.canvas.draw()
 
     def move_to_displayed(self, item):
@@ -569,23 +573,12 @@ class UiGroupBoxPlot(object):
                                                   *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
         self.plot_intervals([name])
-        self.ax.relim()
-        y_lim = self.ax.get_ylim()
-        y_min = y_lim[0]
-        y_max = y_min
-        for line in self.ax.findobj(
-                lambda x: x.properties()['visible'] == True and
-                                type(x) == matplotlib.lines.Line2D and
-                                len(x.properties()['label']) > 0):
-            y_max = max([y_max, max(line.get_ydata())])
-        if y_min == y_max:
-            pass
-        else:
-            self.ax.set_ylim(y_min, y_max * 1.05)
         if len(self.ax.lines) > 0:
             self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
+        self.ax.relim()
+        self.ax.autoscale_view()
         self.canvas.draw()
 
     def clearAll(self):
@@ -1455,6 +1448,8 @@ class LogWidget(QtGui.QWidget):
         dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
         indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
         plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        log_scale_func_list = \
+            [('log10', lambda x: +1.0 * np.log10(x)), ('', lambda x: 10.0 ** (+1.0 * x))]
 
         for name, group in grouped:
             index = group['date'].head(1).apply(lambda x: str(x)).values.item()
@@ -1468,13 +1463,14 @@ class LogWidget(QtGui.QWidget):
         # Generate the plot
         self.groupBox = QtGui.QGroupBox()
         self.groupBox.plotBox = UiGroupBoxPlot(parent=self.groupBox,
-                                          plotted_series=plotted_series,
-                                          dep_var_series=dep_var_series,
-                                          dep_var_labels=dep_var_labels,
-                                          dep_var_labels_to_plot=[dep_var_labels[-1]],
-                                          indep_var_label=indep_var_label,
-                                          indep_var_series=indep_var_series,
-                                          logXChecked=False, logYChecked=False)
+                                               plotted_series=plotted_series,
+                                               dep_var_series=dep_var_series,
+                                               dep_var_labels=dep_var_labels,
+                                               dep_var_labels_to_plot=[dep_var_labels[-1]],
+                                               indep_var_label=indep_var_label,
+                                               indep_var_series=indep_var_series,
+                                               logXChecked=False, logYChecked=False,
+                                               log_scale_func_list=log_scale_func_list)
         self.groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
         self.groupBox.plotBox.ax.set_ylabel('||f(X)||')
         self.groupBox.show()
