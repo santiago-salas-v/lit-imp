@@ -280,7 +280,8 @@ class UiGroupBoxPlot(object):
     def __init__(self, parent, plotted_series, dep_var_series,
                  dep_var_labels, indep_var_label, indep_var_series,
                  dep_var_labels_to_plot=None,
-                 logXChecked=True, logYChecked=True, log_scale_func_list=None):
+                 logXChecked=True, logYChecked=True, log_scale_func_list=None,
+                 add_path_arrows=False):
         parent.setObjectName("GroupBox")
         parent.resize(762, 450)
         # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
@@ -366,6 +367,7 @@ class UiGroupBoxPlot(object):
         self.log_scale_func_list = log_scale_func_list
         self.log_dep_var_series = dict.fromkeys(dep_var_series.keys())
         self.log_indep_var_series = dict.fromkeys(indep_var_series.keys())
+        self.add_path_arrows = add_path_arrows
         # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
         # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
         if log_scale_func_list == None:
@@ -421,54 +423,57 @@ class UiGroupBoxPlot(object):
             QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
 
     def toggled_toggleLogButtonX(self, checked):
-        x_label = self.ax.get_xlabel()
-        match = self.find_log_variable.search(x_label)
-        if not checked and (match.group('log') is not None):
-            self.ax.set_xlabel(u'$' + match.group('id') + u'$')
-        else:
-            self.ax.set_xlabel('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
-        for line in self.ax.findobj(
-                lambda x: x.properties()['visible'] == True and
-                                type(x) == matplotlib.lines.Line2D and
-                                len(x.properties()['label']) > 0):
+        self.delete_arrows()
+        match = self.find_log_variable.search(self.ax.get_xlabel())
+        for line in self.ax.lines:
             line_xdata = line.get_xdata()
-            if not checked and (match.group('log') is not None):
-                if match.group('id') in self.indep_var_series.keys():
-                    line.set_xdata(self.indep_var_series[match.group('id')])
+            line_label_match = self.find_log_variable.search(line.get_label())
+            line_label = line_label_match.group('id')
+            if line_label is None:
+                line_label = line_label_match.group('id2')
+            if not checked and (match.group('log') is not None):    #just unchecked
+                if line_label in self.indep_var_series.keys():
+                    line.set_xdata(self.indep_var_series[line_label])
                 else:
                     line.set_xdata(self.invlog_scale_func(line_xdata))
-            else:
-                if match.group('id2') in self.indep_var_series.keys():
-                    line.set_xdata(self.indep_var_series[match.group('id2')])
+                self.ax.set_xlabel(u'$' + match.group('id') + u'$')
+            else:                                                   #just checked
+                if line_label in self.indep_var_series.keys():
+                    line.set_xdata(self.log_indep_var_series[line_label])
                 else:
                     # TODO: Check first if any data are nan due to conversion.
                     line.set_xdata(self.log_scale_func(line_xdata))
+                self.ax.set_xlabel('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
+        if self.add_path_arrows:
+            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
+                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
 
     def toggled_toggleLogButtonY(self, checked):
-        for line in self.ax.findobj(
-                lambda x: x.properties()['visible'] == True and
-                                type(x) == matplotlib.lines.Line2D and
-                                len(x.properties()['label']) > 0):
+        self.delete_arrows()
+        for line in self.ax.lines:
             line_label = line.get_label()
             line_ydata = line.get_ydata()
             match = self.find_log_variable.search(line_label)
             if not checked and (match.group('log') is not None):
                 if match.group('id') in self.dep_var_series.keys():
-                    line.set_ydata(self.dep_var_series[match.group('id')])
+                    line.set_ydata(self.dep_var_series[match.group('id')].A1.tolist())
                 else:
                     line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
                 if match.group('id2') in self.dep_var_series.keys():
-                    line.set_ydata(self.log_dep_var_series[match.group('id2')])
+                    line.set_ydata(self.log_dep_var_series[match.group('id2')].A1.tolist())
                 else:
                     # TODO: Check first if any data are nan due to conversion.
                     line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
+        if self.add_path_arrows:
+            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
+                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
         self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
@@ -476,8 +481,8 @@ class UiGroupBoxPlot(object):
 
     def plot_intervals(self, item_texts=None):
         self.erase_annotations()
+        self.delete_arrows()
         plotted_series = self.plotted_series
-        indep_var_series = self.indep_var_series
         dc = dict(zip(self.dep_var_labels, np.empty(len(self.dep_var_labels))))
         if item_texts is None:
             item_texts = []
@@ -501,9 +506,9 @@ class UiGroupBoxPlot(object):
             indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
         for label in series_to_plot:
             if not self.toggleLogButtonX.isChecked():
-                indep_var_series[label] = self.indep_var_series[label]
+                indep_var_values = self.indep_var_series[label]
             else:
-                indep_var_series[label] = self.log_indep_var_series[label]
+                indep_var_values = self.log_indep_var_series[label]
             if not self.toggleLogButtonY.isChecked():
                 dep_var_values = self.dep_var_series[label]
                 series_label = '$' + label + '$'
@@ -511,7 +516,7 @@ class UiGroupBoxPlot(object):
                 dep_var_values = self.log_dep_var_series[label]
                 series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
-                indep_var_series[label], dep_var_values.A1.tolist(), 'go-', label=series_label,
+                indep_var_values, dep_var_values.A1.tolist(), 'go-', label=series_label,
                 color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
@@ -520,6 +525,9 @@ class UiGroupBoxPlot(object):
                                    arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
                                    bbox=dict(fc='white', alpha=0.5),
                                    formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
+        if self.add_path_arrows:
+            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
+                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
         self.ax.legend(
             loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.plotted_series = plotted_series
@@ -544,6 +552,7 @@ class UiGroupBoxPlot(object):
         self.canvas.draw()
 
     def move_to_available(self, item):
+        self.delete_arrows()
         if self.listWidget_2.count() <= 1:
             return
         name = item.text()
@@ -567,6 +576,7 @@ class UiGroupBoxPlot(object):
         self.canvas.draw()
 
     def move_to_displayed(self, item):
+        self.delete_arrows()
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget_2)
         new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
@@ -585,6 +595,11 @@ class UiGroupBoxPlot(object):
         self.ax.clear()
         self.listWidget.clear()
         self.listWidget_2.clear()
+
+    def delete_arrows(self):
+        while self.ax.patches:
+            l = self.ax.patches.pop(0)
+            del l
 
 
 def open_file(form):
@@ -887,7 +902,7 @@ def initiate_plot(form):
                                            dep_var_labels=dep_var_labels,
                                            dep_var_labels_to_plot=labels_to_plot,
                                            indep_var_label=indep_var_label,
-                                           indep_var_series=indep_var_series)
+                                           indep_var_series=indep_var_series,add_path_arrows=True)
     form.groupBox.show()
     form.groupBox.plotBox.plot_intervals(labels_to_plot)
 
@@ -1470,7 +1485,8 @@ class LogWidget(QtGui.QWidget):
                                                indep_var_label=indep_var_label,
                                                indep_var_series=indep_var_series,
                                                logXChecked=False, logYChecked=False,
-                                               log_scale_func_list=log_scale_func_list)
+                                               log_scale_func_list=log_scale_func_list,
+                                               add_path_arrows=True)
         self.groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
         self.groupBox.plotBox.ax.set_ylabel('||f(X)||')
         self.groupBox.show()
@@ -1580,6 +1596,62 @@ class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
         decimal += steps
         new_string = "{:g}".format(decimal) + (groups[3] if groups[3] else "")
         self.lineEdit().setText(new_string)
+
+
+def add_arrow_to_line2D(
+        axes, line, arrow_locs=[0.2, 0.4, 0.6, 0.8],
+        arrow_style='-|>', arrow_size=1, transform=None):
+    """
+    Add arrows to a matplotlib.lines.Line2D at selected locations.
+
+    Parameters:
+    -----------
+    axes:
+    line: list of 1 Line2D obbject as returned by plot command
+    arrow_locs: list of locations where to insert arrows, % of total length
+    arrowstyle: style of the arrow
+    arrowsize: size of the arrow
+    transform: a matplotlib transform instance, default to data coordinates
+
+    Returns:
+    --------
+    arrows: list of arrows
+    """
+    if (not (isinstance(line, list)) or not (isinstance(line[0],
+                                                        matplotlib.lines.Line2D))):
+        raise ValueError("expected a matplotlib.lines.Line2D object")
+    x, y = line[0].get_xdata(), line[0].get_ydata()
+
+    arrow_kw = dict(arrowstyle=arrow_style, mutation_scale=10 * arrow_size)
+
+    color = line[0].get_color()
+    use_multicolor_lines = isinstance(color, np.ndarray)
+    if use_multicolor_lines:
+        raise NotImplementedError("multicolor lines not supported")
+    else:
+        arrow_kw['color'] = color
+
+    linewidth = line[0].get_linewidth()
+    if isinstance(linewidth, np.ndarray):
+        raise NotImplementedError("multiwidth lines not supported")
+    else:
+        arrow_kw['linewidth'] = linewidth
+
+    if transform is None:
+        transform = axes.transData
+
+    arrows = []
+    for loc in arrow_locs:
+        s = np.cumsum(np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2))
+        n = np.searchsorted(s, s[-1] * loc)
+        arrow_tail = (x[n], y[n])
+        arrow_head = (np.mean(x[n:n + 2]), np.mean(y[n:n + 2]))
+        p = matplotlib.patches.FancyArrowPatch(
+            arrow_tail, arrow_head, transform=transform,
+            **arrow_kw)
+        axes.add_patch(p)
+        arrows.append(p)
+    return arrows
 
 
 def format_float(value):
