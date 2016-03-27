@@ -364,11 +364,19 @@ class UiGroupBoxPlot(object):
         self.logXChecked = logXChecked
         self.logYChecked = logYChecked
         self.log_scale_func_list = log_scale_func_list
+        self.log_dep_var_series = dict.fromkeys(dep_var_series.keys())
+        self.log_indep_var_series = dict.fromkeys(indep_var_series.keys())
         # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
         # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
         if log_scale_func_list == None:
             log_scale_func_list = [('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
         self.set_log_scale_func_list(log_scale_func_list)
+        # Variabeln in Log-Skala
+        for k in self.log_dep_var_series.iterkeys():
+            self.log_dep_var_series[k] = \
+                self.log_scale_func(self.dep_var_series[k])
+            self.log_indep_var_series[k] = \
+                self.log_scale_func(self.indep_var_series[k])
         # Populate lists with displayed / available functions
         for label in dep_var_labels:
             if label in dep_var_labels_to_plot:
@@ -451,6 +459,7 @@ class UiGroupBoxPlot(object):
         plotted_series = self.plotted_series
         indep_var_series = self.indep_var_series
         dc = dict(zip(self.dep_var_labels, np.empty(len(self.dep_var_labels))))
+        ylabel = self.ax.get_ylabel()
         self.ax.clear() # prevent duplicating existing plots
         if item_texts is None:
             item_texts = []
@@ -464,12 +473,12 @@ class UiGroupBoxPlot(object):
             if not self.toggleLogButtonX.isChecked():
                 indep_var_series[label] = self.indep_var_series[label]
             else:
-                indep_var_series[label] = self.log_scale_func(self.indep_var_series[label])
+                indep_var_series[label] = self.log_indep_var_series[label]
             if not self.toggleLogButtonY.isChecked():
                 dep_var_values = self.dep_var_series[label]
                 series_label = '$' + label + '$'
             else:
-                dep_var_values = -np.log10(self.dep_var_series[label])
+                dep_var_values = self.log_dep_var_series[label]
                 series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
                 indep_var_series[label], dep_var_values.A1.tolist(), 'go-', label=series_label,
@@ -481,6 +490,7 @@ class UiGroupBoxPlot(object):
                                    arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
                                    bbox=dict(fc='white', alpha=0.5),
                                    formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
+        self.ax.set_ylabel(ylabel)
         self.ax.legend(
             loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.plotted_series = plotted_series
