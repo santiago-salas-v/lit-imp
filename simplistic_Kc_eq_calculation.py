@@ -390,6 +390,11 @@ class UiGroupBoxPlot(object):
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
+    def force_update_plot(self):
+        ylabel = self.ax.get_ylabel()
+        self.ax.clear()
+        self.ax.set_ylabel(ylabel)
+
     def set_log_scale_func_list(self, log_scale_func_list):
         self.log_scale_string = log_scale_func_list[0][0]
         self.log_scale_func = log_scale_func_list[0][1]
@@ -459,17 +464,27 @@ class UiGroupBoxPlot(object):
         plotted_series = self.plotted_series
         indep_var_series = self.indep_var_series
         dc = dict(zip(self.dep_var_labels, np.empty(len(self.dep_var_labels))))
-        ylabel = self.ax.get_ylabel()
-        self.ax.clear() # prevent duplicating existing plots
         if item_texts is None:
             item_texts = []
             for i in range(self.listWidget_2.count()):
                 item_texts.append(self.listWidget_2.item(i).text())
+        # Nur die Linien hinzufügen, die noch nicht aufgezeichnet wurden.
+        done_series = []
+        series_to_plot = []
+        for x in self.ax.get_lines():
+            match = self.find_log_variable.search(x.get_label())
+            if match is not None and match.group('id') is not None:
+                done_series.append(match.group('id'))
+            elif match is not None and match.group('id2') is not None:
+                done_series.append(match.group('id2'))
+        for x in item_texts:
+            if not x in done_series:
+                series_to_plot.append(x)
         if not self.toggleLogButtonX.isChecked():
             indep_var_label = '$' + self.indep_var_label + '$'
         else:
             indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
-        for label in item_texts:
+        for label in series_to_plot:
             if not self.toggleLogButtonX.isChecked():
                 indep_var_series[label] = self.indep_var_series[label]
             else:
@@ -490,7 +505,6 @@ class UiGroupBoxPlot(object):
                                    arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
                                    bbox=dict(fc='white', alpha=0.5),
                                    formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
-        self.ax.set_ylabel(ylabel)
         self.ax.legend(
             loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
         self.plotted_series = plotted_series
