@@ -40,10 +40,11 @@ markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
 
 
-class UiGroupBox(object):
+class UiGroupBox(QtGui.QWidget):
     _was_canceled = False
 
     def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
         parent.setObjectName(_fromUtf8("GroupBox"))
         # Default size
         parent.resize(500, 357)
@@ -219,20 +220,20 @@ class UiGroupBox(object):
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
         self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
         self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.pushButton = QtGui.QPushButton(parent)
-        self.pushButton.setObjectName(_fromUtf8("pushButton"))
-        self.pushButton.setIcon(icon2)
-        self.verticalLayout.addWidget(self.pushButton)
+        self.plotButton = QtGui.QPushButton(parent)
+        self.plotButton.setObjectName(_fromUtf8("plotButton"))
+        self.plotButton.setIcon(icon2)
+        self.verticalLayout.addWidget(self.plotButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
         # Events
         self.open_button.clicked.connect(partial(open_file, self))
         self.save_button.clicked.connect(partial(save_file, self))
-        self.pushButton.clicked.connect(partial(solve_intervals, self))
+        self.plotButton.clicked.connect(partial(solve_intervals, self))
         self.equilibrate_button.clicked.connect(partial(recalculate_after_cell_edit, self, 0, 0))
         self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
         self.info_button.clicked.connect(partial(display_about_info, self))
-        self.log_button.clicked.connect(partial(show_log))
+        self.log_button.clicked.connect(partial(show_log, self))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
         self.comboBox.currentIndexChanged.connect(partial(self.populate_input_spinboxes))
         self.retranslateUi(parent)
@@ -248,7 +249,7 @@ class UiGroupBox(object):
         self.info_button.setText(_translate("parent", "About", None))
         self.equilibrate_button.setText(_translate("parent", "Equilibrate", None))
         self.tableComps.setSortingEnabled(__sortingEnabled)
-        self.pushButton.setText(_translate("parent", "Plot", None))
+        self.plotButton.setText(_translate("parent", "Plot", None))
         self.label_2.setText(_translate("parent", "Nr (Reac.)", None))
         self.label.setText(_translate("parent", "n (Comp.)", None))
         self.label_3.setText(_translate("parent", "max. it", None))
@@ -276,13 +277,9 @@ class UiGroupBox(object):
         return self._was_canceled
 
 
-class UiGroupBoxPlot(object):
-    def __init__(self, parent, plotted_series, dep_var_series,
-                 dep_var_labels, indep_var_label, indep_var_series,
-                 dep_var_labels_to_plot=None,
-                 logXChecked=True, logYChecked=True, log_scale_func_list=None,
-                 add_path_arrows=False):
-        parent.setObjectName("GroupBox")
+class UiGroupBoxPlot(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
         parent.resize(762, 450)
         # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.verticalLayout_1Widget = QtGui.QWidget(parent)
@@ -301,8 +298,6 @@ class UiGroupBoxPlot(object):
         self.eraseAnnotationsB = QtGui.QPushButton()
         self.toggleLogButtonX.setCheckable(True)
         self.toggleLogButtonY.setCheckable(True)
-        self.toggleLogButtonX.setChecked(logXChecked)
-        self.toggleLogButtonY.setChecked(logYChecked)
         self.eraseAnnotationsB.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                                 *['utils', 'glyphicons-551-erase.png'])))
         self.navigation_frame = QtGui.QFrame()
@@ -343,7 +338,7 @@ class UiGroupBoxPlot(object):
         self.listWidget.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget)
         self.pushButton = QtGui.QPushButton(self.verticalLayout_1Widget)
-        self.pushButton.setObjectName("pushButton")
+        self.pushButton.setObjectName("plotButton")
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
@@ -354,6 +349,23 @@ class UiGroupBoxPlot(object):
         self.pushButton.clicked.connect(partial(self.force_update_plot))
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
+        # Default log_log_scale_func_list
+        log_scale_func_list = [('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
+        self.set_log_scale_func_list(log_scale_func_list)
+        self.retranslateUi(parent)
+        QtCore.QMetaObject.connectSlotsByName(parent)
+
+    def set_variables(self, plotted_series, dep_var_series,
+                 dep_var_labels, indep_var_label, indep_var_series,
+                 dep_var_labels_to_plot=None,
+                 logXChecked=True, logYChecked=True, log_scale_func_list=None,
+                 add_path_arrows=False):
+        self.toggleLogButtonX.blockSignals(True)
+        self.toggleLogButtonY.blockSignals(True)
+        self.toggleLogButtonX.setChecked(logXChecked)
+        self.toggleLogButtonY.setChecked(logYChecked)
+        self.toggleLogButtonX.blockSignals(False)
+        self.toggleLogButtonY.blockSignals(False)
 
         # Variables to be set
         self.dc = dict()  # space to store data cursors for each series
@@ -371,8 +383,9 @@ class UiGroupBoxPlot(object):
         # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
         # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
         if log_scale_func_list == None:
-            log_scale_func_list = [('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
-        self.set_log_scale_func_list(log_scale_func_list)
+            pass
+        else:
+            self.set_log_scale_func_list(log_scale_func_list)
         # Variabeln in Log-Skala
         for k in self.log_dep_var_series.iterkeys():
             self.log_dep_var_series[k] = \
@@ -389,8 +402,6 @@ class UiGroupBoxPlot(object):
                 new_item = QtGui.QListWidgetItem(label, self.listWidget)
                 new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
                                                           *['utils', 'glyphicons-601-chevron-up.png'])))
-        self.retranslateUi(parent)
-        QtCore.QMetaObject.connectSlotsByName(parent)
 
     def force_update_plot(self):
         ylabel = self.ax.get_ylabel()
@@ -896,13 +907,13 @@ def initiate_plot(form):
     indep_var_series = form.indep_var_series
     indep_var_label = form.indep_var_label
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox,
-                                           plotted_series=plotted_series,
-                                           dep_var_series=dep_var_series,
-                                           dep_var_labels=dep_var_labels,
-                                           dep_var_labels_to_plot=labels_to_plot,
-                                           indep_var_label=indep_var_label,
-                                           indep_var_series=indep_var_series,add_path_arrows=True)
+    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox)
+    form.groupBox.plotBox.set_variables(plotted_series=plotted_series,
+                                        dep_var_series=dep_var_series,
+                                        dep_var_labels=dep_var_labels,
+                                        dep_var_labels_to_plot=labels_to_plot,
+                                        indep_var_label=indep_var_label,
+                                        indep_var_series=indep_var_series, add_path_arrows=True)
     form.groupBox.show()
     form.groupBox.plotBox.plot_intervals(labels_to_plot)
 
@@ -1235,7 +1246,7 @@ def display_about_info(form):
     form.aboutBox_1.show()
 
 
-def show_log():
+def show_log(form):
     headers_and_types = np.array(
         (('date', str),
          ('method', str),
@@ -1298,7 +1309,9 @@ def show_log():
         names=headers_and_types[:, 0],
         index_col=False,
         converters=cell_conversions)
-    return LogWidget(log)
+    form.groupBox = QtGui.QGroupBox()
+    form.groupBox.setParent(form)
+    form.groupBox.log_widget = LogWidget(log, parent=form.groupBox)
 
 
 class LogWidget(QtGui.QWidget):
@@ -1322,6 +1335,8 @@ class LogWidget(QtGui.QWidget):
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.group_2.setLayout(self.verticalLayout)
         self.pandasView = QtGui.QTableView(self.group_2)
+        self.group_3 = QtGui.QGroupBox()
+        self.plotBox = UiGroupBoxPlot(self.group_3)
         self.firstButton = QtGui.QPushButton(self.group_2)
         self.lastButton = QtGui.QPushButton(self.group_2)
         self.nextButton = QtGui.QPushButton(self.group_2)
@@ -1470,26 +1485,20 @@ class LogWidget(QtGui.QWidget):
             index = group['date'].head(1).apply(lambda x: str(x)).values.item()
             indep_var_series[index] = group['accum_step'].values
             dep_var_series[index] = np.matrix(group['||f(X)||'].values)
-
-        dep_var_labels = dep_var_labels
-        dep_var_series = dep_var_series
-        indep_var_series = indep_var_series
-        indep_var_label = indep_var_label
         # Generate the plot
-        self.groupBox = QtGui.QGroupBox()
-        self.groupBox.plotBox = UiGroupBoxPlot(parent=self.groupBox,
-                                               plotted_series=plotted_series,
-                                               dep_var_series=dep_var_series,
-                                               dep_var_labels=dep_var_labels,
-                                               dep_var_labels_to_plot=[dep_var_labels[-1]],
-                                               indep_var_label=indep_var_label,
-                                               indep_var_series=indep_var_series,
-                                               logXChecked=False, logYChecked=False,
-                                               log_scale_func_list=log_scale_func_list,
-                                               add_path_arrows=True)
-        self.groupBox.plotBox.plot_intervals([dep_var_labels[-1]])
-        self.groupBox.plotBox.ax.set_ylabel('||f(X)||')
-        self.groupBox.show()
+        self.plotBox.set_variables(plotted_series=plotted_series,
+                              dep_var_series=dep_var_series,
+                              dep_var_labels=dep_var_labels,
+                              dep_var_labels_to_plot=[dep_var_labels[-1]],
+                              indep_var_label=indep_var_label,
+                              indep_var_series=indep_var_series,
+                              logXChecked=False, logYChecked=False,
+                              log_scale_func_list=log_scale_func_list,
+                              add_path_arrows=True)
+        self.plotBox.plot_intervals([dep_var_labels[-1]])
+        # FIXME: 2 Punkte, Logx ein- und ausschalten
+        self.group_2.show()
+        self.plotBox.ax.set_ylabel('||f(X)||')
 
 
 class PandasModel(QtCore.QAbstractTableModel):
@@ -1621,6 +1630,12 @@ def add_arrow_to_line2D(
                                                         matplotlib.lines.Line2D))):
         raise ValueError("expected a matplotlib.lines.Line2D object")
     x, y = line[0].get_xdata(), line[0].get_ydata()
+    finite_indexes = np.bitwise_and(np.isfinite(x), np.isfinite(y))
+    x = np.array(x)[finite_indexes]
+    y = np.array(y)[finite_indexes]
+
+    if sum(finite_indexes) < 2:
+        return
 
     arrow_kw = dict(arrowstyle=arrow_style, mutation_scale=10 * arrow_size)
 
@@ -1638,6 +1653,7 @@ def add_arrow_to_line2D(
         arrow_kw['linewidth'] = linewidth
 
     if transform is None:
+        axes.transData.invalidate()
         transform = axes.transData
 
     arrows = []
