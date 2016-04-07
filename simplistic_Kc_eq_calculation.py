@@ -280,13 +280,9 @@ class UiGroupBox(QtGui.QWidget):
 class UiGroupBoxPlot(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        parent.resize(762, 450)
-        # parent.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        self.verticalLayout_1Widget = QtGui.QWidget(parent)
-        self.verticalLayout_1Widget.setGeometry(QtCore.QRect(9, 19, 741, 421))
-        self.verticalLayout_1Widget.setObjectName("verticalLayout_1Widget")
-        self.verticalLayout_1Widget.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        self.verticalLayout_1 = QtGui.QVBoxLayout(self.verticalLayout_1Widget)
+        parent.setGeometry(QtCore.QRect(9, 19, 741, 421))
+        self.verticalLayout_1 = QtGui.QVBoxLayout(parent)
+        self.verticalLayout_1.setStretch(1, 1)
         self.verticalLayout_1.setObjectName("verticalLayout_1")
         self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
         self.horizontalTools = QtGui.QHBoxLayout()
@@ -321,23 +317,23 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.horizontalLayout.addWidget(self.canvas)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
-        self.label = QtGui.QLabel(self.verticalLayout_1Widget)
+        self.label = QtGui.QLabel(parent)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
-        self.listWidget_2 = QtGui.QListWidget(self.verticalLayout_1Widget)
+        self.listWidget_2 = QtGui.QListWidget(parent)
         self.listWidget_2.setObjectName("listWidget_2")
         self.listWidget_2.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
         self.listWidget_2.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget_2)
-        self.label_2 = QtGui.QLabel(self.verticalLayout_1Widget)
+        self.label_2 = QtGui.QLabel(parent)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
-        self.listWidget = QtGui.QListWidget(self.verticalLayout_1Widget)
+        self.listWidget = QtGui.QListWidget(parent)
         self.listWidget.setObjectName("listWidget")
         self.listWidget.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.listWidget)
-        self.pushButton = QtGui.QPushButton(self.verticalLayout_1Widget)
+        self.pushButton = QtGui.QPushButton(parent)
         self.pushButton.setObjectName("plotButton")
         self.verticalLayout.addWidget(self.pushButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
@@ -907,7 +903,7 @@ def initiate_plot(form):
     indep_var_series = form.indep_var_series
     indep_var_label = form.indep_var_label
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(parent=form.groupBox)
+    form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
     form.groupBox.plotBox.set_variables(plotted_series=plotted_series,
                                         dep_var_series=dep_var_series,
                                         dep_var_labels=dep_var_labels,
@@ -1310,33 +1306,30 @@ def show_log(form):
         index_col=False,
         converters=cell_conversions)
     form.groupBox = QtGui.QGroupBox()
-    form.groupBox.setParent(form)
     form.groupBox.log_widget = LogWidget(log, parent=form.groupBox)
+    form.groupBox.show()
 
 
 class LogWidget(QtGui.QWidget):
-    def __init__(self, _log, parent=None):
+    def __init__(self, _log, parent):
         QtGui.QWidget.__init__(self, parent)
         self.icon = QtGui.QIcon()
         self.icon.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-88-log-book.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.log = _log
-        self.setupUi()
+        self.setupUi(parent)
         self.group_2.setWindowIcon(self.icon)
-        self.group_2.show()
 
-    def setupUi(self):
+    def setupUi(self, parent):
         self.minLogHeight = 400
         self.minLogWidth = self.minLogHeight * 16 / 9
-        self.group_2 = QtGui.QGroupBox()
+        self.group_2 = QtGui.QGroupBox(self.parent())
         self.group_2.resize(self.minLogWidth, self.minLogHeight)
         self.verticalLayout = QtGui.QVBoxLayout(self.group_2)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.group_2.setLayout(self.verticalLayout)
         self.pandasView = QtGui.QTableView(self.group_2)
-        self.group_3 = QtGui.QGroupBox()
-        self.plotBox = UiGroupBoxPlot(self.group_3)
         self.firstButton = QtGui.QPushButton(self.group_2)
         self.lastButton = QtGui.QPushButton(self.group_2)
         self.nextButton = QtGui.QPushButton(self.group_2)
@@ -1486,6 +1479,8 @@ class LogWidget(QtGui.QWidget):
             indep_var_series[index] = group['accum_step'].values
             dep_var_series[index] = np.matrix(group['||f(X)||'].values)
         # Generate the plot
+        self.group_3 = QtGui.QGroupBox()
+        self.plotBox = UiGroupBoxPlot(self.group_3)
         self.plotBox.set_variables(plotted_series=plotted_series,
                               dep_var_series=dep_var_series,
                               dep_var_labels=dep_var_labels,
@@ -1497,7 +1492,7 @@ class LogWidget(QtGui.QWidget):
                               add_path_arrows=True)
         self.plotBox.plot_intervals([dep_var_labels[-1]])
         # FIXME: 2 Punkte, Logx ein- und ausschalten
-        self.group_2.show()
+        self.group_3.show()
         self.plotBox.ax.set_ylabel('||f(X)||')
 
 
