@@ -38,6 +38,7 @@ except AttributeError:
 colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
 markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -45,18 +46,168 @@ class UiGroupBox(QtGui.QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        parent.setObjectName(_fromUtf8("GroupBox"))
         # Default size
         parent.resize(500, 357)
         self.verticalLayout_2 = QtGui.QVBoxLayout(parent)
-        self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.open_button = QtGui.QPushButton()
+        self.save_button = QtGui.QPushButton()
+        self.info_button = QtGui.QPushButton()
+        self.log_button = QtGui.QPushButton()
+        self.horizontalLayout_5 = QtGui.QHBoxLayout()
+        self.label_3 = QtGui.QLabel()
+        self.equilibrate_button = QtGui.QPushButton()
+        self.spinBox_3 = QtGui.QSpinBox()
+        self.label_4 = QtGui.QLabel()
+        self.label = QtGui.QLabel()
+        self.spinBox = QtGui.QSpinBox()
+        self.tableComps = QtGui.QTableWidget()
+        self.label_9 = QtGui.QLabel()
+        self.progressBar = QtGui.QProgressBar(parent)
+        self.cancelButton = QtGui.QPushButton(parent)
+        self.doubleSpinBox_5 = ScientificDoubleSpinBox()
+        item = QtGui.QTableWidgetItem()
+        self.horizontalLayout_7 = QtGui.QHBoxLayout()
+        self.horizontalLayout_6 = QtGui.QHBoxLayout()
+        self.label_5 = QtGui.QLabel()
+        self.comboBox_3 = QtGui.QComboBox()
+        self.label_6 = QtGui.QLabel()
+        self.doubleSpinBox_6 = QtGui.QDoubleSpinBox()
+        self.label_2 = QtGui.QLabel()
+        self.spinBox_2 = QtGui.QSpinBox()
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.tableReacs = QtGui.QTableWidget()
+        self.verticalLayout = QtGui.QVBoxLayout()
+        self.label_7 = QtGui.QLabel()
+        self.comboBox = QtGui.QComboBox()
+        self.horizontalLayout_3 = QtGui.QHBoxLayout()
+        self.doubleSpinBox = ScientificDoubleSpinBox()
+        self.doubleSpinBox_2 = ScientificDoubleSpinBox()
+        self.plotButton = QtGui.QPushButton()
+        # Object names
+        parent.setObjectName(_fromUtf8("GroupBox"))
+        self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.open_button = QtGui.QPushButton(parent)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(
+        self.open_button.setObjectName(_fromUtf8("open_button"))
+        self.save_button.setObjectName(_fromUtf8("save_button"))
+        self.info_button.setObjectName(_fromUtf8("info_button"))
+        self.log_button.setObjectName(_fromUtf8("log_button"))
+        self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+        self.label_3.setObjectName(_fromUtf8("max_it_label"))
+        self.spinBox_3.setObjectName(_fromUtf8("max_it_spinbox"))
+        self.label_4.setObjectName(_fromUtf8("tol_label"))
+        self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
+        self.label.setObjectName(_fromUtf8("label"))
+        self.spinBox.setObjectName(_fromUtf8("spinBox"))
+        self.tableComps.setObjectName(_fromUtf8("tableComps"))
+        self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
+        self.label_5.setObjectName(_fromUtf8("solvent_label"))
+        self.label_6.setObjectName(_fromUtf8("C_solvent_Tref"))
+        self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
+        self.label_2.setObjectName(_fromUtf8("label_2"))
+        self.spinBox_2.setObjectName(_fromUtf8("spinBox_2"))
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.tableReacs.setObjectName(_fromUtf8("tableReacs"))
+        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
+        self.comboBox.setObjectName(_fromUtf8("comboBox"))
+        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
+        self.doubleSpinBox.setObjectName(_fromUtf8("doubleSpinBox"))
+        self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
+        self.plotButton.setObjectName(_fromUtf8("plotButton"))
+
+        self.horizontalLayout_2.addWidget(self.open_button)
+        self.horizontalLayout_2.addWidget(self.save_button)
+        self.horizontalLayout_2.addWidget(self.log_button)
+        self.horizontalLayout_2.addWidget(self.info_button)
+        self.horizontalLayout_3.addWidget(self.equilibrate_button)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_5.addWidget(self.label_3)
+        self.spinBox_3.setMaximum(2000)
+        self.spinBox_3.setMinimum(2)
+        self.spinBox_3.setProperty("value", 1000)
+        self.horizontalLayout_5.addWidget(self.spinBox_3)
+        self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_5.addWidget(self.label_4)
+        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
+        self.doubleSpinBox_5.setMaximum(float(1))
+        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
+        self.doubleSpinBox_5.setSingleStep(0.1 / 100.0 * (1.0 - np.finfo(float).eps))
+        self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
+        self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
+        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_5.addWidget(self.label)
+        self.spinBox.setProperty("value", 0)
+        self.horizontalLayout_5.addWidget(self.spinBox)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
+        self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
+        item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.tableComps.horizontalHeader().setCascadingSectionResizes(False)
+        self.tableComps.horizontalHeader().setDefaultSectionSize(100)
+        self.tableComps.horizontalHeader().setMinimumSectionSize(27)
+        self.tableComps.horizontalHeader().setSortIndicatorShown(True)
+        self.tableComps.verticalHeader().setVisible(False)
+        self.verticalLayout_2.addWidget(self.tableComps)
+        self.label_9.setAlignment(QtCore.Qt.AlignTop)
+        self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
+        self.verticalLayout_2.addWidget(self.label_9)
+        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
+        self.horizontalLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+        self.horizontalLayout_7.addStrut(max( \
+            [self.progressBar.frameSize().height(),
+             self.cancelButton.frameSize().height()]))
+        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignLeft)
+        self.horizontalLayout_7.addWidget(self.cancelButton)
+        self.horizontalLayout_7.addWidget(self.progressBar)
+        self.cancelButton.setEnabled(False)
+        self.progressBar.setEnabled(False)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_7)
+        self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_6.addWidget(self.label_5)
+        self.horizontalLayout_6.addWidget(self.comboBox_3)
+        self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_6.addWidget(self.label_6)
+        self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
+        self.doubleSpinBox_6.setMaximum(float(1000))
+        self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
+        self.doubleSpinBox_6.setSingleStep(1.0e-2)
+        self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
+        self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
+        self.horizontalLayout_6.addWidget(self.label_2)
+        self.spinBox_2.setProperty("value", 0)
+        self.horizontalLayout_6.addWidget(self.spinBox_2)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
+        self.tableReacs.horizontalHeader().setVisible(True)
+        self.tableReacs.verticalHeader().setVisible(False)
+        self.horizontalLayout.addWidget(self.tableReacs)
+        self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.verticalLayout.addWidget(self.label_7)
+        self.verticalLayout.addWidget(self.comboBox)
+        self.doubleSpinBox.setMinimum(0.0)
+        self.horizontalLayout_3.addWidget(self.doubleSpinBox)
+        self.doubleSpinBox_2.setMinimum(0.0)
+        self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
+        self.verticalLayout.addWidget(self.plotButton)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        # Events
+        self.open_button.clicked.connect(partial(self.open_file))
+        self.save_button.clicked.connect(partial(self.save_file))
+        self.plotButton.clicked.connect(partial(self.solve_intervals))
+        self.equilibrate_button.clicked.connect(partial(self.recalculate_after_cell_edit, 0, 0))
+        self.tableComps.cellChanged.connect(partial(self.recalculate_after_cell_edit))
+        self.info_button.clicked.connect(partial(self.display_about_info))
+        self.log_button.clicked.connect(partial(self.show_log))
+        self.cancelButton.clicked.connect(partial(self.cancel_loop))
+        self.comboBox.currentIndexChanged.connect(partial(self.populate_input_spinboxes))
+
+        # Icons
+        icon0 = QtGui.QIcon()
+        icon0.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-145-folder-open.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
         icon1 = QtGui.QIcon()
@@ -79,163 +230,13 @@ class UiGroupBox(QtGui.QWidget):
         icon5.addPixmap(QtGui.QPixmap(
             _fromUtf8("utils/glyphicons-88-log-book.png")),
             QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.open_button.setIcon(icon)
-        self.open_button.setObjectName(_fromUtf8("open_button"))
-        self.horizontalLayout_2.addWidget(self.open_button)
-        self.save_button = QtGui.QPushButton(parent)
+        self.open_button.setIcon(icon0)
         self.save_button.setIcon(icon1)
-        self.save_button.setObjectName(_fromUtf8("save_button"))
-        self.info_button = QtGui.QPushButton(parent)
-        self.info_button.setIcon(icon4)
-        self.info_button.setObjectName(_fromUtf8("info_button"))
-        self.log_button = QtGui.QPushButton(parent)
-        self.log_button.setIcon(icon5)
-        self.log_button.setObjectName(_fromUtf8("log_button"))
-        self.horizontalLayout_2.addWidget(self.save_button)
-        self.horizontalLayout_2.addWidget(self.log_button)
-        self.horizontalLayout_2.addWidget(self.info_button)
-        self.equilibrate_button = QtGui.QPushButton(parent)
-        self.equilibrate_button.setIcon(icon3)
-        self.horizontalLayout_3.addWidget(self.equilibrate_button)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_3)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-        self.horizontalLayout_5 = QtGui.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
-        # TODO: Add log button
-        self.label_3 = QtGui.QLabel(parent)
-        self.label_3.setObjectName(_fromUtf8("max_it_label"))
-        self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label_3)
-        self.spinBox_3 = QtGui.QSpinBox(parent)
-        self.spinBox_3.setMaximum(2000)
-        self.spinBox_3.setMinimum(2)
-        self.spinBox_3.setProperty("value", 1000)
-        self.spinBox_3.setObjectName(_fromUtf8("max_it_spinbox"))
-        self.horizontalLayout_5.addWidget(self.spinBox_3)
-        self.label_4 = QtGui.QLabel(parent)
-        self.label_4.setObjectName(_fromUtf8("tol_label"))
-        self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label_4)
-        self.doubleSpinBox_5 = ScientificDoubleSpinBox(parent)
-        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
-        self.doubleSpinBox_5.setMaximum(float(1))
-        self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
-        self.doubleSpinBox_5.setSingleStep(0.1 / 100.0 * (1.0 - np.finfo(float).eps))
-        self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
-        self.doubleSpinBox_5.setObjectName(_fromUtf8("tol_spinbox"))
-        self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
-        self.label = QtGui.QLabel(parent)
-        self.label.setObjectName(_fromUtf8("label"))
-        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label)
-        self.spinBox = QtGui.QSpinBox(parent)
-        self.spinBox.setProperty("value", 0)
-        self.spinBox.setObjectName(_fromUtf8("spinBox"))
-        self.horizontalLayout_5.addWidget(self.spinBox)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
-        self.tableComps = QtGui.QTableWidget(parent)
-        self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
-        self.tableComps.setObjectName(_fromUtf8("tableComps"))
-        item = QtGui.QTableWidgetItem()
-        item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        self.tableComps.horizontalHeader().setCascadingSectionResizes(False)
-        self.tableComps.horizontalHeader().setDefaultSectionSize(100)
-        self.tableComps.horizontalHeader().setMinimumSectionSize(27)
-        self.tableComps.horizontalHeader().setSortIndicatorShown(True)
-        self.tableComps.verticalHeader().setVisible(False)
-        self.verticalLayout_2.addWidget(self.tableComps)
-        self.label_9 = QtGui.QLabel(parent)
-        self.label_9.setAlignment(QtCore.Qt.AlignTop)
-        self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
-        self.verticalLayout_2.addWidget(self.label_9)
-        self.horizontalLayout_7 = QtGui.QHBoxLayout()
-        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
-        self.cancelButton = QtGui.QPushButton(parent)
-        self.progressBar = QtGui.QProgressBar(parent, visible=True)
-        self.cancelButton.setEnabled(False)
-        self.progressBar.setEnabled(False)
-        self.horizontalLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.horizontalLayout_7.addStrut(max( \
-            [self.progressBar.frameSize().height(),
-             self.cancelButton.frameSize().height()]))
-        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignLeft)
-        self.horizontalLayout_7.addWidget(self.cancelButton)
-        self.horizontalLayout_7.addWidget(self.progressBar)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_7)
-        self.horizontalLayout_6 = QtGui.QHBoxLayout()
-        self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
-        self.label_5 = QtGui.QLabel(parent)
-        self.label_5.setObjectName(_fromUtf8("solvent_label"))
-        self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_5)
-        self.comboBox_3 = QtGui.QComboBox(parent)
-        self.horizontalLayout_6.addWidget(self.comboBox_3)
-        self.label_6 = QtGui.QLabel(parent)
-        self.label_6.setObjectName(_fromUtf8("C_solvent_Tref"))
-        self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_6)
-        self.doubleSpinBox_6 = QtGui.QDoubleSpinBox(parent)
-        self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
-        self.doubleSpinBox_6.setMaximum(float(1000))
-        self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
-        self.doubleSpinBox_6.setSingleStep(1.0e-2)
-        self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
-        self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
-        self.label_2 = QtGui.QLabel(parent)
-        self.label_2.setObjectName(_fromUtf8("label_2"))
-        self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_2)
-        self.spinBox_2 = QtGui.QSpinBox(parent)
-        self.spinBox_2.setProperty("value", 0)
-        self.spinBox_2.setObjectName(_fromUtf8("spinBox_2"))
-        self.horizontalLayout_6.addWidget(self.spinBox_2)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.tableReacs = QtGui.QTableWidget(parent)
-        self.tableReacs.setObjectName(_fromUtf8("tableReacs"))
-        self.tableReacs.horizontalHeader().setVisible(True)
-        self.tableReacs.verticalHeader().setVisible(False)
-        self.horizontalLayout.addWidget(self.tableReacs)
-        self.verticalLayout = QtGui.QVBoxLayout()
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.label_7 = QtGui.QLabel(parent)
-        self.label_7.setObjectName(_fromUtf8("horizontalAxisLabel"))
-        self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.verticalLayout.addWidget(self.label_7)
-        self.comboBox = QtGui.QComboBox(parent)
-        self.comboBox.setObjectName(_fromUtf8("comboBox"))
-        self.verticalLayout.addWidget(self.comboBox)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.doubleSpinBox = ScientificDoubleSpinBox(parent)
-        self.doubleSpinBox.setObjectName(_fromUtf8("doubleSpinBox"))
-        self.doubleSpinBox.setMinimum(0.0)
-        self.horizontalLayout_3.addWidget(self.doubleSpinBox)
-        self.doubleSpinBox_2 = ScientificDoubleSpinBox(parent)
-        self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
-        self.doubleSpinBox_2.setMinimum(0.0)
-        self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_4 = QtGui.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.plotButton = QtGui.QPushButton(parent)
-        self.plotButton.setObjectName(_fromUtf8("plotButton"))
         self.plotButton.setIcon(icon2)
-        self.verticalLayout.addWidget(self.plotButton)
-        self.horizontalLayout.addLayout(self.verticalLayout)
-        self.verticalLayout_2.addLayout(self.horizontalLayout)
-        # Events
-        self.open_button.clicked.connect(partial(open_file, self))
-        self.save_button.clicked.connect(partial(save_file, self))
-        self.plotButton.clicked.connect(partial(solve_intervals, self))
-        self.equilibrate_button.clicked.connect(partial(recalculate_after_cell_edit, self, 0, 0))
-        self.tableComps.cellChanged.connect(partial(recalculate_after_cell_edit, self))
-        self.info_button.clicked.connect(partial(display_about_info, self))
-        self.log_button.clicked.connect(partial(show_log, self))
-        self.cancelButton.clicked.connect(partial(self.cancel_loop))
-        self.comboBox.currentIndexChanged.connect(partial(self.populate_input_spinboxes))
+        self.equilibrate_button.setIcon(icon3)
+        self.info_button.setIcon(icon4)
+        self.log_button.setIcon(icon5)
+
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
@@ -276,13 +277,454 @@ class UiGroupBox(QtGui.QWidget):
     def was_canceled(self):
         return self._was_canceled
 
+    def open_file(self):
+        (filename, _) = \
+            QtGui.QFileDialog.getOpenFileName(None,
+                                              caption='Open file',
+                                              dir=os.path.join(sys.path[0], 'DATA'),
+                                              filter='*.csv')
+        if os.path.isfile(filename):
+            # Reset solution state and order of items
+            del self.acceptable_solution
+            if hasattr(self, 'component_order_in_table'):
+                delattr(self, 'component_order_in_table')
+            # Load csv data into form variables
+            self.load_csv(filename)
+
+            # Continue with typical solution and table population procedure
+            self.gui_equilibrate()
+            self.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
+            self.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+
+    def load_csv(self, filename):
+        with open(filename) as csv_file:
+            n = 0
+            Nr = 0
+            header_comps = []
+            header_reacs = []
+            reader = csv.reader(csv_file, dialect='excel')
+            reading_comps = False
+            reading_reacs = False
+            comps = []
+            reacs = []
+            for row in reader:
+                row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
+                if len(row_without_blanks) == 0:
+                    pass  # skip empty line
+                elif 'COMP' in row:
+                    reading_comps = True
+                    reading_reacs = False
+                    header_comps = next(reader)[0:4]
+                elif 'REAC' in row:
+                    reading_reacs = True
+                    reading_comps = False
+                    header_reacs = next(reader)
+                    header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
+                elif reading_comps:
+                    n += 1
+                    comps.append(map(lambda x: '0' if x == '' or x == ' ' else x, row_without_blanks))
+                elif reading_reacs:
+                    Nr += 1
+                    reacs.append(
+                        map(lambda x: '0' if x == '' or x == ' ' else x, row[0: len(header_reacs) - 2 + 2])
+                    )
+        csv_file.close()
+        comps = np.array(comps)
+        reacs = np.array(reacs)
+        self.spinBox.setProperty("value", n)
+        self.spinBox_2.setProperty("value", Nr)
+        self.tableComps.setRowCount(n)
+        self.tableComps.setColumnCount(len(header_comps) + 3)
+        self.tableComps.setHorizontalHeaderLabels(
+            header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
+
+        self.tableReacs.setRowCount(Nr)
+        self.tableReacs.setColumnCount(n + 2 + 1)
+        self.tableReacs.setHorizontalHeaderLabels(
+            header_reacs + ['Xieq_j'])
+
+        # Pass variables to self before loop start
+        variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
+                             'n', 'Nr']
+        for var in variables_to_pass:
+            setattr(self, var, locals()[var])
+
+    def load_variables_from_form(self):
+        n = self.n
+        Nr = self.Nr
+        comps = np.empty([n, 4], dtype='S50')
+        reacs = np.empty([Nr, n + 2], dtype='S50')
+        header_comps = []
+        header_reacs = []
+        component_order_in_table = []
+        for i in range(self.tableComps.rowCount()):
+            component_order_in_table.append(int(self.tableComps.item(i, 0).text()) - 1)
+        for i in range(comps.shape[1]):
+            header_comps.append(self.tableComps.horizontalHeaderItem(i).data(0))
+        for i in range(reacs.shape[1]):
+            header_reacs.append(self.tableReacs.horizontalHeaderItem(i).data(0))
+        for j in range(comps.shape[1]):
+            for i in range(comps.shape[0]):
+                comps[component_order_in_table[i], j] = self.tableComps.item(i, j).text()
+        for j in range(reacs.shape[1]):
+            for i in range(reacs.shape[0]):
+                reacs[i, j] = self.tableReacs.item(i, j).text()
+        # Pass variables to self before loop start
+        variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
+                             'component_order_in_table']
+        for var in variables_to_pass:
+            setattr(self, var, locals()[var])
+
+    def gui_setup_and_variables(self):
+        # Collect variables
+        n = self.n
+        Nr = self.Nr
+        comps = self.comps
+        reacs = self.reacs
+        # Gui setup with calculated values
+
+        C0_i = np.matrix([row[3] for row in comps], dtype=float).T
+        highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
+        index_of_solvent = highestC0Indexes[-1]
+        C_solvent_Tref = C0_i[index_of_solvent].item()
+        if len(C0_i) > 1:
+            index_of_second_highest_C0 = highestC0Indexes[-2]
+        else:
+            index_of_second_highest_C0 = highestC0Indexes[-1]
+        C_second_highest_C0_Tref = C0_i[index_of_second_highest_C0].item()
+
+        self.C0_i = C0_i
+        self.index_of_solvent = index_of_solvent
+        self.C_solvent_Tref = C_solvent_Tref
+        self.z_i = np.matrix([row[2] for row in comps], dtype=float).T
+        self.nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+        self.pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
+        self.max_it = int(self.spinBox_3.value())
+        self.tol = float(self.doubleSpinBox_5.value())
+        self.C_second_highest_C0_Tref = C_second_highest_C0_Tref
+
+        self.comboBox.clear()
+        self.comboBox_3.clear()
+        for item in comps[:, 0:2]:
+            self.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
+            self.comboBox_3.addItem(item[1])
+        self.comboBox.setCurrentIndex(index_of_second_highest_C0)
+        self.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0 ** 7)
+        self.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
+        self.comboBox_3.setCurrentIndex(index_of_solvent)
+        self.doubleSpinBox_6.setValue(C_solvent_Tref)
+        self.doubleSpinBox_6.setPrefix('(mol/L)')
+
+    def retabulate(self):
+        # Collect variables
+        n = self.n
+        Nr = self.Nr
+        C0_i = self.C0_i
+        comps = self.comps
+        reacs = self.reacs
+        header_comps = self.header_comps
+        header_reacs = self.header_reacs
+        Ceq_i = self.Ceq_i
+        Xieq_j = self.Xieq_j
+        if hasattr(self, 'component_order_in_table'):
+            i = getattr(self, 'component_order_in_table')
+        else:
+            i = range(0, n)
+        j = range(0, 4 + 3)
+
+        self.tableComps.blockSignals(True)
+        self.tableReacs.blockSignals(True)
+        self.comboBox.blockSignals(True)
+        # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
+        # Therefore disable sorting, then set QTableWidgetItems and finally reenable sorting.
+        self.tableComps.setSortingEnabled(False)
+        self.tableReacs.setSortingEnabled(False)
+
+        for column in j:
+            for row in i:
+                if column < 4:
+                    newItem = QtGui.QTableWidgetItem(str(comps[row, column]))
+                elif column == 4:
+                    newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
+                elif column == 5:
+                    if C0_i[row] <= 0:
+                        newItem = QtGui.QTableWidgetItem(str(np.nan))
+                    else:
+                        newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
+                elif column == 6:
+                    if Ceq_i[row].item() <= 0:
+                        newItem = QtGui.QTableWidgetItem(str(np.nan))
+                    else:
+                        newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
+                # sortierbar machen
+                if column != 1:  # Comp. i <Str>
+                    newItem = NSortableTableWidgetItem(newItem)
+                    self.tableComps.setItem(row, column, newItem)
+                else:
+                    self.tableComps.setItem(row, column, newItem)
+                if not column in range(1, 3 + 1):
+                    newItem.setFlags(QtCore.Qt.ItemIsEnabled)
+
+        i = range(0, Nr)
+        j = range(0, n + 2 + 1)
+
+        for column in j:
+            for row in i:
+                if column != n + 2:
+                    self.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+                elif column == n + 2:
+                    self.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
+
+        # Widths and heights, re-enable sorting
+        self.tableComps.setSortingEnabled(True)
+        self.tableComps.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.tableComps.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+        self.tableReacs.setSortingEnabled(True)
+        self.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+
+        self.tableComps.blockSignals(False)
+        self.tableReacs.blockSignals(False)
+        self.comboBox.blockSignals(False)
+
+    def save_file(self):
+        pass
+
+    def solve_intervals(self):
+        variables_to_check = ['Ceq_series', 'Xieq_series', 'indep_var_series', 'dep_var_series',
+                              'index_of_variable']
+        for var in variables_to_check:
+            if hasattr(self, var):
+                delattr(self, var)
+        comps = self.comps
+        reacs = self.reacs
+        C0_i = self.C0_i
+        n = self.n
+        Nr = self.Nr
+        index_of_variable = self.comboBox.currentIndex()
+        indep_var_label = 'C0_{' + comps[index_of_variable, 0] + ', ' + \
+                          comps[index_of_variable, 1] + '}/(mol/L)'
+        dep_var_labels = \
+            ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
+            ['\\xi eq_' + '{' + str(item) + '}/(mol/L)' for item in range(1, Nr + 1, 1)]
+        min_value = self.doubleSpinBox.value()
+        max_value = self.doubleSpinBox_2.value()
+        n_points = 20
+        indep_var_series_single = \
+            [min_value + x
+             for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
+        C0_variable_comp = C0_i[index_of_variable]
+        mid_index = bisect.bisect(indep_var_series_single, C0_variable_comp) - 1
+        Xieq_j = self.Xieq_j
+        Ceq_i = self.Ceq_i
+        Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
+        Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
+        dep_var_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
+        indep_var_series = dict.fromkeys(dep_var_labels, indep_var_series_single)
+        # Keep current solution intact for after plotting range
+        self.stored_solution_Ceq_i = self.Ceq_i
+        self.stored_solution_Xieq_j = self.Xieq_j
+        for j in range(mid_index, -1, -1):
+            self.C0_i[index_of_variable] = indep_var_series_single[j]
+            equilibrate(self)
+            Ceq_series[j, :] = self.Ceq_i.T
+            Xieq_series[j, :] = self.Xieq_j.T
+        self.Ceq_i = self.stored_solution_Ceq_i
+        self.Xieq_j = self.stored_solution_Xieq_j
+        for j in range(mid_index + 1, n_points + 1, +1):
+            self.C0_i[index_of_variable] = indep_var_series_single[j]
+            equilibrate(self)
+            Ceq_series[j, :] = self.Ceq_i.T
+            Xieq_series[j, :] = self.Xieq_j.T
+        for j in range(n):
+            dep_var_series[dep_var_labels[j]] = Ceq_series[:, j]
+        for j in range(Nr):
+            dep_var_series[dep_var_labels[n + j]] = Xieq_series[:, j]
+        self.Ceq_i = self.stored_solution_Ceq_i
+        self.Xieq_j = self.stored_solution_Xieq_j
+        self.Ceq_series = Ceq_series
+        self.Xieq_series = Xieq_series
+        self.indep_var_series = indep_var_series
+        self.dep_var_series = dep_var_series
+        self.dep_var_labels = dep_var_labels
+        self.indep_var_label = indep_var_label
+        self.index_of_variable = index_of_variable
+        self.initiate_plot()
+
+    def initiate_plot(self):
+        n = self.n
+        Nr = self.Nr
+        dep_var_labels = self.dep_var_labels
+        labels_to_plot = [x for x in self.dep_var_labels if x.find('Ceq') >= 0]
+        # dict, keys:ceq_labels; bindings: plottedseries
+        plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+        dep_var_labels = self.dep_var_labels
+        dep_var_series = self.dep_var_series
+        indep_var_series = self.indep_var_series
+        indep_var_label = self.indep_var_label
+        self.groupBox = QtGui.QGroupBox()
+        self.groupBox.plotBox = UiGroupBoxPlot(self.groupBox)
+        self.groupBox.plotBox.set_variables(plotted_series=plotted_series,
+                                            dep_var_series=dep_var_series,
+                                            dep_var_labels=dep_var_labels,
+                                            dep_var_labels_to_plot=labels_to_plot,
+                                            indep_var_label=indep_var_label,
+                                            indep_var_series=indep_var_series, add_path_arrows=True)
+        self.groupBox.show()
+        self.groupBox.plotBox.plot_intervals(labels_to_plot)
+
+    def recalculate_after_cell_edit(self, row, column):
+        self.load_variables_from_form()
+        self.gui_equilibrate()
+
+    def gui_equilibrate(self):
+        self.tableComps.blockSignals(True)
+        self.tableReacs.blockSignals(True)
+        self.comboBox.blockSignals(True)
+        self.gui_setup_and_variables()
+        equilibrate(self)
+        self.retabulate()
+
+        self.tableComps.blockSignals(False)
+        self.tableReacs.blockSignals(False)
+        self.comboBox.blockSignals(False)
+
+    def display_about_info(self):
+        rowString = unicode('', 'utf_8')
+        self.aboutBox_1 = QtGui.QTextBrowser()
+        self.aboutBox_1.setWindowTitle('About')
+        self.aboutBox_1.setWindowIcon(QtGui.QIcon(
+            os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
+        self.aboutBox_1.setOpenExternalLinks(True)
+        addingTable = False
+
+        htmlStream = \
+            unicode('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
+                    'utf_8')
+        htmlStream += unicode('<html>', 'utf_8')
+        htmlStream += unicode('<head><meta name="qrichtext" content="1" /><style type="text/css">' +
+                              '\\np,li {white-space: pre-wrap;}\n' +
+                              '\\np,br {line-height: 10%;}\n' +
+                              '</style></head>', 'utf_8')
+
+        htmlStream += unicode('<body style=' + '"' + ' font-family:' + "'" + 'MS Shell Dlg 2' + "'" +
+                              '; font-size:8.25pt; font-weight:400; font-style:normal;' + '"' + '>', 'utf_8')
+        stringToAdd = unicode('', 'utf_8')
+        startingP = unicode("<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
+                            "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>", 'utf_8')
+        endingP = unicode('</p>', 'utf_8')
+        matchingHLine = re.compile('=+')
+        with open('README.md') as readme_file:
+            for row in readme_file:
+                rowString = unicode(row, 'utf_8')
+                if not addingTable and rowString.find('|') != -1:
+                    stringToAdd = ''.join(
+                        ['<table>', '<tr><td>',
+                         rowString.replace('|', '</td><td>').replace('\n', ''),
+                         '</td></tr>'])
+                    addingTable = True
+                elif addingTable and rowString.find('|') == -1:
+                    stringToAdd = '</table>' + startingP + rowString + endingP
+                    addingTable = False
+                elif addingTable and rowString.find('|') != -1:
+                    stringToAdd = ''.join(
+                        ['<tr><td>',
+                         rowString.replace('|', '</td><td>').replace('\n', ''),
+                         '</td></tr>'])
+                elif not addingTable and rowString.find('|') == -1:
+                    stringToAdd = startingP + rowString + endingP
+                if len(rowString.replace('\n', '')) == 0:
+                    htmlStream += stringToAdd + '<br>'
+                elif matchingHLine.match(rowString):
+                    htmlStream += '<hr />'
+                else:
+                    htmlStream += stringToAdd
+        htmlStream += unicode('<hr />', 'utf_8')
+        htmlStream += unicode("<footer><p>" +
+                              '<a href=' + '"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' + '>' +
+                              'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
+                              'utf_8')
+        htmlStream += unicode('</body></html>', 'utf_8')
+        readme_file.close()
+        self.aboutBox_1.setHtml(htmlStream)
+        self.aboutBox_1.setMinimumWidth(500)
+        self.aboutBox_1.setMinimumHeight(400)
+        self.aboutBox_1.show()
+
+    def show_log(self):
+        headers_and_types = np.array(
+            (('date', str),
+             ('method', str),
+             ('k', int),
+             ('backtrack', int),
+             ('lambda_ls', float),
+             ('accum_step', float),
+             ('X', list),
+             ('||X(k)-X(k-1)||', float),
+             ('f(X)', list),
+             ('||f(X)||', float),
+             ('Y', list),
+             ('||Y||', float),
+             ('g', float),
+             ('|g-g1|', float),
+             ('stop', bool),
+             ('series_id', str)))
+
+        headers_and_types_dict = dict(headers_and_types)
+        col_numbers_with_float = \
+            np.argwhere(map(lambda x: x == float, headers_and_types[:, 1]))
+        col_numbers_with_list = \
+            np.argwhere(map(lambda x: x == list, headers_and_types[:, 1]))
+        col_numbers_with_int = \
+            np.argwhere(map(lambda x: x == int, headers_and_types[:, 1]))
+        col_numbers_with_str = \
+            np.argwhere(map(lambda x: x == str, headers_and_types[:, 1]))
+        col_numbers_with_bool = \
+            np.argwhere(map(lambda x: x == bool, headers_and_types[:, 1]))
+
+        take_float = lambda x: float(x.rpartition('=')[-1])
+        take_list = lambda x: \
+            np.fromstring(x.rpartition('=')[-1]
+                          .replace('[', '').replace(']', ''),
+                          sep=',')
+        take_int = lambda x: int(x.rpartition('=')[-1])
+        take_bool = lambda x: x.rpartition('=')[-1] == 'True'
+        take_date = lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S,%f')
+
+        cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
+
+        for i in range(len(headers_and_types)):
+            if i == 0:
+                cell_conversions[headers_and_types[i, 0]] = take_date
+            elif i in col_numbers_with_float:
+                cell_conversions[headers_and_types[i, 0]] = take_float
+            elif i in col_numbers_with_list:
+                cell_conversions[headers_and_types[i, 0]] = take_list
+            elif i in col_numbers_with_int:
+                cell_conversions[headers_and_types[i, 0]] = take_int
+            elif i in col_numbers_with_bool:
+                cell_conversions[headers_and_types[i, 0]] = take_bool
+            elif i in col_numbers_with_str:
+                pass
+            i += 1
+
+        log = pd.read_csv(
+            filepath_or_buffer='./logs/calculation_results.log',
+            delimiter=';',
+            names=headers_and_types[:, 0],
+            index_col=False,
+            converters=cell_conversions)
+        self.groupBox = QtGui.QGroupBox()
+        self.groupBox.log_widget = LogWidget(log, parent=self.groupBox)
+        self.groupBox.show()
+
 
 class UiGroupBoxPlot(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        parent.setGeometry(QtCore.QRect(9, 19, 741, 421))
+        parent.resize(741, 421)
         self.verticalLayout_1 = QtGui.QVBoxLayout(parent)
-        self.verticalLayout_1.setStretch(1, 1)
         self.verticalLayout_1.setObjectName("verticalLayout_1")
         self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
         self.horizontalTools = QtGui.QHBoxLayout()
@@ -294,8 +736,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.eraseAnnotationsB = QtGui.QPushButton()
         self.toggleLogButtonX.setCheckable(True)
         self.toggleLogButtonY.setCheckable(True)
-        self.eraseAnnotationsB.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                                *['utils', 'glyphicons-551-erase.png'])))
+        self.eraseAnnotationsB.setIcon(
+            QtGui.QIcon(os.path.join(sys.path[0], *['utils', 'glyphicons-551-erase.png'])))
         self.navigation_frame = QtGui.QFrame()
         self.verticalLayout_1.addWidget(self.navigation_frame)
         self.horizontalTools.addWidget(self.toggleLogButtonY)
@@ -352,10 +794,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
         QtCore.QMetaObject.connectSlotsByName(parent)
 
     def set_variables(self, plotted_series, dep_var_series,
-                 dep_var_labels, indep_var_label, indep_var_series,
-                 dep_var_labels_to_plot=None,
-                 logXChecked=True, logYChecked=True, log_scale_func_list=None,
-                 add_path_arrows=False):
+                      dep_var_labels, indep_var_label, indep_var_series,
+                      dep_var_labels_to_plot=None,
+                      logXChecked=True, logYChecked=True, log_scale_func_list=None,
+                      add_path_arrows=False):
         self.toggleLogButtonX.blockSignals(True)
         self.toggleLogButtonY.blockSignals(True)
         self.toggleLogButtonX.setChecked(logXChecked)
@@ -412,6 +854,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.invlog_scale_func = log_scale_func_list[1][1]
         self.find_log_variable = re.compile(
             '\$?(?P<log>' + self.log_scale_string + '\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?')
+        self.toggleLogButtonX.setText(self.log_scale_string + "(x) - horizontal")
+        self.toggleLogButtonY.setText(self.log_scale_string + "(y) - vertical")
 
     def retranslateUi(self, parent):
         parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
@@ -438,13 +882,13 @@ class UiGroupBoxPlot(QtGui.QWidget):
             line_label = line_label_match.group('id')
             if line_label is None:
                 line_label = line_label_match.group('id2')
-            if not checked and (match.group('log') is not None):    #just unchecked
+            if not checked and (match.group('log') is not None):  # just unchecked
                 if line_label in self.indep_var_series.keys():
                     line.set_xdata(self.indep_var_series[line_label])
                 else:
                     line.set_xdata(self.invlog_scale_func(line_xdata))
                 self.ax.set_xlabel(u'$' + match.group('id') + u'$')
-            else:                                                   #just checked
+            else:  # just checked
                 if line_label in self.indep_var_series.keys():
                     line.set_xdata(self.log_indep_var_series[line_label])
                 else:
@@ -609,327 +1053,189 @@ class UiGroupBoxPlot(QtGui.QWidget):
             del l
 
 
-def open_file(form):
-    (filename, _) = \
-        QtGui.QFileDialog.getOpenFileName(None,
-                                          caption='Open file',
-                                          dir=os.path.join(sys.path[0], 'DATA'),
-                                          filter='*.csv')
-    if os.path.isfile(filename):
-        # Reset solution state and order of items
-        del form.acceptable_solution
-        if hasattr(form, 'component_order_in_table'):
-            delattr(form, 'component_order_in_table')
-        # Load csv data into form variables
-        load_csv(form, filename)
+class LogWidget(QtGui.QWidget):
+    def __init__(self, _log, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.log = _log
+        self.icon = QtGui.QIcon()
+        self.icon.addPixmap(QtGui.QPixmap(
+            _fromUtf8("utils/glyphicons-88-log-book.png")),
+            QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        parent.setWindowIcon(self.icon)
+        self.setupUi(parent)
 
-        # Continue with typical solution and table population procedure
-        gui_equilibrate(form)
-        form.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        form.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
+    def setupUi(self, parent):
+        self.minLogHeight = 400
+        self.minLogWidth = self.minLogHeight * 16 / 9
+        parent.resize(self.minLogWidth, self.minLogHeight)
+        self.verticalLayout = QtGui.QVBoxLayout(parent)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.pandasView = QtGui.QTableView()
+        self.firstButton = QtGui.QPushButton()
+        self.lastButton = QtGui.QPushButton()
+        self.nextButton = QtGui.QPushButton()
+        self.previousButton = QtGui.QPushButton()
+        self.pageLabel = QtGui.QLabel()
+        self.totPagesLabel = QtGui.QLabel()
+        self.pageBox = QtGui.QLineEdit()
+        self.exportButton = QtGui.QPushButton()
+        self.plotButton = QtGui.QPushButton()
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout.addWidget(self.pandasView)
+        self.verticalLayout.addWidget(self.exportButton)
+        self.verticalLayout.addWidget(self.plotButton)
+        self.horizontalLayout.addWidget(self.firstButton)
+        self.horizontalLayout.addWidget(self.previousButton)
+        self.horizontalLayout.addWidget(self.pageLabel)
+        self.horizontalLayout.addWidget(self.pageBox)
+        self.horizontalLayout.addWidget(self.totPagesLabel)
+        self.horizontalLayout.addWidget(self.nextButton)
+        self.horizontalLayout.addWidget(self.lastButton)
 
+        self.firstButton.clicked.connect(partial(self.firstPage))
+        self.lastButton.clicked.connect(partial(self.lastPage))
+        self.nextButton.clicked.connect(partial(self.nextPage))
+        self.previousButton.clicked.connect(partial(self.previousPage))
+        self.exportButton.clicked.connect(partial(self.exportData))
+        self.plotButton.clicked.connect(partial(self.plotData))
+        self.pageBox.editingFinished.connect(partial(self.goToPageNo))
 
-def load_csv(form, filename):
-    with open(filename) as csv_file:
-        n = 0
-        Nr = 0
-        header_comps = []
-        header_reacs = []
-        reader = csv.reader(csv_file, dialect='excel')
-        reading_comps = False
-        reading_reacs = False
-        comps = []
-        reacs = []
-        for row in reader:
-            row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
-            if len(row_without_blanks) == 0:
-                pass  # skip empty line
-            elif 'COMP' in row:
-                reading_comps = True
-                reading_reacs = False
-                header_comps = next(reader)[0:4]
-            elif 'REAC' in row:
-                reading_reacs = True
-                reading_comps = False
-                header_reacs = next(reader)
-                header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
-            elif reading_comps:
-                n += 1
-                comps.append(map(lambda x: '0' if x == '' or x == ' ' else x, row_without_blanks))
-            elif reading_reacs:
-                Nr += 1
-                reacs.append(
-                    map(lambda x: '0' if x == '' or x == ' ' else x, row[0: len(header_reacs) - 2 + 2])
-                )
-    csv_file.close()
-    comps = np.array(comps)
-    reacs = np.array(reacs)
-    form.spinBox.setProperty("value", n)
-    form.spinBox_2.setProperty("value", Nr)
-    form.tableComps.setRowCount(n)
-    form.tableComps.setColumnCount(len(header_comps) + 3)
-    form.tableComps.setHorizontalHeaderLabels(
-        header_comps + ['Ceq_i, mol/L', '-log10(C0_i)', '-log10(Ceq_i)'])
+        # To ensure full display, first set resize modes, then resize columns to contents
+        self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
+        self.pandasView.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.pandasView.setWordWrap(True)
+        self.pandasView.resizeColumnsToContents()
 
-    form.tableReacs.setRowCount(Nr)
-    form.tableReacs.setColumnCount(n + 2 + 1)
-    form.tableReacs.setHorizontalHeaderLabels(
-        header_reacs + ['Xieq_j'])
+        parent.setWindowTitle('calculation log')
+        self.firstButton.setText('<< First')
+        self.lastButton.setText('Last >>')
+        self.previousButton.setText('< Previous')
+        self.nextButton.setText('Next >')
+        self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
+        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.exportButton.setText('Export (csv)')
+        self.plotButton.setText('Plot solution paths')
 
-    # Pass variables to form before loop start
-    variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
-                         'n', 'Nr']
-    for var in variables_to_pass:
-        setattr(form, var, locals()[var])
+        self.displayItemsByPage = 50
+        self.currentPageFirstEntry = len(self.log.values) \
+                                     - self.displayItemsByPage
+        self.display()
 
+    def firstPage(self):
+        self.currentPageFirstEntry = 0
+        self.displayItemsByPage = self.displayItemsByPage
+        self.display()
 
-def load_variables_from_form(form):
-    n = form.n
-    Nr = form.Nr
-    comps = np.empty([n, 4], dtype='S50')
-    reacs = np.empty([Nr, n + 2], dtype='S50')
-    header_comps = []
-    header_reacs = []
-    component_order_in_table = []
-    for i in range(form.tableComps.rowCount()):
-        component_order_in_table.append(int(form.tableComps.item(i, 0).text()) - 1)
-    for i in range(comps.shape[1]):
-        header_comps.append(form.tableComps.horizontalHeaderItem(i).data(0))
-    for i in range(reacs.shape[1]):
-        header_reacs.append(form.tableReacs.horizontalHeaderItem(i).data(0))
-    for j in range(comps.shape[1]):
-        for i in range(comps.shape[0]):
-            comps[component_order_in_table[i], j] = form.tableComps.item(i, j).text()
-    for j in range(reacs.shape[1]):
-        for i in range(reacs.shape[0]):
-            reacs[i, j] = form.tableReacs.item(i, j).text()
-    # Pass variables to form before loop start
-    variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
-                         'component_order_in_table']
-    for var in variables_to_pass:
-        setattr(form, var, locals()[var])
+    def lastPage(self):
+        self.currentPageFirstEntry = len(self.log.values) \
+                                     - self.displayItemsByPage
+        self.display()
 
+    def nextPage(self):
+        if self.currentPageLastEntry + \
+                self.displayItemsByPage > len(self.log.values):
+            self.currentPageFirstEntry = len(self.log.values) \
+                                         - self.displayItemsByPage
+        else:
+            self.currentPageFirstEntry = self.currentPageFirstEntry + \
+                                         self.displayItemsByPage
+        self.display()
 
-def gui_setup_and_variables(form):
-    # Collect variables
-    n = form.n
-    Nr = form.Nr
-    comps = form.comps
-    reacs = form.reacs
-    # Gui setup with calculated values
+    def previousPage(self):
+        if self.currentPageFirstEntry - \
+                self.displayItemsByPage < 0:
+            self.currentPageFirstEntry = 0
+        else:
+            self.currentPageFirstEntry = self.currentPageFirstEntry - \
+                                         self.displayItemsByPage
+        self.display()
 
-    C0_i = np.matrix([row[3] for row in comps], dtype=float).T
-    highestC0Indexes = np.argpartition(C0_i.A1, (-1, -2))
-    index_of_solvent = highestC0Indexes[-1]
-    C_solvent_Tref = C0_i[index_of_solvent].item()
-    if len(C0_i) > 1:
-        index_of_second_highest_C0 = highestC0Indexes[-2]
-    else:
-        index_of_second_highest_C0 = highestC0Indexes[-1]
-    C_second_highest_C0_Tref = C0_i[index_of_second_highest_C0].item()
+    def goToPageNo(self):
+        pageText = self.pageBox.text()
+        try:
+            pageNo = int(round(float(pageText)))
+            self.lastPage = int(round(len(self.log.values) / \
+                                      float(self.displayItemsByPage)))
+            if pageNo < self.lastPage:
+                self.currentPageFirstEntry = \
+                    (pageNo - 1) * self.displayItemsByPage + 1
+            elif pageNo >= self.lastPage:
+                self.currentPageFirstEntry = len(self.log.values) \
+                                             - self.displayItemsByPage
+            elif pageNo <= 1:
+                self.currentPageFirstEntry = 1
+            self.display()
+        except ValueError:
+            pass
 
-    form.C0_i = C0_i
-    form.index_of_solvent = index_of_solvent
-    form.C_solvent_Tref = C_solvent_Tref
-    form.z_i = np.matrix([row[2] for row in comps], dtype=float).T
-    form.nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-    form.pKa_j = np.matrix([row[1] for row in reacs], dtype=float).T
-    form.max_it = int(form.spinBox_3.value())
-    form.tol = float(form.doubleSpinBox_5.value())
-    form.C_second_highest_C0_Tref = C_second_highest_C0_Tref
+    def display(self):
+        # Page number
+        self.currentPageLastEntry = self.currentPageFirstEntry + \
+                                    self.displayItemsByPage
+        self.currentPage = int(round(self.currentPageLastEntry / \
+                                     float(self.displayItemsByPage)))
+        self.lastPage = int(round(len(self.log.values) / \
+                                  float(self.displayItemsByPage)))
 
-    form.comboBox.clear()
-    form.comboBox_3.clear()
-    for item in comps[:, 0:2]:
-        form.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
-        form.comboBox_3.addItem(item[1])
-    form.comboBox.setCurrentIndex(index_of_second_highest_C0)
-    form.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0 ** 7)
-    form.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
-    form.comboBox_3.setCurrentIndex(index_of_solvent)
-    form.doubleSpinBox_6.setValue(C_solvent_Tref)
-    form.doubleSpinBox_6.setPrefix('(mol/L)')
+        self.pandasModel = PandasModel(
+            self.log[self.currentPageFirstEntry: self.currentPageLastEntry])
+        self.pandasView.setModel(self.pandasModel)
+        self.pandasView.resizeColumnsToContents()
+        self.pandasView.verticalHeaders = \
+            map(str, range(self.currentPageFirstEntry,
+                           self.currentPageLastEntry + 1, 1))
+        self.totPagesLabel.setText(' / ' + str(self.lastPage))
+        self.pageLabel.setText('Entries ' + str(self.currentPageFirstEntry) +
+                               ' to ' + str(self.currentPageLastEntry) + '; Page: ')
+        self.pageBox.blockSignals(True)
+        self.pageBox.setText(str(self.currentPage))
+        self.pageBox.blockSignals(False)
 
+    def exportData(self):
+        supportedFilters = ['CSV file (*.csv)']
+        # TODO: supportedFilters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)', 'XLS (2007) (*.xls)']
+        (fileName, selectedFilter) = QtGui.QFileDialog.getSaveFileName(
+            parent=self.group_2,
+            caption='enter file name to save...',
+            filter=';;'.join(supportedFilters))
+        if selectedFilter == supportedFilters[0]:
+            self.log.to_csv(fileName)
+            # elif selectedFilter == supportedFilters[1] or \
+            #                selectedFilter == supportedFilters[2]:
+            #    self.log.to_excel(fileName)
 
-def retabulate(form):
-    # Collect variables
-    n = form.n
-    Nr = form.Nr
-    C0_i = form.C0_i
-    comps = form.comps
-    reacs = form.reacs
-    header_comps = form.header_comps
-    header_reacs = form.header_reacs
-    Ceq_i = form.Ceq_i
-    Xieq_j = form.Xieq_j
-    if hasattr(form, 'component_order_in_table'):
-        i = getattr(form, 'component_order_in_table')
-    else:
-        i = range(0, n)
-    j = range(0, 4 + 3)
+    def plotData(self):
+        grouped = self.log.groupby('series_id')
+        # dict, keys:ceq_labels; bindings: plottedseries
+        dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
+        indep_var_label = 'accum step'
+        dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        log_scale_func_list = \
+            [('log10', lambda x: +1.0 * np.log10(x)), ('', lambda x: 10.0 ** (+1.0 * x))]
 
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-    form.comboBox.blockSignals(True)
-    # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
-    # Therefore disable sorting, then set QTableWidgetItems and finally reenable sorting.
-    form.tableComps.setSortingEnabled(False)
-    form.tableReacs.setSortingEnabled(False)
-
-    for column in j:
-        for row in i:
-            if column < 4:
-                newItem = QtGui.QTableWidgetItem(str(comps[row, column]))
-            elif column == 4:
-                newItem = QtGui.QTableWidgetItem(str(Ceq_i[row].item()))
-            elif column == 5:
-                if C0_i[row] <= 0:
-                    newItem = QtGui.QTableWidgetItem(str(np.nan))
-                else:
-                    newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
-            elif column == 6:
-                if Ceq_i[row].item() <= 0:
-                    newItem = QtGui.QTableWidgetItem(str(np.nan))
-                else:
-                    newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
-            # sortierbar machen
-            if column != 1:  # Comp. i <Str>
-                newItem = NSortableTableWidgetItem(newItem)
-                form.tableComps.setItem(row, column, newItem)
-            else:
-                form.tableComps.setItem(row, column, newItem)
-            if not column in range(1, 3 + 1):
-                newItem.setFlags(QtCore.Qt.ItemIsEnabled)
-
-    i = range(0, Nr)
-    j = range(0, n + 2 + 1)
-
-    for column in j:
-        for row in i:
-            if column != n + 2:
-                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
-            elif column == n + 2:
-                form.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
-
-    # Widths and heights, re-enable sorting
-    form.tableComps.setSortingEnabled(True)
-    form.tableComps.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-    form.tableComps.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-
-    form.tableReacs.setSortingEnabled(True)
-    form.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-    form.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-    form.comboBox.blockSignals(False)
-
-
-def save_file(form):
-    pass
-
-
-def solve_intervals(form):
-    variables_to_check = ['Ceq_series', 'Xieq_series', 'indep_var_series', 'dep_var_series',
-                          'index_of_variable']
-    for var in variables_to_check:
-        if hasattr(form, var):
-            delattr(form, var)
-    comps = form.comps
-    reacs = form.reacs
-    C0_i = form.C0_i
-    n = form.n
-    Nr = form.Nr
-    index_of_variable = form.comboBox.currentIndex()
-    indep_var_label = 'C0_{' + comps[index_of_variable, 0] + ', ' + \
-                      comps[index_of_variable, 1] + '}/(mol/L)'
-    dep_var_labels = \
-        ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
-        ['\\xi eq_' + '{' + str(item) + '}/(mol/L)' for item in range(1, Nr + 1, 1)]
-    min_value = form.doubleSpinBox.value()
-    max_value = form.doubleSpinBox_2.value()
-    n_points = 20
-    indep_var_series_single = \
-        [min_value + x
-         for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
-    C0_variable_comp = C0_i[index_of_variable]
-    mid_index = bisect.bisect(indep_var_series_single, C0_variable_comp) - 1
-    Xieq_j = form.Xieq_j
-    Ceq_i = form.Ceq_i
-    Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
-    Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
-    dep_var_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
-    indep_var_series = dict.fromkeys(dep_var_labels, indep_var_series_single)
-    # Keep current solution intact for after plotting range
-    form.stored_solution_Ceq_i = form.Ceq_i
-    form.stored_solution_Xieq_j = form.Xieq_j
-    for j in range(mid_index, -1, -1):
-        form.C0_i[index_of_variable] = indep_var_series_single[j]
-        equilibrate(form)
-        Ceq_series[j, :] = form.Ceq_i.T
-        Xieq_series[j, :] = form.Xieq_j.T
-    form.Ceq_i = form.stored_solution_Ceq_i
-    form.Xieq_j = form.stored_solution_Xieq_j
-    for j in range(mid_index + 1, n_points + 1, +1):
-        form.C0_i[index_of_variable] = indep_var_series_single[j]
-        equilibrate(form)
-        Ceq_series[j, :] = form.Ceq_i.T
-        Xieq_series[j, :] = form.Xieq_j.T
-    for j in range(n):
-        dep_var_series[dep_var_labels[j]] = Ceq_series[:, j]
-    for j in range(Nr):
-        dep_var_series[dep_var_labels[n + j]] = Xieq_series[:, j]
-    form.Ceq_i = form.stored_solution_Ceq_i
-    form.Xieq_j = form.stored_solution_Xieq_j
-    form.Ceq_series = Ceq_series
-    form.Xieq_series = Xieq_series
-    form.indep_var_series = indep_var_series
-    form.dep_var_series = dep_var_series
-    form.dep_var_labels = dep_var_labels
-    form.indep_var_label = indep_var_label
-    form.index_of_variable = index_of_variable
-    initiate_plot(form)
-
-
-def initiate_plot(form):
-    n = form.n
-    Nr = form.Nr
-    dep_var_labels = form.dep_var_labels
-    labels_to_plot = [x for x in form.dep_var_labels if x.find('Ceq') >= 0]
-    # dict, keys:ceq_labels; bindings: plottedseries
-    plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
-    dep_var_labels = form.dep_var_labels
-    dep_var_series = form.dep_var_series
-    indep_var_series = form.indep_var_series
-    indep_var_label = form.indep_var_label
-    form.groupBox = QtGui.QGroupBox()
-    form.groupBox.plotBox = UiGroupBoxPlot(form.groupBox)
-    form.groupBox.plotBox.set_variables(plotted_series=plotted_series,
-                                        dep_var_series=dep_var_series,
-                                        dep_var_labels=dep_var_labels,
-                                        dep_var_labels_to_plot=labels_to_plot,
-                                        indep_var_label=indep_var_label,
-                                        indep_var_series=indep_var_series, add_path_arrows=True)
-    form.groupBox.show()
-    form.groupBox.plotBox.plot_intervals(labels_to_plot)
-
-
-def recalculate_after_cell_edit(form, row, column):
-    load_variables_from_form(form)
-    gui_equilibrate(form)
-
-
-def gui_equilibrate(form):
-    form.tableComps.blockSignals(True)
-    form.tableReacs.blockSignals(True)
-    form.comboBox.blockSignals(True)
-    gui_setup_and_variables(form)
-    equilibrate(form)
-    retabulate(form)
-
-    form.tableComps.blockSignals(False)
-    form.tableReacs.blockSignals(False)
-    form.comboBox.blockSignals(False)
+        for name, group in grouped:
+            index = group['date'].head(1).apply(lambda x: str(x)).values.item()
+            indep_var_series[index] = group['accum_step'].values
+            dep_var_series[index] = np.matrix(group['||f(X)||'].values)
+        # Generate the plot
+        self.group_3 = QtGui.QGroupBox()
+        self.plotBox = UiGroupBoxPlot(self.group_3)
+        self.plotBox.set_variables(plotted_series=plotted_series,
+                                   dep_var_series=dep_var_series,
+                                   dep_var_labels=dep_var_labels,
+                                   dep_var_labels_to_plot=[dep_var_labels[-1]],
+                                   indep_var_label=indep_var_label,
+                                   indep_var_series=indep_var_series,
+                                   logXChecked=False, logYChecked=False,
+                                   log_scale_func_list=log_scale_func_list,
+                                   add_path_arrows=True)
+        self.plotBox.plot_intervals([dep_var_labels[-1]])
+        # FIXME: 2 Punkte, Logx ein- und ausschalten
+        self.group_3.show()
+        self.plotBox.ax.set_ylabel('||f(X)||')
 
 
 def equilibrate(form):
@@ -1111,7 +1417,6 @@ def calc_Xieq(form):
         while j_it <= max_it and not all(X[0:n] >= 0):
             # Backtrack if any conc < 0. Line search method.
             # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
-            # TODO: Gleichzeitig - aber unabhängig der Lösung - den Lösungspfad aufzeichnen.
             j_it += 1
             lambda_ls = lambda_ls / 2.0
             accum_step += -lambda_ls
@@ -1179,323 +1484,6 @@ def new_log_entry(method, k, backtrack, lambda_ls, accum_step, X, diff, f_val, Y
                   ';' + series_id)
 
 
-def display_about_info(form):
-    rowString = unicode('', 'utf_8')
-    form.aboutBox_1 = QtGui.QTextBrowser()
-    form.aboutBox_1.setWindowTitle('About')
-    form.aboutBox_1.setWindowIcon(QtGui.QIcon(
-        os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
-    form.aboutBox_1.setOpenExternalLinks(True)
-    addingTable = False
-
-    htmlStream = \
-        unicode('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
-                'utf_8')
-    htmlStream += unicode('<html>', 'utf_8')
-    htmlStream += unicode('<head><meta name="qrichtext" content="1" /><style type="text/css">' +
-                          '\\np,li {white-space: pre-wrap;}\n' +
-                          '\\np,br {line-height: 10%;}\n' +
-                          '</style></head>', 'utf_8')
-
-    htmlStream += unicode('<body style=' + '"' + ' font-family:' + "'" + 'MS Shell Dlg 2' + "'" +
-                          '; font-size:8.25pt; font-weight:400; font-style:normal;' + '"' + '>', 'utf_8')
-    stringToAdd = unicode('', 'utf_8')
-    startingP = unicode("<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
-                        "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>", 'utf_8')
-    endingP = unicode('</p>', 'utf_8')
-    matchingHLine = re.compile('=+')
-    with open('README.md') as readme_file:
-        for row in readme_file:
-            rowString = unicode(row, 'utf_8')
-            if not addingTable and rowString.find('|') != -1:
-                stringToAdd = ''.join(
-                    ['<table>', '<tr><td>',
-                     rowString.replace('|', '</td><td>').replace('\n', ''),
-                     '</td></tr>'])
-                addingTable = True
-            elif addingTable and rowString.find('|') == -1:
-                stringToAdd = '</table>' + startingP + rowString + endingP
-                addingTable = False
-            elif addingTable and rowString.find('|') != -1:
-                stringToAdd = ''.join(
-                    ['<tr><td>',
-                     rowString.replace('|', '</td><td>').replace('\n', ''),
-                     '</td></tr>'])
-            elif not addingTable and rowString.find('|') == -1:
-                stringToAdd = startingP + rowString + endingP
-            if len(rowString.replace('\n', '')) == 0:
-                htmlStream += stringToAdd + '<br>'
-            elif matchingHLine.match(rowString):
-                htmlStream += '<hr />'
-            else:
-                htmlStream += stringToAdd
-    htmlStream += unicode('<hr />', 'utf_8')
-    htmlStream += unicode("<footer><p>" +
-                          '<a href=' + '"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' + '>' +
-                          'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
-                          'utf_8')
-    htmlStream += unicode('</body></html>', 'utf_8')
-    readme_file.close()
-    form.aboutBox_1.setHtml(htmlStream)
-    form.aboutBox_1.setMinimumWidth(500)
-    form.aboutBox_1.setMinimumHeight(400)
-    form.aboutBox_1.show()
-
-
-def show_log(form):
-    headers_and_types = np.array(
-        (('date', str),
-         ('method', str),
-         ('k', int),
-         ('backtrack', int),
-         ('lambda_ls', float),
-         ('accum_step', float),
-         ('X', list),
-         ('||X(k)-X(k-1)||', float),
-         ('f(X)', list),
-         ('||f(X)||', float),
-         ('Y', list),
-         ('||Y||', float),
-         ('g', float),
-         ('|g-g1|', float),
-         ('stop', bool),
-         ('series_id', str)))
-
-    headers_and_types_dict = dict(headers_and_types)
-    col_numbers_with_float = \
-        np.argwhere(map(lambda x: x == float, headers_and_types[:, 1]))
-    col_numbers_with_list = \
-        np.argwhere(map(lambda x: x == list, headers_and_types[:, 1]))
-    col_numbers_with_int = \
-        np.argwhere(map(lambda x: x == int, headers_and_types[:, 1]))
-    col_numbers_with_str = \
-        np.argwhere(map(lambda x: x == str, headers_and_types[:, 1]))
-    col_numbers_with_bool = \
-        np.argwhere(map(lambda x: x == bool, headers_and_types[:, 1]))
-
-    take_float = lambda x: float(x.rpartition('=')[-1])
-    take_list = lambda x: \
-        np.fromstring(x.rpartition('=')[-1]
-                      .replace('[', '').replace(']', ''),
-                      sep=',')
-    take_int = lambda x: int(x.rpartition('=')[-1])
-    take_bool = lambda x: x.rpartition('=')[-1] == 'True'
-    take_date = lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S,%f')
-
-    cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
-
-    for i in range(len(headers_and_types)):
-        if i == 0:
-            cell_conversions[headers_and_types[i, 0]] = take_date
-        elif i in col_numbers_with_float:
-            cell_conversions[headers_and_types[i, 0]] = take_float
-        elif i in col_numbers_with_list:
-            cell_conversions[headers_and_types[i, 0]] = take_list
-        elif i in col_numbers_with_int:
-            cell_conversions[headers_and_types[i, 0]] = take_int
-        elif i in col_numbers_with_bool:
-            cell_conversions[headers_and_types[i, 0]] = take_bool
-        elif i in col_numbers_with_str:
-            pass
-        i += 1
-
-    log = pd.read_csv(
-        filepath_or_buffer='./logs/calculation_results.log',
-        delimiter=';',
-        names=headers_and_types[:, 0],
-        index_col=False,
-        converters=cell_conversions)
-    form.groupBox = QtGui.QGroupBox()
-    form.groupBox.log_widget = LogWidget(log, parent=form.groupBox)
-    form.groupBox.show()
-
-
-class LogWidget(QtGui.QWidget):
-    def __init__(self, _log, parent):
-        QtGui.QWidget.__init__(self, parent)
-        self.icon = QtGui.QIcon()
-        self.icon.addPixmap(QtGui.QPixmap(
-            _fromUtf8("utils/glyphicons-88-log-book.png")),
-            QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.log = _log
-        self.setupUi(parent)
-        self.group_2.setWindowIcon(self.icon)
-
-    def setupUi(self, parent):
-        self.minLogHeight = 400
-        self.minLogWidth = self.minLogHeight * 16 / 9
-        self.group_2 = QtGui.QGroupBox(self.parent())
-        self.group_2.resize(self.minLogWidth, self.minLogHeight)
-        self.verticalLayout = QtGui.QVBoxLayout(self.group_2)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.group_2.setLayout(self.verticalLayout)
-        self.pandasView = QtGui.QTableView(self.group_2)
-        self.firstButton = QtGui.QPushButton(self.group_2)
-        self.lastButton = QtGui.QPushButton(self.group_2)
-        self.nextButton = QtGui.QPushButton(self.group_2)
-        self.previousButton = QtGui.QPushButton(self.group_2)
-        self.pageLabel = QtGui.QLabel(self.group_2)
-        self.totPagesLabel = QtGui.QLabel(self.group_2)
-        self.pageBox = QtGui.QLineEdit(self.group_2)
-        self.exportButton = QtGui.QPushButton(self.group_2)
-        self.plotButton = QtGui.QPushButton(self.group_2)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.verticalLayout.addWidget(self.pandasView)
-        self.verticalLayout.addWidget(self.exportButton)
-        self.verticalLayout.addWidget(self.plotButton)
-        self.horizontalLayout.addWidget(self.firstButton)
-        self.horizontalLayout.addWidget(self.previousButton)
-        self.horizontalLayout.addWidget(self.pageLabel)
-        self.horizontalLayout.addWidget(self.pageBox)
-        self.horizontalLayout.addWidget(self.totPagesLabel)
-        self.horizontalLayout.addWidget(self.nextButton)
-        self.horizontalLayout.addWidget(self.lastButton)
-
-        self.firstButton.clicked.connect(partial(self.firstPage))
-        self.lastButton.clicked.connect(partial(self.lastPage))
-        self.nextButton.clicked.connect(partial(self.nextPage))
-        self.previousButton.clicked.connect(partial(self.previousPage))
-        self.exportButton.clicked.connect(partial(self.exportData))
-        self.plotButton.clicked.connect(partial(self.plotData))
-        self.pageBox.editingFinished.connect(partial(self.goToPageNo))
-
-        # To ensure full display, first set resize modes, then resize columns to contents
-        self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
-        self.pandasView.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.pandasView.setWordWrap(True)
-        self.pandasView.resizeColumnsToContents()
-
-        self.group_2.setWindowTitle('calculation log')
-        self.firstButton.setText('<< First')
-        self.lastButton.setText('Last >>')
-        self.previousButton.setText('< Previous')
-        self.nextButton.setText('Next >')
-        self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
-        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.exportButton.setText('Export (csv)')
-        self.plotButton.setText('Plot solution paths')
-
-        self.displayItemsByPage = 50
-        self.currentPageFirstEntry = len(self.log.values) \
-                                     - self.displayItemsByPage
-        self.display()
-
-    def firstPage(self):
-        self.currentPageFirstEntry = 0
-        self.displayItemsByPage = self.displayItemsByPage
-        self.display()
-
-    def lastPage(self):
-        self.currentPageFirstEntry = len(self.log.values) \
-                                     - self.displayItemsByPage
-        self.display()
-
-    def nextPage(self):
-        if self.currentPageLastEntry + \
-                self.displayItemsByPage > len(self.log.values):
-            self.currentPageFirstEntry = len(self.log.values) \
-                                         - self.displayItemsByPage
-        else:
-            self.currentPageFirstEntry = self.currentPageFirstEntry + \
-                                         self.displayItemsByPage
-        self.display()
-
-    def previousPage(self):
-        if self.currentPageFirstEntry - \
-                self.displayItemsByPage < 0:
-            self.currentPageFirstEntry = 0
-        else:
-            self.currentPageFirstEntry = self.currentPageFirstEntry - \
-                                         self.displayItemsByPage
-        self.display()
-
-    def goToPageNo(self):
-        pageText = self.pageBox.text()
-        try:
-            pageNo = int(round(float(pageText)))
-            self.lastPage = int(round(len(self.log.values) / \
-                                      float(self.displayItemsByPage)))
-            if pageNo < self.lastPage:
-                self.currentPageFirstEntry = \
-                    (pageNo - 1) * self.displayItemsByPage + 1
-            elif pageNo >= self.lastPage:
-                self.currentPageFirstEntry = len(self.log.values) \
-                                             - self.displayItemsByPage
-            elif pageNo <= 1:
-                self.currentPageFirstEntry = 1
-            self.display()
-        except ValueError:
-            pass
-
-    def display(self):
-        # Page number
-        self.currentPageLastEntry = self.currentPageFirstEntry + \
-                                    self.displayItemsByPage
-        self.currentPage = int(round(self.currentPageLastEntry / \
-                                     float(self.displayItemsByPage)))
-        self.lastPage = int(round(len(self.log.values) / \
-                                  float(self.displayItemsByPage)))
-
-        self.pandasModel = PandasModel(
-            self.log[self.currentPageFirstEntry: self.currentPageLastEntry])
-        self.pandasView.setModel(self.pandasModel)
-        self.pandasView.resizeColumnsToContents()
-        self.pandasView.verticalHeaders = \
-            map(str, range(self.currentPageFirstEntry,
-                           self.currentPageLastEntry + 1, 1))
-        self.totPagesLabel.setText(' / ' + str(self.lastPage))
-        self.pageLabel.setText('Entries ' + str(self.currentPageFirstEntry) +
-                               ' to ' + str(self.currentPageLastEntry) + '; Page: ')
-        self.pageBox.blockSignals(True)
-        self.pageBox.setText(str(self.currentPage))
-        self.pageBox.blockSignals(False)
-
-    def exportData(self):
-        supportedFilters = ['CSV file (*.csv)']
-        # TODO: supportedFilters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)', 'XLS (2007) (*.xls)']
-        (fileName, selectedFilter) = QtGui.QFileDialog.getSaveFileName(
-            parent=self.group_2,
-            caption='enter file name to save...',
-            filter=';;'.join(supportedFilters))
-        if selectedFilter == supportedFilters[0]:
-            self.log.to_csv(fileName)
-            # elif selectedFilter == supportedFilters[1] or \
-            #                selectedFilter == supportedFilters[2]:
-            #    self.log.to_excel(fileName)
-
-    def plotData(self):
-        grouped = self.log.groupby('series_id')
-        # dict, keys:ceq_labels; bindings: plottedseries
-        dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
-        indep_var_label = 'accum step'
-        dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        log_scale_func_list = \
-            [('log10', lambda x: +1.0 * np.log10(x)), ('', lambda x: 10.0 ** (+1.0 * x))]
-
-        for name, group in grouped:
-            index = group['date'].head(1).apply(lambda x: str(x)).values.item()
-            indep_var_series[index] = group['accum_step'].values
-            dep_var_series[index] = np.matrix(group['||f(X)||'].values)
-        # Generate the plot
-        self.group_3 = QtGui.QGroupBox()
-        self.plotBox = UiGroupBoxPlot(self.group_3)
-        self.plotBox.set_variables(plotted_series=plotted_series,
-                              dep_var_series=dep_var_series,
-                              dep_var_labels=dep_var_labels,
-                              dep_var_labels_to_plot=[dep_var_labels[-1]],
-                              indep_var_label=indep_var_label,
-                              indep_var_series=indep_var_series,
-                              logXChecked=False, logYChecked=False,
-                              log_scale_func_list=log_scale_func_list,
-                              add_path_arrows=True)
-        self.plotBox.plot_intervals([dep_var_labels[-1]])
-        # FIXME: 2 Punkte, Logx ein- und ausschalten
-        self.group_3.show()
-        self.plotBox.ax.set_ylabel('||f(X)||')
-
-
 class PandasModel(QtCore.QAbstractTableModel):
     """
     Used to populate a QTableView with the pandas model
@@ -1548,31 +1536,6 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
             return float(self.text()) < float(y.text())
 
 
-# Following classes from git@gist.github.com:0be2e44981159d0854f5.git
-# Regular expression to find floats. Match groups are the whole string, the
-# whole coefficient, the decimal part of the coefficient, and the exponent
-# part.
-_float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
-
-
-def valid_float_string(string):
-    match = _float_re.search(string)
-    return match.groups()[0] == string if match else False
-
-
-class FloatValidator(QtGui.QValidator):
-    def validate(self, string, position):
-        if valid_float_string(string):
-            return self.State.Acceptable
-        if string == "" or string[position - 1] in 'e.-+':
-            return self.State.Intermediate
-        return self.State.Invalid
-
-    def fixup(self, text):
-        match = _float_re.search(text)
-        return match.groups()[0] if match else ""
-
-
 class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
     def __init__(self, parent=None):
         QtGui.QDoubleSpinBox.__init__(self, parent)
@@ -1595,11 +1558,24 @@ class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
 
     def stepBy(self, steps):
         text = self.cleanText()
-        groups = _float_re.search(text).groups()
+        groups = float_re.search(text).groups()
         decimal = float(groups[1])
         decimal += steps
         new_string = "{:g}".format(decimal) + (groups[3] if groups[3] else "")
         self.lineEdit().setText(new_string)
+
+
+class FloatValidator(QtGui.QValidator):
+    def validate(self, string, position):
+        if valid_float_string(string):
+            return self.State.Acceptable
+        if string == "" or string[position - 1] in 'e.-+':
+            return self.State.Intermediate
+        return self.State.Invalid
+
+    def fixup(self, text):
+        match = float_re.search(text)
+        return match.groups()[0] if match else ""
 
 
 def add_arrow_to_line2D(
@@ -1672,6 +1648,11 @@ def format_float(value):
     return string
 
 
+def valid_float_string(string):
+    match = float_re.search(string)
+    return match.groups()[0] == string if match else False
+
+
 def main():
     app = QtGui.QApplication.instance()  # checks if QApplication already exists
     if not app:  # create QApplication if it doesnt exist
@@ -1683,8 +1664,8 @@ def main():
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
-    load_csv(main_form.ui, './DATA/COMPONENTS_REACTIONS_EX_001.csv')
-    gui_equilibrate(main_form.ui)
+    main_form.ui.load_csv('./DATA/COMPONENTS_REACTIONS_EX_001.csv')
+    main_form.ui.gui_equilibrate()
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
     app.exec_()
