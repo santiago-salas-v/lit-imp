@@ -527,14 +527,14 @@ class UiGroupBox(QtGui.QWidget):
         self.stored_solution_Xieq_j = self.Xieq_j
         for j in range(mid_index, -1, -1):
             self.C0_i[index_of_variable] = indep_var_series_single[j]
-            equilibrate(self)
+            self.equilibrate()
             Ceq_series[j, :] = self.Ceq_i.T
             Xieq_series[j, :] = self.Xieq_j.T
         self.Ceq_i = self.stored_solution_Ceq_i
         self.Xieq_j = self.stored_solution_Xieq_j
         for j in range(mid_index + 1, n_points + 1, +1):
             self.C0_i[index_of_variable] = indep_var_series_single[j]
-            equilibrate(self)
+            self.equilibrate()
             Ceq_series[j, :] = self.Ceq_i.T
             Xieq_series[j, :] = self.Xieq_j.T
         for j in range(n):
@@ -583,12 +583,101 @@ class UiGroupBox(QtGui.QWidget):
         self.tableReacs.blockSignals(True)
         self.comboBox.blockSignals(True)
         self.gui_setup_and_variables()
-        equilibrate(self)
+        self.equilibrate()
         self.retabulate()
 
         self.tableComps.blockSignals(False)
         self.tableReacs.blockSignals(False)
         self.comboBox.blockSignals(False)
+
+    def equilibrate(self):
+        # Collect variables
+        n = self.n
+        Nr = self.Nr
+        C0_i = self.C0_i
+        z_i = self.z_i
+        comps = self.comps
+        reacs = self.reacs
+        nu_ij = self.nu_ij
+        pKa_j = self.pKa_j
+        max_it = self.max_it
+        tol = self.tol
+        C_solvent_Tref = self.C_solvent_Tref
+        index_of_solvent = self.index_of_solvent
+
+        # Init. calculations
+        Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
+        self.Kc_j = Kc_j
+
+        # Setup logging
+        if not os.path.exists('./logs'):
+            os.mkdir('./logs')
+        logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
+                            format='%(asctime)s;%(message)s')
+
+        # First estimates for eq. Composition Ceq and Reaction extent Xieq
+        if not hasattr(self, 'acceptable_solution'):
+            Ceq_i_0 = C0_i
+            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+            Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
+            Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
+        else:
+            # Use previous solution as initial estimate, if it was valid.
+            Ceq_i_0 = self.Ceq_i_0
+            Xieq_j_0 = self.Xieq_j_0
+
+        # Pass variables to self before loop start
+        variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
+                             'max_it', 'tol',
+                             'Ceq_i_0', 'Xieq_j_0']
+        for var in variables_to_pass:
+            setattr(self, var, locals()[var])
+
+        k = 1
+        stop = False
+        self.cancelButton.setEnabled(True)
+        self.progressBar.setEnabled(True)
+        self.remove_canceled_status()
+        self.acceptable_solution = False
+        self.initialEstimateAttempts = 1
+        self.methodLoops = [0, 0]  # loop numbers: [Line search, Newton]
+        # Calculate equilibrium composition: Newton method
+        # TODO: Implement global homotopy-continuation method
+        while not self.acceptable_solution \
+                and k < max_it and stop == False \
+                and not self.was_canceled():
+            Ceq_i, Xieq_j = calc_Xieq(self)
+            k += 1
+            # TODO: if progressBar.wasCanceled() == True then stop
+            if all(Ceq_i >= 0) and not any(np.isnan(Ceq_i)):
+                self.acceptable_solution = True
+            else:
+                # Set reactions to random extent and recalculate
+                # TODO: scale to concentration sizes
+                self.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+                # Set aequilibrium composition to initial value + estimated conversion
+                self.Ceq_i_0 = C0_i  # + nu_ij * self.Xieq_j_0
+                # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+                self.Ceq_i_0[self.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
+                self.initialEstimateAttempts += 1
+                self.methodLoops = [0, 0]
+
+        if not self.acceptable_solution:
+            delattr(self, 'acceptable_solution')
+            self.label_9.setText(self.label_9.text() + '\n')
+        else:
+            self.Ceq_i_0 = Ceq_i
+            self.Xieq_j_0 = Xieq_j
+            self.label_9.setText(self.label_9.text() +
+                                 '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
+                                 ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()) +
+                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * C0_i).item()) +
+                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * Ceq_i).item()))
+
+        self.Ceq_i = Ceq_i
+        self.Xieq_j = Xieq_j
+        self.cancelButton.setEnabled(False)
+        self.progressBar.setEnabled(False)
 
     def display_about_info(self):
         rowString = unicode('', 'utf_8')
@@ -1236,96 +1325,6 @@ class LogWidget(QtGui.QWidget):
         # FIXME: 2 Punkte, Logx ein- und ausschalten
         self.group_3.show()
         self.plotBox.ax.set_ylabel('||f(X)||')
-
-
-def equilibrate(form):
-    # Collect variables
-    n = form.n
-    Nr = form.Nr
-    C0_i = form.C0_i
-    z_i = form.z_i
-    comps = form.comps
-    reacs = form.reacs
-    nu_ij = form.nu_ij
-    pKa_j = form.pKa_j
-    max_it = form.max_it
-    tol = form.tol
-    C_solvent_Tref = form.C_solvent_Tref
-    index_of_solvent = form.index_of_solvent
-
-    # Init. calculations
-    Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
-    form.Kc_j = Kc_j
-
-    # Setup logging
-    if not os.path.exists('./logs'):
-        os.mkdir('./logs')
-    logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
-                        format='%(asctime)s;%(message)s')
-
-    # First estimates for eq. Composition Ceq and Reaction extent Xieq
-    if not hasattr(form, 'acceptable_solution'):
-        Ceq_i_0 = C0_i
-        # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-        Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
-        Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
-    else:
-        # Use previous solution as initial estimate, if it was valid.
-        Ceq_i_0 = form.Ceq_i_0
-        Xieq_j_0 = form.Xieq_j_0
-
-    # Pass variables to form before loop start
-    variables_to_pass = ['C0_i', 'z_i', 'nu_ij', 'pKa_j',
-                         'max_it', 'tol',
-                         'Ceq_i_0', 'Xieq_j_0']
-    for var in variables_to_pass:
-        setattr(form, var, locals()[var])
-
-    k = 1
-    stop = False
-    form.cancelButton.setEnabled(True)
-    form.progressBar.setEnabled(True)
-    form.remove_canceled_status()
-    form.acceptable_solution = False
-    form.initialEstimateAttempts = 1
-    form.methodLoops = [0, 0]  # loop numbers: [Line search, Newton]
-    # Calculate equilibrium composition: Newton method
-    # TODO: Implement global homotopy-continuation method
-    while not form.acceptable_solution \
-            and k < max_it and stop == False \
-            and not form.was_canceled():
-        Ceq_i, Xieq_j = calc_Xieq(form)
-        k += 1
-        # TODO: if progressBar.wasCanceled() == True then stop
-        if all(Ceq_i >= 0) and not any(np.isnan(Ceq_i)):
-            form.acceptable_solution = True
-        else:
-            # Set reactions to random extent and recalculate
-            # TODO: scale to concentration sizes
-            form.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
-            # Set aequilibrium composition to initial value + estimated conversion
-            form.Ceq_i_0 = C0_i  # + nu_ij * form.Xieq_j_0
-            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-            form.Ceq_i_0[form.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
-            form.initialEstimateAttempts += 1
-            form.methodLoops = [0, 0]
-
-    if not form.acceptable_solution:
-        delattr(form, 'acceptable_solution')
-        form.label_9.setText(form.label_9.text() + '\n')
-    else:
-        form.Ceq_i_0 = Ceq_i
-        form.Xieq_j_0 = Xieq_j
-        form.label_9.setText(form.label_9.text() +
-                             '\nsum(C0*z_i) = ' + str((z_i.T * C0_i).item()) +
-                             ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * Ceq_i).item()) +
-                             '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * C0_i).item()) +
-                             '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * Ceq_i).item()))
-
-    form.Ceq_i = Ceq_i
-    form.Xieq_j = Xieq_j
-    form.cancelButton.setEnabled(False)
-    form.progressBar.setEnabled(False)
 
 
 def calc_Xieq(form):
