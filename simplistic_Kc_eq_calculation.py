@@ -960,7 +960,9 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.verticalLayout_1.addWidget(self.toolsFrame)
         self.verticalLayout_1.addLayout(self.horizontalLayout)
         self.listWidget_2.setSelectionMode(
-            QtGui.QAbstractItemView.SingleSelection)
+            QtGui.QAbstractItemView.MultiSelection)
+        self.listWidget.setSelectionMode(
+            QtGui.QAbstractItemView.MultiSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
         self.listWidget_2.setSortingEnabled(True)
         self.listWidget.setSortingEnabled(True)
@@ -981,6 +983,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
             partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(
             partial(self.move_to_displayed))
+        # self.all_to_available.clicked.connect(
+        #    partial(self.move_to_available(self.listWidget_2.items)))
         self.toggleLogButtonX.toggled.connect(
             partial(self.toggled_toggleLogButtonX))
         self.toggleLogButtonY.toggled.connect(
@@ -1302,17 +1306,20 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.delete_arrows()
         if self.listWidget_2.count() <= 1:
             return
-        name = item.text()
-        new_item = self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-        new_item.setIcon(QtGui.QIcon(os.path.join(
-            sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
-        self.listWidget.insertItem(self.listWidget.count(), new_item)
-        associated_annotations = [
-            x.get_text() for x in self.figure.texts if x.get_text().find(name) >= 0]
-        self.erase_annotations(associated_annotations)
-        l = self.ax.lines.pop(np.where(
-            [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
-        del l
+        selected_items = self.listWidget_2.selectedItems()
+        for selected_item in selected_items:
+            name = selected_item.text()
+            new_item = self.listWidget_2.takeItem(
+                self.listWidget_2.indexFromItem(selected_item).row())
+            new_item.setIcon(QtGui.QIcon(os.path.join(
+                sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
+            self.listWidget.insertItem(self.listWidget.count(), new_item)
+            associated_annotations = [
+                x.get_text() for x in self.figure.texts if x.get_text().find(name) >= 0]
+            self.erase_annotations(associated_annotations)
+            l = self.ax.lines.pop(np.where(
+                [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
+            del l
         if len(self.ax.lines) > 0:
             self.ax.legend(
                 loc='best',
@@ -1327,12 +1334,16 @@ class UiGroupBoxPlot(QtGui.QWidget):
 
     def move_to_displayed(self, item):
         self.delete_arrows()
-        name = item.text()
-        new_item = self.listWidget.takeItem(self.listWidget.currentRow())
-        new_item.setIcon(QtGui.QIcon(os.path.join(
-            sys.path[0], *['utils', 'glyphicons-602-chevron-down.png'])))
-        self.listWidget_2.insertItem(self.listWidget_2.count(), new_item)
-        self.plot_intervals([name])
+        selected_items = self.listWidget.selectedItems()
+        selected_items_names = [x.text() for x in selected_items]
+        for selected_item in selected_items:
+            name = item.text()
+            new_item = self.listWidget.takeItem(
+                self.listWidget.indexFromItem(selected_item).row())
+            new_item.setIcon(QtGui.QIcon(os.path.join(
+                sys.path[0], *['utils', 'glyphicons-602-chevron-down.png'])))
+            self.listWidget_2.insertItem(self.listWidget_2.count(), new_item)
+        self.plot_intervals(selected_items_names)
         if len(self.ax.lines) > 0:
             self.ax.legend(
                 loc='best',
