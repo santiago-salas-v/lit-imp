@@ -897,6 +897,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         # Default size
         parent.resize(741, 421)
         # Assignments
+        log_scale_func_list = [
+            ('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
         self.icon_down = QtGui.QIcon(os.path.join(
             sys.path[0], *['utils', 'glyphicons-602-chevron-down.png']))
         self.icon_up = QtGui.QIcon(os.path.join(
@@ -920,8 +922,6 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.listWidget = QtGui.QListWidget(parent)
         self.plotButton = QtGui.QPushButton(parent)
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
-        log_scale_func_list = [
-            ('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
         self.horizontalLayout_1 = QtGui.QHBoxLayout()
         self.all_to_displayed = QtGui.QPushButton()
         self.all_to_available = QtGui.QPushButton()
@@ -1045,6 +1045,7 @@ class UiGroupBoxPlot(QtGui.QWidget):
     def force_update_plot(self):
         ylabel = self.ax.get_ylabel()
         self.ax.clear()
+        self.ax.grid('on')
         self.plot_intervals()
         self.ax.set_ylabel(ylabel)
 
@@ -1299,10 +1300,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
         if self.listWidget_2.count() <= 1:
             return
         name = item.text()
-        new_item = QtGui.QListWidgetItem(name, self.listWidget)
+        new_item = self.listWidget_2.takeItem(self.listWidget_2.currentRow())
         new_item.setIcon(QtGui.QIcon(os.path.join(
             sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
-        self.listWidget_2.takeItem(self.listWidget_2.currentRow())
+        self.listWidget.insertItem(self.listWidget.count(), new_item)
         associated_annotations = [self.figure.texts[x].get_text() for x in np.where(
             [x.get_text().find(name) >= 0 for x in self.figure.texts])[0]]
         self.erase_annotations(associated_annotations)
@@ -1324,10 +1325,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
     def move_to_displayed(self, item):
         self.delete_arrows()
         name = item.text()
-        new_item = QtGui.QListWidgetItem(name, self.listWidget_2)
+        new_item = self.listWidget.takeItem(self.listWidget.currentRow())
         new_item.setIcon(QtGui.QIcon(os.path.join(
             sys.path[0], *['utils', 'glyphicons-602-chevron-down.png'])))
-        self.listWidget.takeItem(self.listWidget.currentRow())
+        self.listWidget_2.insertItem(self.listWidget_2.count(), new_item)
         self.plot_intervals([name])
         if len(self.ax.lines) > 0:
             self.ax.legend(
