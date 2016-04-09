@@ -95,6 +95,7 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox = ScientificDoubleSpinBox()
         self.doubleSpinBox_2 = ScientificDoubleSpinBox()
         self.plotButton = QtGui.QPushButton()
+        self.groupBox = None  # self.groupBox will contain either the plotBox or logBox
         # Object names
         parent.setObjectName(_fromUtf8("GroupBox"))
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
@@ -636,6 +637,8 @@ class UiGroupBox(QtGui.QWidget):
         self.gui_equilibrate()
 
     def gui_equilibrate(self):
+        if self.groupBox is not None:
+            self.groupBox.hide()  # would need to refresh plotBox or logBox
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
         self.comboBox.blockSignals(True)
@@ -1304,8 +1307,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         new_item.setIcon(QtGui.QIcon(os.path.join(
             sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget.insertItem(self.listWidget.count(), new_item)
-        associated_annotations = [self.figure.texts[x].get_text() for x in np.where(
-            [x.get_text().find(name) >= 0 for x in self.figure.texts])[0]]
+        associated_annotations = [
+            x.get_text() for x in self.figure.texts if x.get_text().find(name) >= 0]
         self.erase_annotations(associated_annotations)
         l = self.ax.lines.pop(np.where(
             [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
