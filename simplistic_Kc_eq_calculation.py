@@ -1924,8 +1924,9 @@ def add_arrow_to_line2D(
     else:
         arrow_kw['linewidth'] = linewidth
 
-    axes.autoscale(True)
     if transform is None:
+        axes.relim()
+        axes.autoscale_view()
         transform = axes.transData
 
     arrows = []
