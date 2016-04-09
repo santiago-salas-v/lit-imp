@@ -5,8 +5,18 @@ Created on Fri Nov 27 20:48:42 2015
 @author: Santiago Salas
 @ref: Denbigh, p. 298
 """
-import os, sys, logging, re, pandas as pd, numpy as np, scipy as sp, csv, bisect, uuid
-import matplotlib, colormaps
+import os
+import sys
+import logging
+import re
+import pandas as pd
+import numpy as np
+import scipy as sp
+import csv
+import bisect
+import uuid
+import matplotlib
+import colormaps
 
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
@@ -28,7 +38,6 @@ except AttributeError:
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
 
-
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
@@ -48,6 +57,7 @@ class UiGroupBox(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         # Default size
         parent.resize(500, 357)
+        # Assignments
         self.verticalLayout_2 = QtGui.QVBoxLayout(parent)
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
@@ -105,7 +115,8 @@ class UiGroupBox(QtGui.QWidget):
         self.horizontalLayout_6.setObjectName(_fromUtf8("horizontalLayout_6"))
         self.label_5.setObjectName(_fromUtf8("solvent_label"))
         self.label_6.setObjectName(_fromUtf8("C_solvent_Tref"))
-        self.doubleSpinBox_6.setObjectName(_fromUtf8("C_solvent_Tref_doublespinbox"))
+        self.doubleSpinBox_6.setObjectName(
+            _fromUtf8("C_solvent_Tref_doublespinbox"))
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.spinBox_2.setObjectName(_fromUtf8("spinBox_2"))
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
@@ -117,7 +128,7 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox.setObjectName(_fromUtf8("doubleSpinBox"))
         self.doubleSpinBox_2.setObjectName(_fromUtf8("doubleSpinBox_2"))
         self.plotButton.setObjectName(_fromUtf8("plotButton"))
-
+        # Operations
         self.horizontalLayout_2.addWidget(self.open_button)
         self.horizontalLayout_2.addWidget(self.save_button)
         self.horizontalLayout_2.addWidget(self.log_button)
@@ -132,10 +143,12 @@ class UiGroupBox(QtGui.QWidget):
         self.horizontalLayout_5.addWidget(self.spinBox_3)
         self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_4)
-        self.doubleSpinBox_5.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
+        self.doubleSpinBox_5.setDecimals(
+            int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
         self.doubleSpinBox_5.setMinimum(np.finfo(float).eps * 2)
-        self.doubleSpinBox_5.setSingleStep(0.1 / 100.0 * (1.0 - np.finfo(float).eps))
+        self.doubleSpinBox_5.setSingleStep(
+            0.1 / 100.0 * (1.0 - np.finfo(float).eps))
         self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
         self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
         self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
@@ -156,7 +169,7 @@ class UiGroupBox(QtGui.QWidget):
         self.verticalLayout_2.addWidget(self.label_9)
         self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
         self.horizontalLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.horizontalLayout_7.addStrut(max( \
+        self.horizontalLayout_7.addStrut(max(
             [self.progressBar.frameSize().height(),
              self.cancelButton.frameSize().height()]))
         self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignLeft)
@@ -170,7 +183,8 @@ class UiGroupBox(QtGui.QWidget):
         self.horizontalLayout_6.addWidget(self.comboBox_3)
         self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_6)
-        self.doubleSpinBox_6.setDecimals(int(-np.log10(np.finfo(float).eps) + 1))
+        self.doubleSpinBox_6.setDecimals(
+            int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_6.setMaximum(float(1000))
         self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
         self.doubleSpinBox_6.setSingleStep(1.0e-2)
@@ -183,7 +197,8 @@ class UiGroupBox(QtGui.QWidget):
         self.tableReacs.horizontalHeader().setVisible(True)
         self.tableReacs.verticalHeader().setVisible(False)
         self.horizontalLayout.addWidget(self.tableReacs)
-        self.label_7.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.label_7.setAlignment(
+            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
         self.verticalLayout.addWidget(self.label_7)
         self.verticalLayout.addWidget(self.comboBox)
         self.doubleSpinBox.setMinimum(0.0)
@@ -198,12 +213,15 @@ class UiGroupBox(QtGui.QWidget):
         self.open_button.clicked.connect(partial(self.open_file))
         self.save_button.clicked.connect(partial(self.save_file))
         self.plotButton.clicked.connect(partial(self.solve_intervals))
-        self.equilibrate_button.clicked.connect(partial(self.recalculate_after_cell_edit, 0, 0))
-        self.tableComps.cellChanged.connect(partial(self.recalculate_after_cell_edit))
+        self.equilibrate_button.clicked.connect(
+            partial(self.recalculate_after_cell_edit, 0, 0))
+        self.tableComps.cellChanged.connect(
+            partial(self.recalculate_after_cell_edit))
         self.info_button.clicked.connect(partial(self.display_about_info))
         self.log_button.clicked.connect(partial(self.show_log))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
-        self.comboBox.currentIndexChanged.connect(partial(self.populate_input_spinboxes))
+        self.comboBox.currentIndexChanged.connect(
+            partial(self.populate_input_spinboxes))
 
         # Icons
         icon0 = QtGui.QIcon()
@@ -236,7 +254,7 @@ class UiGroupBox(QtGui.QWidget):
         self.equilibrate_button.setIcon(icon3)
         self.info_button.setIcon(icon4)
         self.log_button.setIcon(icon5)
-
+        # Retranslate, connect
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
@@ -248,7 +266,8 @@ class UiGroupBox(QtGui.QWidget):
         self.save_button.setText(_translate("parent", "Save", None))
         self.log_button.setText(_translate("parent", "Log", None))
         self.info_button.setText(_translate("parent", "About", None))
-        self.equilibrate_button.setText(_translate("parent", "Equilibrate", None))
+        self.equilibrate_button.setText(
+            _translate("parent", "Equilibrate", None))
         self.tableComps.setSortingEnabled(__sortingEnabled)
         self.plotButton.setText(_translate("parent", "Plot", None))
         self.label_2.setText(_translate("parent", "Nr (Reac.)", None))
@@ -258,7 +277,11 @@ class UiGroupBox(QtGui.QWidget):
         self.label_5.setText(_translate("parent", "solvent", None))
         self.label_6.setText(_translate("parent", "C_solvent (25C)", None))
         self.label_7.setText(_translate("parent", "Horizontal 'X' axis", None))
-        self.label_9.setText(_translate("parent", 'Currently unequilibrated', None))
+        self.label_9.setText(
+            _translate(
+                "parent",
+                'Currently unequilibrated',
+                None))
         self.cancelButton.setText('cancel')
 
     def cancel_loop(self):
@@ -308,7 +331,8 @@ class UiGroupBox(QtGui.QWidget):
             comps = []
             reacs = []
             for row in reader:
-                row_without_blanks = filter(lambda x: len(x.replace(' ', '')) > 0, row)
+                row_without_blanks = filter(
+                    lambda x: len(x.replace(' ', '')) > 0, row)
                 if len(row_without_blanks) == 0:
                     pass  # skip empty line
                 elif 'COMP' in row:
@@ -319,15 +343,20 @@ class UiGroupBox(QtGui.QWidget):
                     reading_reacs = True
                     reading_comps = False
                     header_reacs = next(reader)
-                    header_reacs = filter(lambda x: len(x.replace(' ', '')) > 0, header_reacs)
+                    header_reacs = filter(
+                        lambda x: len(
+                            x.replace(
+                                ' ',
+                                '')) > 0,
+                        header_reacs)
                 elif reading_comps:
                     n += 1
-                    comps.append(map(lambda x: '0' if x == '' or x == ' ' else x, row_without_blanks))
+                    comps.append(map(lambda x: '0' if x == '' or x ==
+                                     ' ' else x, row_without_blanks))
                 elif reading_reacs:
                     Nr += 1
-                    reacs.append(
-                        map(lambda x: '0' if x == '' or x == ' ' else x, row[0: len(header_reacs) - 2 + 2])
-                    )
+                    reacs.append(map(lambda x: '0' if x == '' or x == ' ' else x, row[
+                        0: len(header_reacs) - 2 + 2]))
         csv_file.close()
         comps = np.array(comps)
         reacs = np.array(reacs)
@@ -358,14 +387,21 @@ class UiGroupBox(QtGui.QWidget):
         header_reacs = []
         component_order_in_table = []
         for i in range(self.tableComps.rowCount()):
-            component_order_in_table.append(int(self.tableComps.item(i, 0).text()) - 1)
+            component_order_in_table.append(
+                int(self.tableComps.item(i, 0).text()) - 1)
         for i in range(comps.shape[1]):
-            header_comps.append(self.tableComps.horizontalHeaderItem(i).data(0))
+            header_comps.append(
+                self.tableComps.horizontalHeaderItem(i).data(0))
         for i in range(reacs.shape[1]):
-            header_reacs.append(self.tableReacs.horizontalHeaderItem(i).data(0))
+            header_reacs.append(
+                self.tableReacs.horizontalHeaderItem(i).data(0))
         for j in range(comps.shape[1]):
             for i in range(comps.shape[0]):
-                comps[component_order_in_table[i], j] = self.tableComps.item(i, j).text()
+                comps[
+                    component_order_in_table[i],
+                    j] = self.tableComps.item(
+                    i,
+                    j).text()
         for j in range(reacs.shape[1]):
             for i in range(reacs.shape[0]):
                 reacs[i, j] = self.tableReacs.item(i, j).text()
@@ -410,7 +446,8 @@ class UiGroupBox(QtGui.QWidget):
             self.comboBox_3.addItem(item[1])
         self.comboBox.setCurrentIndex(index_of_second_highest_C0)
         self.doubleSpinBox.setValue(C_second_highest_C0_Tref / 10.0 ** 7)
-        self.doubleSpinBox_2.setValue(C_second_highest_C0_Tref * (1 + 20 / 100.0))
+        self.doubleSpinBox_2.setValue(
+            C_second_highest_C0_Tref * (1 + 20 / 100.0))
         self.comboBox_3.setCurrentIndex(index_of_solvent)
         self.doubleSpinBox_6.setValue(C_solvent_Tref)
         self.doubleSpinBox_6.setPrefix('(mol/L)')
@@ -436,7 +473,8 @@ class UiGroupBox(QtGui.QWidget):
         self.tableReacs.blockSignals(True)
         self.comboBox.blockSignals(True)
         # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
-        # Therefore disable sorting, then set QTableWidgetItems and finally reenable sorting.
+        # Therefore disable sorting, then set QTableWidgetItems and finally
+        # reenable sorting.
         self.tableComps.setSortingEnabled(False)
         self.tableReacs.setSortingEnabled(False)
 
@@ -450,12 +488,14 @@ class UiGroupBox(QtGui.QWidget):
                     if C0_i[row] <= 0:
                         newItem = QtGui.QTableWidgetItem(str(np.nan))
                     else:
-                        newItem = QtGui.QTableWidgetItem(str(-np.log10(C0_i[row].item())))
+                        newItem = QtGui.QTableWidgetItem(
+                            str(-np.log10(C0_i[row].item())))
                 elif column == 6:
                     if Ceq_i[row].item() <= 0:
                         newItem = QtGui.QTableWidgetItem(str(np.nan))
                     else:
-                        newItem = QtGui.QTableWidgetItem(str(-np.log10(Ceq_i[row].item())))
+                        newItem = QtGui.QTableWidgetItem(
+                            str(-np.log10(Ceq_i[row].item())))
                 # sortierbar machen
                 if column != 1:  # Comp. i <Str>
                     newItem = NSortableTableWidgetItem(newItem)
@@ -471,18 +511,24 @@ class UiGroupBox(QtGui.QWidget):
         for column in j:
             for row in i:
                 if column != n + 2:
-                    self.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+                    self.tableReacs.setItem(
+                        row, column, NSortableTableWidgetItem(str(reacs[row][column])))
                 elif column == n + 2:
-                    self.tableReacs.setItem(row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
+                    self.tableReacs.setItem(
+                        row, column, NSortableTableWidgetItem(str(Xieq_j[row].item())))
 
         # Widths and heights, re-enable sorting
         self.tableComps.setSortingEnabled(True)
-        self.tableComps.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.tableComps.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.tableComps.horizontalHeader().setResizeMode(
+            QtGui.QHeaderView.ResizeToContents)
+        self.tableComps.verticalHeader().setResizeMode(
+            QtGui.QHeaderView.ResizeToContents)
 
         self.tableReacs.setSortingEnabled(True)
-        self.tableReacs.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.tableReacs.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.tableReacs.horizontalHeader().setResizeMode(
+            QtGui.QHeaderView.ResizeToContents)
+        self.tableReacs.verticalHeader().setResizeMode(
+            QtGui.QHeaderView.ResizeToContents)
 
         self.tableComps.blockSignals(False)
         self.tableReacs.blockSignals(False)
@@ -492,8 +538,12 @@ class UiGroupBox(QtGui.QWidget):
         pass
 
     def solve_intervals(self):
-        variables_to_check = ['Ceq_series', 'Xieq_series', 'indep_var_series', 'dep_var_series',
-                              'index_of_variable']
+        variables_to_check = [
+            'Ceq_series',
+            'Xieq_series',
+            'indep_var_series',
+            'dep_var_series',
+            'index_of_variable']
         for var in variables_to_check:
             if hasattr(self, var):
                 delattr(self, var)
@@ -515,13 +565,17 @@ class UiGroupBox(QtGui.QWidget):
             [min_value + x
              for x in np.arange(n_points + 1) * (max_value - min_value) / (n_points)]
         C0_variable_comp = C0_i[index_of_variable]
-        mid_index = bisect.bisect(indep_var_series_single, C0_variable_comp) - 1
+        mid_index = bisect.bisect(
+            indep_var_series_single,
+            C0_variable_comp) - 1
         Xieq_j = self.Xieq_j
         Ceq_i = self.Ceq_i
         Ceq_series = np.matrix(np.zeros([n_points + 1, len(Ceq_i)]))
         Xieq_series = np.matrix(np.zeros([n_points + 1, len(Xieq_j)]))
-        dep_var_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
-        indep_var_series = dict.fromkeys(dep_var_labels, indep_var_series_single)
+        dep_var_series = dict(
+            zip(dep_var_labels, np.empty(n + Nr, dtype=np.ndarray)))
+        indep_var_series = dict.fromkeys(
+            dep_var_labels, indep_var_series_single)
         # Keep current solution intact for after plotting range
         self.stored_solution_Ceq_i = self.Ceq_i
         self.stored_solution_Xieq_j = self.Xieq_j
@@ -558,19 +612,22 @@ class UiGroupBox(QtGui.QWidget):
         dep_var_labels = self.dep_var_labels
         labels_to_plot = [x for x in self.dep_var_labels if x.find('Ceq') >= 0]
         # dict, keys:ceq_labels; bindings: plottedseries
-        plotted_series = dict(zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
+        plotted_series = dict(
+            zip(dep_var_labels, np.empty(n + Nr, dtype=object)))
         dep_var_labels = self.dep_var_labels
         dep_var_series = self.dep_var_series
         indep_var_series = self.indep_var_series
         indep_var_label = self.indep_var_label
         self.groupBox = QtGui.QGroupBox()
         self.groupBox.plotBox = UiGroupBoxPlot(self.groupBox)
-        self.groupBox.plotBox.set_variables(plotted_series=plotted_series,
-                                            dep_var_series=dep_var_series,
-                                            dep_var_labels=dep_var_labels,
-                                            dep_var_labels_to_plot=labels_to_plot,
-                                            indep_var_label=indep_var_label,
-                                            indep_var_series=indep_var_series, add_path_arrows=True)
+        self.groupBox.plotBox.set_variables(
+            plotted_series=plotted_series,
+            dep_var_series=dep_var_series,
+            dep_var_labels=dep_var_labels,
+            dep_var_labels_to_plot=labels_to_plot,
+            indep_var_label=indep_var_label,
+            indep_var_series=indep_var_series,
+            add_path_arrows=False)
         self.groupBox.show()
         self.groupBox.plotBox.plot_intervals(labels_to_plot)
 
@@ -606,19 +663,23 @@ class UiGroupBox(QtGui.QWidget):
         index_of_solvent = self.index_of_solvent
 
         # Init. calculations
-        Kc_j = np.multiply(np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
+        Kc_j = np.multiply(
+            np.power(10, -pKa_j), np.power(C_solvent_Tref, nu_ij[index_of_solvent, :]).T)
         self.Kc_j = Kc_j
 
         # Setup logging
         if not os.path.exists('./logs'):
             os.mkdir('./logs')
-        logging.basicConfig(filename='./logs/calculation_results.log', level=logging.DEBUG,
-                            format='%(asctime)s;%(message)s')
+        logging.basicConfig(
+            filename='./logs/calculation_results.log',
+            level=logging.DEBUG,
+            format='%(asctime)s;%(message)s')
 
         # First estimates for eq. Composition Ceq and Reaction extent Xieq
         if not hasattr(self, 'acceptable_solution'):
             Ceq_i_0 = C0_i
-            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
+            # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
+            # 10.1002/cjce.5450660409
             Ceq_i_0[C0_i == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
             Xieq_j_0 = np.matrix(np.zeros([Nr, 1]))
         else:
@@ -654,11 +715,15 @@ class UiGroupBox(QtGui.QWidget):
             else:
                 # Set reactions to random extent and recalculate
                 # TODO: scale to concentration sizes
-                self.Xieq_j_0 = np.matrix(np.random.normal(0.0, 1.0 / 3.0, Nr)).T
-                # Set aequilibrium composition to initial value + estimated conversion
+                self.Xieq_j_0 = np.matrix(
+                    np.random.normal(0.0, 1.0 / 3.0, Nr)).T
+                # Set aequilibrium composition to initial value + estimated
+                # conversion
                 self.Ceq_i_0 = C0_i  # + nu_ij * self.Xieq_j_0
-                # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI: 10.1002/cjce.5450660409
-                self.Ceq_i_0[self.Ceq_i_0 == 0] = min(C0_i[C0_i != 0].A1) * np.finfo(float).eps
+                # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
+                # 10.1002/cjce.5450660409
+                self.Ceq_i_0[self.Ceq_i_0 == 0] = min(
+                    C0_i[C0_i != 0].A1) * np.finfo(float).eps
                 self.initialEstimateAttempts += 1
                 self.methodLoops = [0, 0]
 
@@ -688,20 +753,31 @@ class UiGroupBox(QtGui.QWidget):
         self.aboutBox_1.setOpenExternalLinks(True)
         addingTable = False
 
-        htmlStream = \
-            unicode('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
-                    'utf_8')
+        htmlStream = unicode(
+            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
+            'utf_8')
         htmlStream += unicode('<html>', 'utf_8')
-        htmlStream += unicode('<head><meta name="qrichtext" content="1" /><style type="text/css">' +
-                              '\\np,li {white-space: pre-wrap;}\n' +
-                              '\\np,br {line-height: 10%;}\n' +
-                              '</style></head>', 'utf_8')
+        htmlStream += unicode(
+            '<head><meta name="qrichtext" content="1" /><style type="text/css">' +
+            '\\np,li {white-space: pre-wrap;}\n' +
+            '\\np,br {line-height: 10%;}\n' +
+            '</style></head>',
+            'utf_8')
 
-        htmlStream += unicode('<body style=' + '"' + ' font-family:' + "'" + 'MS Shell Dlg 2' + "'" +
-                              '; font-size:8.25pt; font-weight:400; font-style:normal;' + '"' + '>', 'utf_8')
+        htmlStream += unicode('<body style=' +
+                              '"' +
+                              ' font-family:' +
+                              "'" +
+                              'MS Shell Dlg 2' +
+                              "'" +
+                              '; font-size:8.25pt; font-weight:400; font-style:normal;' +
+                              '"' +
+                              '>', 'utf_8')
         stringToAdd = unicode('', 'utf_8')
-        startingP = unicode("<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
-                            "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>", 'utf_8')
+        startingP = unicode(
+            "<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
+            "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>",
+            'utf_8')
         endingP = unicode('</p>', 'utf_8')
         matchingHLine = re.compile('=+')
         with open('README.md') as readme_file:
@@ -730,10 +806,15 @@ class UiGroupBox(QtGui.QWidget):
                 else:
                     htmlStream += stringToAdd
         htmlStream += unicode('<hr />', 'utf_8')
-        htmlStream += unicode("<footer><p>" +
-                              '<a href=' + '"' + 'https://github.com/santiago-salas-v/lit-impl-py' + '"' + '>' +
-                              'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
-                              'utf_8')
+        htmlStream += unicode(
+            "<footer><p>" +
+            '<a href=' +
+            '"' +
+            'https://github.com/santiago-salas-v/lit-impl-py' +
+            '"' +
+            '>' +
+            'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
+            'utf_8')
         htmlStream += unicode('</body></html>', 'utf_8')
         readme_file.close()
         self.aboutBox_1.setHtml(htmlStream)
@@ -810,83 +891,115 @@ class UiGroupBox(QtGui.QWidget):
 
 
 class UiGroupBoxPlot(QtGui.QWidget):
+
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
+        # Default size
         parent.resize(741, 421)
+        # Assignments
+        self.icon_down = QtGui.QIcon(os.path.join(
+            sys.path[0], *['utils', 'glyphicons-602-chevron-down.png']))
+        self.icon_up = QtGui.QIcon(os.path.join(
+            sys.path[0], *['utils', 'glyphicons-601-chevron-up.png']))
         self.verticalLayout_1 = QtGui.QVBoxLayout(parent)
-        self.verticalLayout_1.setObjectName("verticalLayout_1")
-        self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
         self.horizontalTools = QtGui.QHBoxLayout()
-        self.horizontalTools.setAlignment(QtCore.Qt.AlignVCenter)
         self.toolsFrame = QtGui.QFrame()
-        self.toolsFrame.setLayout(self.horizontalTools)
         self.toggleLogButtonX = QtGui.QPushButton()
         self.toggleLogButtonY = QtGui.QPushButton()
         self.eraseAnnotationsB = QtGui.QPushButton()
+        self.navigation_frame = QtGui.QFrame()
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.figure = Figure(dpi=72, facecolor=(1, 1, 1),
+                             edgecolor=(0, 0, 0))
+        self.ax = self.figure.add_subplot(111)
+        self.canvas = FigureCanvas(self.figure)
+        self.verticalLayout = QtGui.QVBoxLayout()
+        self.label = QtGui.QLabel(parent)
+        self.listWidget_2 = QtGui.QListWidget(parent)
+        self.label_2 = QtGui.QLabel(parent)
+        self.listWidget = QtGui.QListWidget(parent)
+        self.plotButton = QtGui.QPushButton(parent)
+        self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
+        log_scale_func_list = [
+            ('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
+        self.horizontalLayout_1 = QtGui.QHBoxLayout()
+        self.all_to_displayed = QtGui.QPushButton()
+        self.all_to_available = QtGui.QPushButton()
+        # Default log_log_scale_func_list
+        self.set_log_scale_func_list(log_scale_func_list)
+        # Object names
+        self.verticalLayout_1.setObjectName("verticalLayout_1")
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.canvas.setObjectName("canvas")
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label.setObjectName("label")
+        self.listWidget_2.setObjectName("listWidget_2")
+        self.label_2.setObjectName("label_2")
+        self.listWidget.setObjectName("listWidget")
+        self.plotButton.setObjectName("plotButton")
+        # Operations
+        self.eraseAnnotationsB.setIcon(QtGui.QIcon(os.path.join(
+            sys.path[0], *['utils', 'glyphicons-551-erase.png'])))
+        self.figure.subplots_adjust(bottom=0.15)
+        self.ax.grid('on')
+        self.horizontalLayout.addWidget(self.canvas)
+        self.verticalLayout_1.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalTools.setContentsMargins(0, 0, 0, 0)
+        self.horizontalTools.setAlignment(QtCore.Qt.AlignVCenter)
+        self.toolsFrame.setLayout(self.horizontalTools)
         self.toggleLogButtonX.setCheckable(True)
         self.toggleLogButtonY.setCheckable(True)
-        self.eraseAnnotationsB.setIcon(
-            QtGui.QIcon(os.path.join(sys.path[0], *['utils', 'glyphicons-551-erase.png'])))
-        self.navigation_frame = QtGui.QFrame()
         self.verticalLayout_1.addWidget(self.navigation_frame)
         self.horizontalTools.addWidget(self.toggleLogButtonY)
         self.horizontalTools.addWidget(self.toggleLogButtonX)
         self.horizontalTools.addWidget(self.eraseAnnotationsB)
         self.verticalLayout_1.addWidget(self.toolsFrame)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout_1.addLayout(self.horizontalLayout)
-        # Generate the plot
-        self.figure = Figure(dpi=72, facecolor=(1, 1, 1),
-                             edgecolor=(0, 0, 0))
-        self.ax = self.figure.add_subplot(111)
-        self.figure.subplots_adjust(bottom=0.15)
-        self.ax.grid('on')
-        # Generate the canvas to display the plot
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setObjectName("canvas")
-        self.horizontalLayout.addWidget(self.canvas)
-        self.verticalLayout = QtGui.QVBoxLayout()
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label = QtGui.QLabel(parent)
-        self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
-        self.listWidget_2 = QtGui.QListWidget(parent)
-        self.listWidget_2.setObjectName("listWidget_2")
-        self.listWidget_2.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.listWidget_2.setSelectionMode(
+            QtGui.QAbstractItemView.SingleSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
         self.listWidget_2.setSortingEnabled(True)
-        self.verticalLayout.addWidget(self.listWidget_2)
-        self.label_2 = QtGui.QLabel(parent)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
-        self.listWidget = QtGui.QListWidget(parent)
-        self.listWidget.setObjectName("listWidget")
         self.listWidget.setSortingEnabled(True)
+        self.verticalLayout.addWidget(self.label)
+        self.verticalLayout.addWidget(self.listWidget_2)
+        self.verticalLayout.addLayout(self.horizontalLayout_1)
+        self.all_to_displayed.setIcon(self.icon_up)
+        self.all_to_available.setIcon(self.icon_down)
+        self.horizontalLayout_1.addWidget(self.all_to_available)
+        self.horizontalLayout_1.addWidget(self.all_to_displayed)
+        self.verticalLayout.addWidget(self.label_2)
         self.verticalLayout.addWidget(self.listWidget)
-        self.pushButton = QtGui.QPushButton(parent)
-        self.pushButton.setObjectName("plotButton")
-        self.verticalLayout.addWidget(self.pushButton)
+        self.verticalLayout.addWidget(self.plotButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
-        self.listWidget_2.itemDoubleClicked.connect(partial(self.move_to_available))
-        self.listWidget.itemDoubleClicked.connect(partial(self.move_to_displayed))
-        self.toggleLogButtonX.toggled.connect(partial(self.toggled_toggleLogButtonX))
-        self.toggleLogButtonY.toggled.connect(partial(self.toggled_toggleLogButtonY))
-        self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
-        self.pushButton.clicked.connect(partial(self.force_update_plot))
-        self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
-        # Default log_log_scale_func_list
-        log_scale_func_list = [('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
-        self.set_log_scale_func_list(log_scale_func_list)
+        # Events
+        self.listWidget_2.itemDoubleClicked.connect(
+            partial(self.move_to_available))
+        self.listWidget.itemDoubleClicked.connect(
+            partial(self.move_to_displayed))
+        self.toggleLogButtonX.toggled.connect(
+            partial(self.toggled_toggleLogButtonX))
+        self.toggleLogButtonY.toggled.connect(
+            partial(self.toggled_toggleLogButtonY))
+        self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
+        self.plotButton.clicked.connect(partial(self.force_update_plot))
+        # Retranslate, connect
         self.retranslateUi(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
 
-    def set_variables(self, plotted_series, dep_var_series,
-                      dep_var_labels, indep_var_label, indep_var_series,
-                      dep_var_labels_to_plot=None,
-                      logXChecked=True, logYChecked=True, log_scale_func_list=None,
-                      add_path_arrows=False):
+    def set_variables(
+            self,
+            plotted_series,
+            dep_var_series,
+            dep_var_labels,
+            indep_var_label,
+            indep_var_series,
+            dep_var_labels_to_plot=None,
+            logXChecked=True,
+            logYChecked=True,
+            log_scale_func_list=None,
+            add_path_arrows=False):
         self.toggleLogButtonX.blockSignals(True)
         self.toggleLogButtonY.blockSignals(True)
         self.toggleLogButtonX.setChecked(logXChecked)
@@ -908,8 +1021,9 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.log_indep_var_series = dict.fromkeys(indep_var_series.keys())
         self.add_path_arrows = add_path_arrows
         # Default log scale to -log10, but enable use of other log scales depending on setting of this array.
-        # Form: [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
-        if log_scale_func_list == None:
+        # Form:
+        # [(log_scale_string,log_scale_func),(invlog_scale_string,invlog_scale_func)]
+        if log_scale_func_list is None:
             pass
         else:
             self.set_log_scale_func_list(log_scale_func_list)
@@ -923,12 +1037,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
         for label in dep_var_labels:
             if label in dep_var_labels_to_plot:
                 new_item = QtGui.QListWidgetItem(label, self.listWidget_2)
-                new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                          *['utils', 'glyphicons-602-chevron-down.png'])))
+                new_item.setIcon(self.icon_down)
             else:
                 new_item = QtGui.QListWidgetItem(label, self.listWidget)
-                new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                          *['utils', 'glyphicons-601-chevron-up.png'])))
+                new_item.setIcon(self.icon_up)
 
     def force_update_plot(self):
         ylabel = self.ax.get_ylabel()
@@ -942,25 +1054,76 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.invlog_scale_string = log_scale_func_list[1][0]
         self.invlog_scale_func = log_scale_func_list[1][1]
         self.find_log_variable = re.compile(
-            '\$?(?P<log>' + self.log_scale_string + '\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?')
-        self.toggleLogButtonX.setText(self.log_scale_string + "(x) - horizontal")
+            '\$?(?P<log>' +
+            self.log_scale_string +
+            '\()(?P<id>[^\$]*)(\))\$?|\$?(?P<id2>[^\$]*)\$?')
+        self.toggleLogButtonX.setText(
+            self.log_scale_string + "(x) - horizontal")
         self.toggleLogButtonY.setText(self.log_scale_string + "(y) - vertical")
 
     def retranslateUi(self, parent):
-        parent.setWindowTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        parent.setTitle(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("parent", "Displayed", None, QtGui.QApplication.UnicodeUTF8))
+        parent.setWindowTitle(
+            QtGui.QApplication.translate(
+                "parent",
+                "Plot",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
+        parent.setTitle(
+            QtGui.QApplication.translate(
+                "parent",
+                "Plot",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(
+            QtGui.QApplication.translate(
+                "parent",
+                "Displayed",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(
-            QtGui.QApplication.translate("parent", "Available", None, QtGui.QApplication.UnicodeUTF8))
-        self.pushButton.setText(QtGui.QApplication.translate("parent", "Plot", None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate(
+                "parent",
+                "Available",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
+        self.plotButton.setText(
+            QtGui.QApplication.translate(
+                "parent",
+                "Plot",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
         self.toggleLogButtonX.setText(
-            QtGui.QApplication.translate("parent", self.log_scale_string + "(x) - horizontal",
-                                         None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate(
+                "parent",
+                self.log_scale_string +
+                "(x) - horizontal",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
         self.toggleLogButtonY.setText(
-            QtGui.QApplication.translate("parent", self.log_scale_string + "(y) - vertical",
-                                         None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate(
+                "parent",
+                self.log_scale_string +
+                "(y) - vertical",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
         self.eraseAnnotationsB.setText(
-            QtGui.QApplication.translate("parent", "Erase annotations", None, QtGui.QApplication.UnicodeUTF8))
+            QtGui.QApplication.translate(
+                "parent",
+                "Erase annotations",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
+        self.all_to_available.setText(
+            QtGui.QApplication.translate(
+                "parent",
+                "All",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
+        self.all_to_displayed.setText(
+            QtGui.QApplication.translate(
+                "parent",
+                "All",
+                None,
+                QtGui.QApplication.UnicodeUTF8))
 
     def toggled_toggleLogButtonX(self, checked):
         self.delete_arrows()
@@ -971,7 +1134,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
             line_label = line_label_match.group('id')
             if line_label is None:
                 line_label = line_label_match.group('id2')
-            if not checked and (match.group('log') is not None):  # just unchecked
+            if not checked and (
+                    match.group('log') is not None):  # just unchecked
                 if line_label in self.indep_var_series.keys():
                     line.set_xdata(self.indep_var_series[line_label])
                 else:
@@ -983,11 +1147,23 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 else:
                     # TODO: Check first if any data are nan due to conversion.
                     line.set_xdata(self.log_scale_func(line_xdata))
-                self.ax.set_xlabel('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
+                self.ax.set_xlabel(
+                    '$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
         if self.add_path_arrows:
-            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
-                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
-        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            add_arrow_to_line2D(
+                self.ax,
+                self.ax.get_lines(),
+                arrow_locs=np.linspace(
+                    0.,
+                    1.,
+                    15),
+                arrow_style='->',
+                arrow_size=2)
+        self.ax.legend(
+            loc='best',
+            fancybox=True,
+            borderaxespad=0.,
+            framealpha=0.5).draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
@@ -1000,21 +1176,37 @@ class UiGroupBoxPlot(QtGui.QWidget):
             match = self.find_log_variable.search(line_label)
             if not checked and (match.group('log') is not None):
                 if match.group('id') in self.dep_var_series.keys():
-                    line.set_ydata(self.dep_var_series[match.group('id')].A1.tolist())
+                    line.set_ydata(
+                        self.dep_var_series[
+                            match.group('id')].A1.tolist())
                 else:
                     line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label(u'$' + match.group('id') + u'$')
             else:
                 if match.group('id2') in self.dep_var_series.keys():
-                    line.set_ydata(self.log_dep_var_series[match.group('id2')].A1.tolist())
+                    line.set_ydata(
+                        self.log_dep_var_series[
+                            match.group('id2')].A1.tolist())
                 else:
                     # TODO: Check first if any data are nan due to conversion.
                     line.set_ydata(self.invlog_scale_func(line_ydata))
-                line.set_label('$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
+                line.set_label('$' + self.log_scale_string +
+                               '(' + match.group('id2') + ')' + '$')
         if self.add_path_arrows:
-            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
-                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
-        self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            add_arrow_to_line2D(
+                self.ax,
+                self.ax.get_lines(),
+                arrow_locs=np.linspace(
+                    0.,
+                    1.,
+                    15),
+                arrow_style='->',
+                arrow_size=2)
+        self.ax.legend(
+            loc='best',
+            fancybox=True,
+            borderaxespad=0.,
+            framealpha=0.5).draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
@@ -1038,12 +1230,13 @@ class UiGroupBoxPlot(QtGui.QWidget):
             elif match is not None and match.group('id2') is not None:
                 done_series.append(match.group('id2'))
         for x in item_texts:
-            if not x in done_series:
+            if x not in done_series:
                 series_to_plot.append(x)
         if not self.toggleLogButtonX.isChecked():
             indep_var_label = '$' + self.indep_var_label + '$'
         else:
-            indep_var_label = '$' + self.log_scale_string + '(' + self.indep_var_label + ')$'
+            indep_var_label = '$' + self.log_scale_string + \
+                              '(' + self.indep_var_label + ')$'
         for label in series_to_plot:
             if not self.toggleLogButtonX.isChecked():
                 indep_var_values = self.indep_var_series[label]
@@ -1061,15 +1254,25 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
-            dc[label] = datacursor(plotted_series[label], draggable=True, display='multiple',
-                                   arrowprops=dict(arrowstyle='simple', fc='white', alpha=0.5),
-                                   bbox=dict(fc='white', alpha=0.5),
-                                   formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
+            dc[label] = datacursor(
+                plotted_series[label], draggable=True, display='multiple', arrowprops=dict(
+                    arrowstyle='simple', fc='white', alpha=0.5), bbox=dict(
+                    fc='white', alpha=0.5), formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
         if self.add_path_arrows:
-            add_arrow_to_line2D(self.ax, self.ax.get_lines(),
-                                arrow_locs=np.linspace(0., 1., 15), arrow_style='->', arrow_size=2)
+            add_arrow_to_line2D(
+                self.ax,
+                self.ax.get_lines(),
+                arrow_locs=np.linspace(
+                    0.,
+                    1.,
+                    15),
+                arrow_style='->',
+                arrow_size=2)
         self.ax.legend(
-            loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            loc='best',
+            fancybox=True,
+            borderaxespad=0.,
+            framealpha=0.5).draggable(True)
         self.plotted_series = plotted_series
         self.dc = dc
         self.ax.set_xlabel(indep_var_label, fontsize=14)
@@ -1081,8 +1284,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         if text_list is None:
             text_list = [x.get_text() for x in self.figure.texts]
         for text in text_list:
-            indexes_of_text = \
-                np.where([x.get_text().find(text) >= 0 for x in self.figure.texts])[0]
+            indexes_of_text = np.where(
+                [x.get_text().find(text) >= 0 for x in self.figure.texts])[0]
             if len(indexes_of_text) > 1:
                 l = self.figure.texts.pop(indexes_of_text[0].item())
                 del l
@@ -1097,18 +1300,21 @@ class UiGroupBoxPlot(QtGui.QWidget):
             return
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget)
-        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                  *['utils', 'glyphicons-601-chevron-up.png'])))
+        new_item.setIcon(QtGui.QIcon(os.path.join(
+            sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
         self.listWidget_2.takeItem(self.listWidget_2.currentRow())
-        associated_annotations = \
-            [self.figure.texts[x].get_text() for x in
-             np.where([x.get_text().find(name) >= 0 for x in self.figure.texts])[0]]
+        associated_annotations = [self.figure.texts[x].get_text() for x in np.where(
+            [x.get_text().find(name) >= 0 for x in self.figure.texts])[0]]
         self.erase_annotations(associated_annotations)
         l = self.ax.lines.pop(np.where(
             [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
         del l
         if len(self.ax.lines) > 0:
-            self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            self.ax.legend(
+                loc='best',
+                fancybox=True,
+                borderaxespad=0.,
+                framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
         self.ax.relim()
@@ -1119,12 +1325,16 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.delete_arrows()
         name = item.text()
         new_item = QtGui.QListWidgetItem(name, self.listWidget_2)
-        new_item.setIcon(QtGui.QIcon(os.path.join(sys.path[0],
-                                                  *['utils', 'glyphicons-602-chevron-down.png'])))
+        new_item.setIcon(QtGui.QIcon(os.path.join(
+            sys.path[0], *['utils', 'glyphicons-602-chevron-down.png'])))
         self.listWidget.takeItem(self.listWidget.currentRow())
         self.plot_intervals([name])
         if len(self.ax.lines) > 0:
-            self.ax.legend(loc='best', fancybox=True, borderaxespad=0., framealpha=0.5).draggable(True)
+            self.ax.legend(
+                loc='best',
+                fancybox=True,
+                borderaxespad=0.,
+                framealpha=0.5).draggable(True)
         else:
             del self.ax.legend
         self.ax.relim()
@@ -1143,6 +1353,7 @@ class UiGroupBoxPlot(QtGui.QWidget):
 
 
 class LogWidget(QtGui.QWidget):
+
     def __init__(self, _log, parent):
         QtGui.QWidget.__init__(self, parent)
         self.log = _log
@@ -1154,11 +1365,12 @@ class LogWidget(QtGui.QWidget):
         self.setupUi(parent)
 
     def setupUi(self, parent):
+        # Default size
         self.minLogHeight = 400
         self.minLogWidth = self.minLogHeight * 16 / 9
         parent.resize(self.minLogWidth, self.minLogHeight)
+        # Assignments
         self.verticalLayout = QtGui.QVBoxLayout(parent)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.pandasView = QtGui.QTableView()
         self.firstButton = QtGui.QPushButton()
@@ -1170,6 +1382,21 @@ class LogWidget(QtGui.QWidget):
         self.pageBox = QtGui.QLineEdit()
         self.exportButton = QtGui.QPushButton()
         self.plotButton = QtGui.QPushButton()
+        self.displayItemsByPage = 50
+        self.currentPageFirstEntry = len(self.log.values) \
+            - self.displayItemsByPage
+        # Operations
+        parent.setWindowTitle('calculation log')
+        self.firstButton.setText('<< First')
+        self.lastButton.setText('Last >>')
+        self.previousButton.setText('< Previous')
+        self.nextButton.setText('Next >')
+        self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
+        self.pageBox.setAlignment(
+            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
+        self.exportButton.setText('Export (csv)')
+        self.plotButton.setText('Plot solution paths')
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.verticalLayout.addWidget(self.pandasView)
         self.verticalLayout.addWidget(self.exportButton)
@@ -1182,6 +1409,15 @@ class LogWidget(QtGui.QWidget):
         self.horizontalLayout.addWidget(self.nextButton)
         self.horizontalLayout.addWidget(self.lastButton)
 
+        # To ensure full display, first set resize modes, then resize columns
+        # to contents
+        self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
+        self.pandasView.verticalHeader().setResizeMode(
+            QtGui.QHeaderView.ResizeToContents)
+        self.pandasView.setWordWrap(True)
+        self.pandasView.resizeColumnsToContents()
+
+        # Events
         self.firstButton.clicked.connect(partial(self.firstPage))
         self.lastButton.clicked.connect(partial(self.lastPage))
         self.nextButton.clicked.connect(partial(self.nextPage))
@@ -1189,26 +1425,7 @@ class LogWidget(QtGui.QWidget):
         self.exportButton.clicked.connect(partial(self.exportData))
         self.plotButton.clicked.connect(partial(self.plotData))
         self.pageBox.editingFinished.connect(partial(self.goToPageNo))
-
-        # To ensure full display, first set resize modes, then resize columns to contents
-        self.pandasView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Interactive)
-        self.pandasView.verticalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-        self.pandasView.setWordWrap(True)
-        self.pandasView.resizeColumnsToContents()
-
-        parent.setWindowTitle('calculation log')
-        self.firstButton.setText('<< First')
-        self.lastButton.setText('Last >>')
-        self.previousButton.setText('< Previous')
-        self.nextButton.setText('Next >')
-        self.pageBox.setMaximumWidth(int(round(self.minLogHeight / float(5))))
-        self.pageBox.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.exportButton.setText('Export (csv)')
-        self.plotButton.setText('Plot solution paths')
-
-        self.displayItemsByPage = 50
-        self.currentPageFirstEntry = len(self.log.values) \
-                                     - self.displayItemsByPage
+        # Display
         self.display()
 
     def firstPage(self):
@@ -1218,17 +1435,17 @@ class LogWidget(QtGui.QWidget):
 
     def lastPage(self):
         self.currentPageFirstEntry = len(self.log.values) \
-                                     - self.displayItemsByPage
+            - self.displayItemsByPage
         self.display()
 
     def nextPage(self):
         if self.currentPageLastEntry + \
                 self.displayItemsByPage > len(self.log.values):
             self.currentPageFirstEntry = len(self.log.values) \
-                                         - self.displayItemsByPage
+                - self.displayItemsByPage
         else:
             self.currentPageFirstEntry = self.currentPageFirstEntry + \
-                                         self.displayItemsByPage
+                self.displayItemsByPage
         self.display()
 
     def previousPage(self):
@@ -1237,21 +1454,21 @@ class LogWidget(QtGui.QWidget):
             self.currentPageFirstEntry = 0
         else:
             self.currentPageFirstEntry = self.currentPageFirstEntry - \
-                                         self.displayItemsByPage
+                self.displayItemsByPage
         self.display()
 
     def goToPageNo(self):
         pageText = self.pageBox.text()
         try:
             pageNo = int(round(float(pageText)))
-            self.lastPage = int(round(len(self.log.values) / \
+            self.lastPage = int(round(len(self.log.values) /
                                       float(self.displayItemsByPage)))
             if pageNo < self.lastPage:
                 self.currentPageFirstEntry = \
                     (pageNo - 1) * self.displayItemsByPage + 1
             elif pageNo >= self.lastPage:
                 self.currentPageFirstEntry = len(self.log.values) \
-                                             - self.displayItemsByPage
+                    - self.displayItemsByPage
             elif pageNo <= 1:
                 self.currentPageFirstEntry = 1
             self.display()
@@ -1261,10 +1478,10 @@ class LogWidget(QtGui.QWidget):
     def display(self):
         # Page number
         self.currentPageLastEntry = self.currentPageFirstEntry + \
-                                    self.displayItemsByPage
-        self.currentPage = int(round(self.currentPageLastEntry / \
+            self.displayItemsByPage
+        self.currentPage = int(round(self.currentPageLastEntry /
                                      float(self.displayItemsByPage)))
-        self.lastPage = int(round(len(self.log.values) / \
+        self.lastPage = int(round(len(self.log.values) /
                                   float(self.displayItemsByPage)))
 
         self.pandasModel = PandasModel(
@@ -1275,15 +1492,19 @@ class LogWidget(QtGui.QWidget):
             map(str, range(self.currentPageFirstEntry,
                            self.currentPageLastEntry + 1, 1))
         self.totPagesLabel.setText(' / ' + str(self.lastPage))
-        self.pageLabel.setText('Entries ' + str(self.currentPageFirstEntry) +
-                               ' to ' + str(self.currentPageLastEntry) + '; Page: ')
+        self.pageLabel.setText('Entries ' +
+                               str(self.currentPageFirstEntry) +
+                               ' to ' +
+                               str(self.currentPageLastEntry) +
+                               '; Page: ')
         self.pageBox.blockSignals(True)
         self.pageBox.setText(str(self.currentPage))
         self.pageBox.blockSignals(False)
 
     def exportData(self):
         supportedFilters = ['CSV file (*.csv)']
-        # TODO: supportedFilters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)', 'XLS (2007) (*.xls)']
+        # TODO: supportedFilters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)',
+        # 'XLS (2007) (*.xls)']
         (fileName, selectedFilter) = QtGui.QFileDialog.getSaveFileName(
             parent=self.group_2,
             caption='enter file name to save...',
@@ -1299,11 +1520,14 @@ class LogWidget(QtGui.QWidget):
         # dict, keys:ceq_labels; bindings: plottedseries
         dep_var_labels = grouped.head(1)['date'].apply(lambda x: str(x)).values
         indep_var_label = 'accum step'
-        dep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        indep_var_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        plotted_series = dict(zip(dep_var_labels, np.empty(len(dep_var_labels))))
-        log_scale_func_list = \
-            [('log10', lambda x: +1.0 * np.log10(x)), ('', lambda x: 10.0 ** (+1.0 * x))]
+        dep_var_series = dict(
+            zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        indep_var_series = dict(
+            zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        plotted_series = dict(
+            zip(dep_var_labels, np.empty(len(dep_var_labels))))
+        log_scale_func_list = [
+            ('log10', lambda x: +1.0 * np.log10(x)), ('', lambda x: 10.0 ** (+1.0 * x))]
 
         for name, group in grouped:
             index = group['date'].head(1).apply(lambda x: str(x)).values.item()
@@ -1365,8 +1589,8 @@ def calc_Xieq(form):
     accum_step = 0.0
     # For progress bar, use log scale to compensate for quadratic convergence
     log10_to_o_max_magnitude_f = np.log10(tol / magnitude_F)
-    progress_k = \
-        (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
+    progress_k = (1.0 - np.log10(tol / magnitude_F) /
+                  log10_to_o_max_magnitude_f) * 100.0
     diff = np.matrix(np.empty([len(X), 1]))
     diff.fill(np.nan)
     stop = False
@@ -1374,8 +1598,22 @@ def calc_Xieq(form):
     # Add progress bar & variable
     form.progressBar.setValue(0)
     update_status_label(form, k, 'solving...' if not stop else 'solved.')
-    series_id = str(uuid.uuid1())  # Unique identifier for plotting logged solutions
-    new_log_entry('Newton', k, 0, 0, accum_step, X, diff, F_val, 0 * Y, np.nan, np.nan, stop, series_id)
+    # Unique identifier for plotting logged solutions
+    series_id = str(uuid.uuid1())
+    new_log_entry(
+        'Newton',
+        k,
+        0,
+        0,
+        accum_step,
+        X,
+        diff,
+        F_val,
+        0 * Y,
+        np.nan,
+        np.nan,
+        stop,
+        series_id)
     while k <= max_it and not stop:
         k += 1
         form.methodLoops[1] += 1
@@ -1391,24 +1629,47 @@ def calc_Xieq(form):
         J_val = j(X)
         F_val = f(X)
         magnitude_F = np.sqrt((F_val.T * F_val).item())
-        new_log_entry('Newton', k, j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
-                      np.nan, np.nan, stop, series_id)
+        new_log_entry(
+            'Newton',
+            k,
+            j_it,
+            lambda_ls,
+            accum_step,
+            X,
+            diff,
+            F_val,
+            lambda_ls * Y,
+            np.nan,
+            np.nan,
+            stop,
+            series_id)
         if magnitude_F < tol and all(X[0:n] >= 0):
             stop = True  # Procedure successful
             form.progressBar.setValue(100.0)
         else:
-            # For progress bar, use log scale to compensate for quadratic convergence
-            update_status_label(form, k, 'solving...' if not stop else 'solved.')
-            progress_k = \
-                (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0
+            # For progress bar, use log scale to compensate for quadratic
+            # convergence
+            update_status_label(
+                form, k, 'solving...' if not stop else 'solved.')
+            progress_k = (1.0 - np.log10(tol / magnitude_F) /
+                          log10_to_o_max_magnitude_f) * 100.0
             if np.isnan(magnitude_F) or np.isinf(magnitude_F):
                 stop = True  # Divergent method
                 divergent = True
                 form.progressBar.setValue(
-                    (1.0 - np.log10(np.finfo(float).eps) / log10_to_o_max_magnitude_f) * 100.0)
+                    (1.0 -
+                     np.log10(
+                         np.finfo(float).eps) /
+                        log10_to_o_max_magnitude_f) *
+                    100.0)
             else:
                 form.progressBar.setValue(
-                    (1.0 - np.log10(tol / magnitude_F) / log10_to_o_max_magnitude_f) * 100.0)
+                    (1.0 -
+                     np.log10(
+                         tol /
+                         magnitude_F) /
+                        log10_to_o_max_magnitude_f) *
+                    100.0)
             if round(progress_k) == round(progress_k_m_1):
                 QtGui.QApplication.processEvents()
                 # if form.progressBar.wasCanceled():
@@ -1425,11 +1686,27 @@ def calc_Xieq(form):
             diff = X - X_k_m_1
             J_val = j(X)
             F_val = f(X)
-            new_log_entry('Newton', k, j_it, lambda_ls, accum_step, X, diff, F_val, lambda_ls * Y,
-                          np.nan, np.nan, stop, series_id)
+            new_log_entry(
+                'Newton',
+                k,
+                j_it,
+                lambda_ls,
+                accum_step,
+                X,
+                diff,
+                F_val,
+                lambda_ls * Y,
+                np.nan,
+                np.nan,
+                stop,
+                series_id)
             form.methodLoops[0] += 1
-            update_status_label(form, k, 'solving...' if not stop else 'solved.')
-    update_status_label(form, k, 'solved.' if stop and not divergent else 'solution not found.')
+            update_status_label(
+                form, k, 'solving...' if not stop else 'solved.')
+    update_status_label(
+        form,
+        k,
+        'solved.' if stop and not divergent else 'solution not found.')
     Ceq_i = X[0:n]
     Xieq_j = X[n:n + Nr]
     return Ceq_i, Xieq_j
@@ -1457,15 +1734,32 @@ def jac(X, C0_i, nu_ij, n, Nr, Kc_j):
 
 def update_status_label(form, k, solved):
     form.label_9.setText('Loops: Newton \t' +
-                         str(form.methodLoops[1]) + ' \t Line search (backtrack) \t' +
+                         str(form.methodLoops[1]) +
+                         ' \t Line search (backtrack) \t' +
                          str(form.methodLoops[0]) +
                          ' \t Initial estimate attempts \t' +
-                         str(form.initialEstimateAttempts) + '\n' +
-                         'Iteration (k) \t' + str(k) +
-                         '\n' + str(solved))
+                         str(form.initialEstimateAttempts) +
+                         '\n' +
+                         'Iteration (k) \t' +
+                         str(k) +
+                         '\n' +
+                         str(solved))
 
 
-def new_log_entry(method, k, backtrack, lambda_ls, accum_step, X, diff, f_val, Y, g_min, g1, stop, series_id):
+def new_log_entry(
+        method,
+        k,
+        backtrack,
+        lambda_ls,
+        accum_step,
+        X,
+        diff,
+        f_val,
+        Y,
+        g_min,
+        g1,
+        stop,
+        series_id):
     logging.debug(method + ' ' +
                   ';k=' + str(k) +
                   ';backtrack=' + str(backtrack) +
@@ -1512,6 +1806,7 @@ class PandasModel(QtCore.QAbstractTableModel):
 
 
 class aboutBox(QtGui.QMessageBox):
+
     def __init__(self, parent=None):
         QtGui.QMessageBox.__init__(self, parent)
 
@@ -1524,6 +1819,7 @@ class aboutBox(QtGui.QMessageBox):
 
 class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
     # Implement less than (<) for numeric table widget items.
+
     def __init__(self, text):
         QtGui.QTableWidgetItem.__init__(self, text)
 
@@ -1536,6 +1832,7 @@ class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
 
 
 class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
+
     def __init__(self, parent=None):
         QtGui.QDoubleSpinBox.__init__(self, parent)
         self.setMinimum(-np.inf)
@@ -1565,6 +1862,7 @@ class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
 
 
 class FloatValidator(QtGui.QValidator):
+
     def validate(self, string, position):
         if valid_float_string(string):
             return self.State.Acceptable
@@ -1596,8 +1894,8 @@ def add_arrow_to_line2D(
     --------
     arrows: list of arrows
     """
-    if (not (isinstance(line, list)) or not (isinstance(line[0],
-                                                        matplotlib.lines.Line2D))):
+    if (not (isinstance(line, list)) or not (
+            isinstance(line[0], matplotlib.lines.Line2D))):
         raise ValueError("expected a matplotlib.lines.Line2D object")
     x, y = line[0].get_xdata(), line[0].get_ydata()
     finite_indexes = np.bitwise_and(np.isfinite(x), np.isfinite(y))
@@ -1622,8 +1920,8 @@ def add_arrow_to_line2D(
     else:
         arrow_kw['linewidth'] = linewidth
 
+    axes.autoscale(True)
     if transform is None:
-        axes.transData.invalidate()
         transform = axes.transData
 
     arrows = []
