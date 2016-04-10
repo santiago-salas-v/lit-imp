@@ -331,33 +331,44 @@ class UiGroupBox(QtGui.QWidget):
             reading_reacs = False
             comps = []
             reacs = []
+            valid_columns_reacs = []
+            valid_columns_comps = []
             for row in reader:
-                row_without_blanks = filter(
-                    lambda x: len(x.replace(' ', '')) > 0, row)
+                row_without_whitespace = [x.replace(' ', '') for x in row]
+                row_without_blanks = [
+                    x for x in row_without_whitespace if len(x) > 0]
                 if len(row_without_blanks) == 0:
                     pass  # skip empty line
                 elif 'COMP' in row:
                     reading_comps = True
                     reading_reacs = False
-                    header_comps = next(reader)[0:4]
+                    header_comps = next(reader)
+                    valid_columns_comps = [header_comps.index(x)
+                                           for x in header_comps if
+                                           x.replace(' ', '') != '']
+                    header_comps = [header_comps[x]
+                                    for x in valid_columns_comps]
                 elif 'REAC' in row:
                     reading_reacs = True
                     reading_comps = False
                     header_reacs = next(reader)
-                    header_reacs = filter(
-                        lambda x: len(
-                            x.replace(
-                                ' ',
-                                '')) > 0,
-                        header_reacs)
+                    valid_columns_reacs = [header_reacs.index(x)
+                                           for x in header_reacs if
+                                           x.replace(' ', '') != '']
+                    header_reacs = [header_reacs[x]
+                                    for x in valid_columns_reacs]
                 elif reading_comps:
                     n += 1
-                    comps.append(map(lambda x: '0' if x == '' or x ==
-                                     ' ' else x, row_without_blanks))
+                    # put 0 instead of blank and keep only columns to add
+                    row_to_add = ['0' if row_without_whitespace[x] == '' else
+                                  row_without_whitespace[x] for x in valid_columns_comps]
+                    comps.append(row_to_add)
                 elif reading_reacs:
                     Nr += 1
-                    reacs.append(map(lambda x: '0' if x == '' or x == ' ' else x, row[
-                        0: len(header_reacs) - 2 + 2]))
+                    # put 0 instead of blank and keep only columns to add
+                    row_to_add = ['0' if row_without_whitespace[x] == '' else
+                                  row_without_whitespace[x] for x in valid_columns_reacs]
+                    reacs.append(row_to_add)
         csv_file.close()
         comps = np.array(comps)
         reacs = np.array(reacs)
