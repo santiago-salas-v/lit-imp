@@ -48,6 +48,13 @@ colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
 markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
+matchingHLine = re.compile('=+')
+reac_headers_re = re.compile(
+    r'nu_?i(j|[0-9]{,2})(\(j=([0-9]{,2})\))?' +
+    r'|(^pKaj$)' +
+    r'|(^j$)')
+comp_headers_re = re.compile(
+    r'Comp\.?i?|z_?i?|Z_?i?|C_?0_?i?')
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -346,7 +353,7 @@ class UiGroupBox(QtGui.QWidget):
                     valid_columns_comps = [header_comps.index(x)
                                            for x in header_comps if
                                            x.replace(' ', '') != '']
-                    header_comps = [header_comps[x]
+                    header_comps = [header_comps[x].replace(' ', '')
                                     for x in valid_columns_comps]
                 elif 'REAC' in row:
                     reading_reacs = True
@@ -355,7 +362,7 @@ class UiGroupBox(QtGui.QWidget):
                     valid_columns_reacs = [header_reacs.index(x)
                                            for x in header_reacs if
                                            x.replace(' ', '') != '']
-                    header_reacs = [header_reacs[x]
+                    header_reacs = [header_reacs[x].replace(' ', '')
                                     for x in valid_columns_reacs]
                 elif reading_comps:
                     n += 1
@@ -370,6 +377,9 @@ class UiGroupBox(QtGui.QWidget):
                                   row_without_whitespace[x] for x in valid_columns_reacs]
                     reacs.append(row_to_add)
         csv_file.close()
+        # Recs:  rearrange to pKaj nu_ij (j=1) nu_ij(j=2) ... nu_ij(j=n)
+
+        # Comps: rearrange to Comp. j zj C0_j
         comps = np.array(comps)
         reacs = np.array(reacs)
         self.spinBox.setProperty("value", n)
@@ -793,7 +803,6 @@ class UiGroupBox(QtGui.QWidget):
             "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>",
             'utf_8')
         endingP = unicode('</p>', 'utf_8')
-        matchingHLine = re.compile('=+')
         with open('README.md') as readme_file:
             for row in readme_file:
                 rowString = unicode(row, 'utf_8')
