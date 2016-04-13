@@ -50,11 +50,10 @@ fillstyles = matplotlib.markers.MarkerStyle.fillstyles
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 matchingHLine = re.compile('=+')
 reac_headers_re = re.compile(
-    r'nu_?i(j|[0-9]{,2})(\(j=([0-9]{,2})\))?' +
-    r'|(^pKaj$)' +
-    r'|(^j$)')
+    r'nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?' +
+    r'|(^pKaj$)')  # For now, no more than 999 reactions
 comp_headers_re = re.compile(
-    r'Comp\.?i?|z_?i?|Z_?i?|C_?0_?i?')
+    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)')
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -377,11 +376,64 @@ class UiGroupBox(QtGui.QWidget):
                                   row_without_whitespace[x] for x in valid_columns_reacs]
                     reacs.append(row_to_add)
         csv_file.close()
-        # Recs:  rearrange to pKaj nu_ij (j=1) nu_ij(j=2) ... nu_ij(j=n)
-
+        # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
+        header_reacs_groups = [
+            x.groups() if x is not None else x for x in map(
+                lambda x: reac_headers_re.match(x), header_reacs)]
+        header_comps_groups = [
+            x.groups() if x is not None else x for x in map(
+                lambda x: comp_headers_re.match(x), header_comps)]
+        priorities_reacs = []
+        priorities_comps = []
+        for row in header_reacs_groups:
+            if row is None:  # j or other. Irrelevant, it will be re-indexed
+                priorities_reacs.append((-1, row))
+            elif row[3] is not None:  # pKaj
+                priorities_reacs.append((0, row[3]))
+            elif row[0] is not None:  # if spec. as nu_xj(i=y), prioritize x
+                priorities_reacs.append((int(row[0]), 'i=' + row[0]))
+            elif row[0] is None \
+                    and row[2] is not None:
+                priorities_reacs.append((int(row[2]), 'i=' + row[2]))
+        for row in header_comps_groups:
+            if row is None:
+                priorities_comps.append((-1, row))
+            elif row[0] is not None:  # Comp. i
+                priorities_comps.append((0, row[0]))
+            elif row[1] is not None:  # zi
+                priorities_comps.append((0, row[1]))
+            elif row[2] is not None:  # C0_i
+                priorities_comps.append((0, row[2]))
+        # reacs header, form [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
+        sorted_priorities_reacs = sorted(priorities_reacs, key=lambda x: x[0])
+        sorted_priorities_comps = sorted(priorities_comps, key=lambda x: x[0])
+        sort_indexes_reacs = [priorities_reacs.index(
+            x) for x in sorted_priorities_reacs if x[1] is not None]
+        sort_indexes_comps = [priorities_comps.index(
+            x) for x in sorted_priorities_comps if x[1] is not None]
+        sorted_reacs = []
+        k = 1
+        for row in reacs:
+            # Add reaction index form ['j', 'pKaj', i=1, i=2, ... i=n]
+            sorted_reacs.append([str(k)] + [row[x]
+                                            for x in sort_indexes_reacs])
+            k += 1
+        header_reacs = \
+            ['j'] + \
+            [str(x[1]) for x in sorted_priorities_reacs if x[1] is not None]
+        sorted_comps = []
+        k = 1
+        for row in comps:
+            # Add components index form ['i', 'Comp. i', 'z_i']
+            sorted_comps.append([str(k)] + [row[x]
+                                            for x in sort_indexes_comps])
+            k += 1
+        header_comps = \
+            ['i'] + \
+            [str(x[1]) for x in sorted_priorities_comps if x[1] is not None]
         # Comps: rearrange to Comp. j zj C0_j
-        comps = np.array(comps)
-        reacs = np.array(reacs)
+        comps = np.array(sorted_comps)
+        reacs = np.array(sorted_reacs)
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", Nr)
         self.tableComps.setRowCount(n)
