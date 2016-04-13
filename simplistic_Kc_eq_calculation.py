@@ -377,6 +377,7 @@ class UiGroupBox(QtGui.QWidget):
                     reacs.append(row_to_add)
         csv_file.close()
         # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
+        # Rearrange comps rearrange to Comp. i zi C0_i
         header_reacs_groups = [
             x.groups() if x is not None else x for x in map(
                 lambda x: reac_headers_re.match(x), header_reacs)]
@@ -401,10 +402,11 @@ class UiGroupBox(QtGui.QWidget):
             elif row[0] is not None:  # Comp. i
                 priorities_comps.append((0, row[0]))
             elif row[1] is not None:  # zi
-                priorities_comps.append((0, row[1]))
+                priorities_comps.append((1, row[1]))
             elif row[2] is not None:  # C0_i
-                priorities_comps.append((0, row[2]))
+                priorities_comps.append((2, row[2]))
         # reacs header, form [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
+        # comps header, form [None, ..., None, 'Comp. i', 'z_i', 'C0_i']
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda x: x[0])
         sorted_priorities_comps = sorted(priorities_comps, key=lambda x: x[0])
         sort_indexes_reacs = [priorities_reacs.index(
@@ -431,7 +433,6 @@ class UiGroupBox(QtGui.QWidget):
         header_comps = \
             ['i'] + \
             [str(x[1]) for x in sorted_priorities_comps if x[1] is not None]
-        # Comps: rearrange to Comp. j zj C0_j
         comps = np.array(sorted_comps)
         reacs = np.array(sorted_reacs)
         self.spinBox.setProperty("value", n)
