@@ -124,6 +124,10 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox = ScientificDoubleSpinBox()
         self.doubleSpinBox_2 = ScientificDoubleSpinBox()
         self.plotButton = QtGui.QPushButton()
+        self.radio_group = QtGui.QHBoxLayout()
+        self.radio_b_1 = QtGui.QRadioButton()
+        self.radio_b_2 = QtGui.QRadioButton()
+        self.radio_b_3 = QtGui.QRadioButton()
         self.groupBox = None  # self.groupBox will contain either the plotBox or logBox
         # Object names
         parent.setObjectName(_fromutf8("GroupBox"))
@@ -158,12 +162,30 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox.setObjectName(_fromutf8("doubleSpinBox"))
         self.doubleSpinBox_2.setObjectName(_fromutf8("doubleSpinBox_2"))
         self.plotButton.setObjectName(_fromutf8("plotButton"))
+        self.radio_group.setObjectName(_fromutf8("radio_group"))
+        self.radio_b_1.setObjectName(_fromutf8("radio_b_1"))
+        self.radio_b_2.setObjectName(_fromutf8("radio_b_2"))
+        self.radio_b_3.setObjectName(_fromutf8("radio_b_3"))
         # Operations
         self.horizontalLayout_2.addWidget(self.open_button)
         self.horizontalLayout_2.addWidget(self.save_button)
         self.horizontalLayout_2.addWidget(self.log_button)
         self.horizontalLayout_2.addWidget(self.info_button)
         self.verticalLayout_2.addWidget(self.equilibrate_button)
+        self.radio_group.addWidget(self.radio_b_1)
+        self.radio_group.addWidget(self.radio_b_2)
+        self.radio_group.addWidget(self.radio_b_3)
+        self.radio_b_1.setChecked(True)
+        self.radio_b_1.setToolTip('<b>%s</b><br><img src="%s">' %
+                                  ('Ideal solution',
+                                   'utils/Ideal_solution.png'))
+        self.radio_b_2.setToolTip('<b>%s</b><br><img src="%s">' %
+                                  ('Debye-Hueckel',
+                                   'utils/Debye-Hueckel.png'))
+        self.radio_b_3.setToolTip('<b>%s</b><br><img src="%s">' %
+                                  ('Davies (DH ext.)',
+                                   'utils/Davies.png'))
+        self.verticalLayout_2.addLayout(self.radio_group)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_5.addWidget(self.label_3)
@@ -298,6 +320,12 @@ class UiGroupBox(QtGui.QWidget):
         self.info_button.setText(_translate("parent", "About", None))
         self.equilibrate_button.setText(
             _translate("parent", "Equilibrate", None))
+        self.radio_b_1.setText(
+            _translate("parent", "Ideal solution", None))
+        self.radio_b_2.setText(
+            _translate("parent", "Debye-Hückel", None))
+        self.radio_b_3.setText(
+            _translate("parent", "Davies (DH ext.)", None))
         self.tableComps.setSortingEnabled(__sortingEnabled)
         self.plotButton.setText(_translate("parent", "Plot", None))
         self.label_2.setText(_translate("parent", "nr (Reac.)", None))
@@ -835,7 +863,7 @@ class UiGroupBox(QtGui.QWidget):
             self.xieq_i_0 = xieq_i
             self.label_9.setText(self.label_9.text() +
                                  '\nsum(C0*z_i) = ' + str((z_i.T * c0_i).item()) +
-                                 ' \t\t\t sum(ceq_i*z_i) = ' + str((z_i.T * ceq_i).item()) +
+                                 ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * ceq_i).item()) +
                                  '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * c0_i).item()) +
                                  '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * ceq_i).item()))
 
