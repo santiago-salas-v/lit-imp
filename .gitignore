@@ -13,3 +13,8 @@ codegen/
 bufferSolution/
 bufferSolution_LINUX/
 log/
+docs/*.gz
+docs/*.pdf
+docs/*.png
+docs/*.log
+docs/*.aux

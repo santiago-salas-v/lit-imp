@@ -11,7 +11,6 @@ import logging
 import re
 import pandas as pd
 import numpy as np
-import scipy as sp
 import csv
 import bisect
 import uuid
@@ -176,6 +175,8 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_group.addWidget(self.radio_b_2)
         self.radio_group.addWidget(self.radio_b_3)
         self.radio_b_1.setChecked(True)
+        self.radio_b_2.setEnabled(False)
+        self.radio_b_3.setEnabled(False)
         self.radio_b_1.setToolTip('<b>%s</b><br><img src="%s">' %
                                   ('Ideal solution',
                                    'utils/Ideal_solution.png'))
@@ -311,7 +312,7 @@ class UiGroupBox(QtGui.QWidget):
         QtCore.QMetaObject.connectSlotsByName(parent)
 
     def retranslate_ui(self, parent):
-        parent.setWindowTitle(_translate("parent", "Simplistic EC.", None))
+        parent.setWindowTitle(_translate("parent", "Homogeneous EC.", None))
         parent.setTitle(QtGui.QApplication.translate("parent", "EC", None))
         __sortingEnabled = self.tableComps.isSortingEnabled()
         self.open_button.setText(_translate("parent", "Open", None))

@@ -1,0 +1,106 @@
+\documentclass[preview]{standalone}
+\usepackage{lscape}
+\begin{document}
+\begin{landscape}
+Ideal solution:
+\begin{equation}
+\gamma_i = 1
+\end{equation}
+\begin{equation}
+C_i = C_{0,i} + \sum_j(\nu_{ij} \times \xi_j)
+\end{equation}
+\begin{equation}
+K_j(T) = \prod_i(C_i^{\nu_{ij}})
+\end{equation}
+\begin{equation}
+0 = \sum_i(z_i \times C_i)
+\end{equation}
+Example, 7 components, 3 reactions: \\
+\begin{tabular}{llcll|l}
+\hline
+$H_2SO_3$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $HSO_3(-)$ & $pKa_1=1.856985200$ \\
+$HSO_3(-)$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $SO_3(2-)$ & $pKa_2=7.171984936$ \\
+$H_2O$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $OH(-)$ & $pKa_3=13.99567863$\\
+\hline
+\end{tabular}
+\\
+$Kc_1 \times C_{H_2O} = 10^{-1.856985200} = \frac{C_{H_3O(+)} \times C_{HSO_3(-)}}{C_{H_2SO_3}}$
+\\
+$Kc_2 \times C_{H_2O} = 10^{-7.171984936} = \frac{C_{H_3O(+)} \times C_{SO_3(2-)}}{C_{HSO_3(-)}}$
+\\
+$Kc_3 \times C_{H_2O}^2 = 10^{-13.99567863} = C_{H_3O(+)} \times C_{OH(-)}$\\
+\\
+\begin{tabular}{ll}
+\hline
+$C_{0,H2SO3}$ & = 0 mol/L\\ 
+$C_{0,HSO3(-)}$ & = 5.10E+00 mol/L \\ 
+$C_{0,SO3(2-)}$ & = 0 mol/L \\ 
+$C_{0,H3O(+)}$ & = 1.00E-07 mol/L \\ 
+$C_{0,OH(-)}$ & = 1.01E-07 mol/L \\ 
+$C_{0,H2O}$ & = 5.54E+01 mol/L \\ 
+$C_{0,Na(+)}$ & = 5.10E+00 mol/L \\ 
+\hline
+\end{tabular} 
+\\
+\begin{tabular}{llllllllll}
+0 &= -$C_{H2SO3}$ &  &  &  &  &  & -$\xi_1$ & & \\
+$-5.10\frac{mol}{L}$ &=  & -$C_{HSO3(-)}$ &  &  &  &  & +$\xi_1$ & -$\xi_2$ &  \\
+$-1.00 \times 10^{-7} \frac{mol}{L}$ &=  &  & -$C_{H3O(+)}$ &  &  &  & +$\xi_1$ & +$\xi_2$ & +$\xi_3$  \\
+$-1.01 \times 10^{-7} \frac{mol}{L}$  &= &  &  & -$C_{OH(-)}$ &  &  &  & & +$\xi_3$ \\
+$-55.4 \frac{mol}{L}$  &= &  &  &  & -$C_{H2O}$ &  & -$\xi_1$ & -$\xi_2$ & -2$\xi_3$ \\
+$-5.10\frac{mol}{L}$ &= &  &  &  &  & -$C_{Na(+)}$ &  &  & \\
+\end{tabular} 
+\\
+System to solve in matrix form:
+\\
+\[
+\left(
+\begin{tabular}{cccccccccc}
+-1 & 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 \\
+0 & -1 & 0 & 0 & 0 & 0 & 0 & +1 & -1 & 0 \\
+0 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & +1 & 0 \\
+0 & 0 & 0 & -1 & 0 & 0 & 0 & +1 & +1 & +1 \\
+0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0 & +1 \\
+0 & 0 & 0 & 0 & 0 & -1 & 0 & -1 & -1 & -2 \\
+0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\
+0 & $\frac{C_{H_3O(+)}}{C_{H_2SO_3}}$ &  
+& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & $\frac{C_{SO_3(2-)}}{C_{HSO_3(-)}}$ & 
+0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & $C_{H_3O(+)}$ & 0 & 0 & 0 & 0 & 0 & 0
+\end{tabular}
+\right)
+\times
+\left(
+\begin{tabular}{c}
+$C_{H2SO3}$ \\
+$C_{HSO3(-)}$ \\
+$C_{H3O(+)}$ \\
+$C_{OH(-)}$ \\
+$C_{SO3(2-)}$ \\
+$C_{H2O}$ \\
+$C_{Na(+)}$ \\
+$\xi_1$ \\
+$\xi_2$ \\
+$\xi_3$ \\
+\end{tabular}
+\right)
+=
+\left(
+\begin{tabular}{c}
+0 mol/L\\ 
+5.10E+00 mol/L \\ 
+0 mol/L \\ 
+1.00E-07 mol/L \\ 
+1.01E-07 mol/L \\ 
+5.54E+01 mol/L \\ 
+5.10E+00 mol/L \\ 
+$10^{-1.856985200}$ \\
+$10^{-7.171984936}$ \\
+$10^{-13.99567863}$ \\
+\end{tabular}
+\right)
+\]
+\\ 
+\end{landscape}
+\end{document}
