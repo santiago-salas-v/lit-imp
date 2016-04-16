@@ -1,4 +1,4 @@
-lit-impl-py
+lit-impl
 ============
 
 Homogeneous equilibrium composition by reaction set (K) : homogeneous_reaction_set_equilibrium.py
