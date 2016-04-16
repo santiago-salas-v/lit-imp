@@ -1,0 +1,95 @@
+\documentclass[6pt,a4paper,oneside,preview]{standalone}
+\usepackage{lscape}
+\begin{document}
+\begin{landscape}
+Ideal solution:
+Example, 7 components, 3 reactions: \\
+\begin{tabular}{llcll|l}
+\hline
+$H_2SO_3$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $HSO_3(-)$ & $pKa_1=1.856985200$ \\
+$HSO_3(-)$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $SO_3(2-)$ & $pKa_2=7.171984936$ \\
+$H_2O$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $OH(-)$ & $pKa_3=13.99567863$\\
+\hline
+\end{tabular}
+\\
+(1) $Kc_1 \times Ce_{H_2O} = 10^{-1.856985200} = \frac{Ce_{H_3O(+)} \times Ce_{HSO_3(-)}}{Ce_{H_2SO_3}}$
+\\
+(2) $Kc_2 \times Ce_{H_2O} = 10^{-7.171984936} = \frac{Ce_{H_3O(+)} \times Ce_{SO_3(2-)}}{Ce_{HSO_3(-)}}$
+\\
+(3) $Kc_3 \times Ce_{H_2O}^2 = 10^{-13.99567863} = Ce_{H_3O(+)} \times Ce_{OH(-)}$\\
+\\
+\begin{tabular}{ll}
+\hline
+$C_{0,H2SO3}$ & = 0 mol/L\\ 
+$C_{0,HSO3(-)}$ & = 5.10E+00 mol/L \\ 
+$C_{0,SO3(2-)}$ & = 0 mol/L \\ 
+$C_{0,H3O(+)}$ & = 1.00E-07 mol/L \\ 
+$C_{0,OH(-)}$ & = 1.01E-07 mol/L \\ 
+$C_{0,H2O}$ & = 5.54E+01 mol/L \\ 
+$C_{0,Na(+)}$ & = 5.10E+00 mol/L \\ 
+\hline
+\end{tabular} 
+\\
+\begin{tabular}{llllllllllll}
+(4) 0 &= -$C_{H2SO3}$  &  &  &  &  &  &  &  & -$\xi_1$ & & \\
+(5) $-5.10\frac{mol}{L}$ &=  & -$C_{HSO3(-)}$  &  &  &  &  &  &  & +$\xi_1$ & -$\xi_2$ &  \\
+(6) 0 &=  &  &  -$C_{SO3(2-)}$  &  &  &  &  &  &  & +$\xi_2$ &  \\
+(7) $-1.00 \times 10^{-7} \frac{mol}{L}$ &=  &  &  & -$C_{H3O(+)}$  &   &  &  &  & +$\xi_1$ & +$\xi_2$ & +$\xi_3$  \\
+(8) $-1.01 \times 10^{-7} \frac{mol}{L}$  &= &  &  &  & -$C_{OH(-)}$  &  &  &  &  & & +$\xi_3$ \\
+(9) $-55.4 \frac{mol}{L}$  &= &  &  &  &  & -$C_{H2O}$  &  &  & -$\xi_1$ & -$\xi_2$ & -2$\xi_3$ \\
+(10) $-5.10\frac{mol}{L}$ &= &  &  &  &  &  &  & -$C_{Na(+)}$ &  &  & \\
+\end{tabular} 
+\\
+Non-linear system to solve in matrix form:
+\\
+\[
+\left(
+\begin{tabular}{cccccccccc}
+-1 & 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 \\
+0 & -1 & 0 & 0 & 0 & 0 & 0 & +1 & -1 & 0 \\
+0 & 0 & -1 & 0 & 0 & 0 & 0 & 0 & +1 & 0 \\
+0 & 0 & 0 & -1 & 0 & 0 & 0 & +1 & +1 & +1 \\
+0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0 & +1 \\
+0 & 0 & 0 & 0 & 0 & -1 & 0 & -1 & -1 & -2 \\
+0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\
+0 & $\frac{Ceq_{H_3O(+)}}{Ceq_{H_2SO_3}}$ &  
+& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & $\frac{Ceq_{SO_3(2-)}}{Ceq_{HSO_3(-)}}$ & 
+0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & $C_{H_3O(+)}$ & 0 & 0 & 0 & 0 & 0 & 0
+\end{tabular}
+\right)
+\times
+\left(
+\begin{tabular}{c}
+$Ceq_{H2SO3}$ \\
+$Ceq_{HSO3(-)}$ \\
+$Ceq_{H3O(+)}$ \\
+$Ceq_{OH(-)}$ \\
+$Ceq_{SO3(2-)}$ \\
+$Ceq_{H2O}$ \\
+$Ceq_{Na(+)}$ \\
+$\xi eq_1$ \\
+$\xi eq_2$ \\
+$\xi eq_3$ \\
+\end{tabular}
+\right)
+=
+\left(
+\begin{tabular}{c}
+0 mol/L\\ 
+5.10E+00 mol/L \\ 
+0 mol/L \\ 
+1.00E-07 mol/L \\ 
+1.01E-07 mol/L \\ 
+5.54E+01 mol/L \\ 
+5.10E+00 mol/L \\ 
+$10^{-1.856985200}$ \\
+$10^{-7.171984936}$ \\
+$10^{-13.99567863}$ \\
+\end{tabular}
+\right)
+\]
+\\ 
+\end{landscape}
+\end{document}

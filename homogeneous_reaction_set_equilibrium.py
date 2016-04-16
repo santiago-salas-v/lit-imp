@@ -16,6 +16,7 @@ import bisect
 import uuid
 import matplotlib
 import colormaps
+import ctypes # Needed to set the app icon correctly
 from functools import partial
 from mat_Zerlegungen import gausselimination
 from datetime import datetime
@@ -2084,10 +2085,13 @@ def main():
     app = QtGui.QApplication.instance()  # checks if QApplication already exists
     if not app:  # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
-
+    # following 2 lines for setting app icon correctly
+    myappid = u'mycompany.myproduct.subproduct.version' # arbitrary string
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    # ended lines for setting app icon correctly
     main_form = QtGui.QGroupBox()
     icon = QtGui.QIcon(
-        os.path.join(sys.path[0], *['utils', 'icon_batch.png']))
+        os.path.join(sys.path[0], *['utils', 'icon_batch_32X32.png']))
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
