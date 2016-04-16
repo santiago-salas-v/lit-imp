@@ -8,7 +8,7 @@ Usage
 1. python ([free dist.](https://www.continuum.io/downloads))
 2. Run homogeneous_reaction_set_equilibrium.py::
 
-    python homogeneous_reaction_set_equilibrium.py
+        python homogeneous_reaction_set_equilibrium.py
 
 Refs.
 -----------
