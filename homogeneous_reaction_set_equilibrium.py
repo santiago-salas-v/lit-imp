@@ -1079,8 +1079,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.listWidget.setSelectionMode(
             QtGui.QAbstractItemView.MultiSelection)
         self.listWidget_2.setViewMode(QtGui.QListView.ListMode)
-        self.listWidget_2.setSortingEnabled(True)
-        self.listWidget.setSortingEnabled(True)
+        self.listWidget_2.setSortingEnabled(False)
+        self.listWidget.setSortingEnabled(False)
         self.verticalLayout.addWidget(self.label)
         self.verticalLayout.addWidget(self.listWidget_2)
         self.verticalLayout.addLayout(self.horizontalLayout_1)
@@ -1163,6 +1163,9 @@ class UiGroupBoxPlot(QtGui.QWidget):
             else:
                 new_item = QtGui.QListWidgetItem(label, self.listWidget)
                 new_item.setIcon(self.icon_up)
+        # Sort them
+        self.listWidget_2.sortItems(QtCore.Qt.AscendingOrder)
+        self.listWidget.sortItems(QtCore.Qt.DescendingOrder)
 
     def force_update_plot(self):
         ylabel = self.ax.get_ylabel()
@@ -1446,6 +1449,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
+        self.listWidget_2.sortItems(QtCore.Qt.AscendingOrder)
+        self.listWidget.sortItems(QtCore.Qt.DescendingOrder)
 
     def move_to_displayed(self, item):
         self.delete_arrows()
@@ -1470,6 +1475,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
+        self.listWidget_2.sortItems(QtCore.Qt.AscendingOrder)
+        self.listWidget.sortItems(QtCore.Qt.DescendingOrder)
 
     def clear_all(self):
         self.ax.clear()
