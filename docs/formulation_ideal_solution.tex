@@ -1,14 +1,12 @@
 \documentclass[12pt,a4paper,preview]{standalone}
 \begin{document}
-Ideal solution:
-\begin{equation}
-\gamma_i = 1 , K_\gamma = 1
-\end{equation}
+Ideal solution ($V_r$ = const.):
 \begin{equation}
 C_i = C_{0,i} + \sum_j(\nu_{ij} \times \xi_j)
 \end{equation}
 \begin{equation}
-K_j(T) = \prod_i(C_i^{\nu_{ij}})
+K_j(T) = \left[ \prod_ix_i^{\nu_{ij}} \right]_{\textnormal{eq.}}= 
+\left[ \prod_i(C_i/C^{\circ}_i)^{\nu_{ij}} \right]_{\textnormal{eq.}}
 \end{equation}
 \begin{equation}
 0 = \sum_i(z_i \times C_i)
@@ -19,7 +17,7 @@ n components conc. $Ce_1$, $Ce_1$, ..., $Ce_n$. \\
 $n_r$ reaction extents $\xi_1$, $\xi_2$, ..., $\xi_{nr}$. \\
 Tot. $n + n_r$ \\
 Eqs: \\
-n mole balances (eq. 2). \\
-$n_r$ mass action (eq. 3). \\
+n mole balances (eq. 1). \\
+$n_r$ mass action (eq. 2). \\
 Tot. $n + n_r$
 \end{document}
