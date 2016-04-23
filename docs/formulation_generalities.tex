@@ -1,16 +1,17 @@
-\documentclass[12pt,a4paper,preview]{standalone}
+\documentclass[twocolumn]{article}
 \usepackage{amsmath}
 \begin{document}
-\textbf{Conventions and chemical potential of (non-ideal) solutions} \\
-\textbf{Ref. [1]} \\
-Convention II: Ideal solvent toward unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in mole fraction. \\
+\section{Conventions} % (fold)
+\label{sec:section_name}
+% section section_name (end)
+Convention II: Ideal solvent towards unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in mole fraction. \cite{Denbigh1968} \\
 \begin{equation}
 \begin{aligned}
 \textnormal{solvent (0): } & (\gamma_0 \rightarrow 1) as  (x_0 \rightarrow 1)\\
 \textnormal{solute (i): } & (\gamma_i \rightarrow 1) as (x_i \rightarrow 0)
 \end{aligned}
 \end{equation}
-Convention III: Ideal solvent toward unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in molality. \\
+Convention III: Ideal solvent towards unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in molality. \\
 \begin{equation}
 \begin{aligned}
 \textnormal{solvent (0): } & (\gamma_0 \rightarrow 1) as  (x_0 \rightarrow 1)\\
@@ -30,17 +31,21 @@ Notes on conversion between conventions:
 \item Reference states chemical potentials for each convention $\mu_i^{*}$ and $\mu_i^{\fbox{}}$  are functions of temperature and pressure exclusively, therefore their difference calculated at infinite dilution does not change with composition:
 \end{itemize}
 \[
-\mu_i^{*} - \mu_i^{\fbox{}}  =  func(T,P) =  lim_{x_0 \rightarrow 1} \left( \mu_i^{*} - \mu_i^{\fbox{}}\right)
+\mu_i^{*} - \mu_i^{\fbox{}}  =  func(T,P) =  \lim_{x_0 \to 1} \left( \mu_i^{*} - \mu_i^{\fbox{}}\right) 
+\]
+\[
+RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] & = \lim_{x_0 \to 1} RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] &
 \]
 Therefore, referring back to conventions II and III, $\gamma_i \rightarrow 1$ at \textit{infinite dilution}:
 \[
 \begin{aligned}
-RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] & = lim_{x_0 \rightarrow 1} RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] \\
-\frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i} & = lim_{x_0 \rightarrow 1} \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i} = \frac{1}{m_i^0} \times lim_{x_0 \rightarrow 1} \frac{x_i}{m_i} \\
-& = \frac{1}{m_i^0} \times lim_{x_0 \rightarrow 1} \left[ \frac{n_i/ \left(\frac{n_i}{n_0 M_0}\right)}{n_0+\sum_{j \neq 0}n_j} \right] = \frac{1}{m_i^0} \times M_0
+\frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i} & = \lim_{x_0 \to 1} \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i} = \frac{1}{m_i^0} \times \lim_{x_0 \to 1} \frac{x_i}{m_i} \\
+& = \frac{1}{m_i^0} \times \lim_{x_0 \to 1} \left[ \frac{n_i/ \left(\frac{n_i}{n_0 M_0}\right)}{n_0+\sum_{j \neq 0}n_j} \right] \\
+& = \frac{1}{m_i^0 \times M_0} 
 \end{aligned}
 \]
-Refs. \\ 
- 1 - Denbigh, Kenneth G.; The principles of chemical equilibrium; 4th ed. Cambridge University Press, UK 1981. \\ 
- 2 - Hamer, Walter J.; Theoretical mean activity coefficients of strong electrolytes in aqueous solutions from 0 to 100°C. National Reference Standard Series - National Buerau of Standars 24; Issued December 1968.
+ \begin{thebibliography}{9}
+ \bibitem{Denbigh1968} Denbigh, Kenneth G.; The principles of chemical equilibrium; 4th ed. Cambridge University Press, UK 1981.
+ \bibitem{Hamer1968} NSRDS 24 Theoretical Mean Activity Coefficients of Strong Electrolytes in Aqueous Solutions from 0 to 100oC - Walter J. Hamer. NSRDS-NBS 24, 271p. (1968). www.nist.gov/data/nsrds/NSRDS-NBS-24.pdf [Apr-2016]
+ \end{thebibliography}
 \end{document}
