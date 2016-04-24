@@ -1,0 +1,2 @@
+Make:image("png$",
+"dvipng -bg Transparent -T tight -x 1400 -o ${output}  -pp ${page} ${source}")
