@@ -1,33 +1,72 @@
-\documentclass[twocolumn]{article}
+\documentclass[onecolumn]{article}
 \usepackage{amsmath}
 \begin{document}
-\section{Conventions} % (fold)
-\label{sec:section_name}
+\section{Conventions - Summary} % (fold)
+Following are applicable to calculate the chemical potential of a solution, and for expressing its composition.
+\label{sec:conventions}
 % section section_name (end)
-Convention II: Ideal solvent towards unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in mole fraction. \cite{Denbigh1968} \\
+\subsection{Composition}
+\label{subsec:composition}
+\begin{table}[h]
+\begin{tabular}{|lll|}
+\hline
+		      & expression                                                                                    & [=] units                     \\
+\hline
+mole number   & $n_i = \frac{w_i}{M_i}$                                                                                   & mol i                         \\
+mole fraction & $x_i = \frac{n_i}{\sum_j{n_j}} =  \frac{n_i}{n_0 + \sum_{j \neq 0}{n_j}}$                         & [adim.]                       \\
+molal  conc.  & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 / \left(1000 \frac{g}{kg} \right)}$               & $\frac{mol_i} {kg_{solvent}}$ \\
+molar  conc.  & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\ 
+              & $= \frac{m_i \rho}{1 + \sum_{j\neq 0}{m_j M_j}}$     &       \\
+mass fraction & $x_{w,i} = \frac{w_i}{\sum_j{w_j}} =  \frac{n_i M_i}{n_0 M_0 + \sum_{j \neq 0}{n_j M_j}}$                         & [adim.]                       \\
+			  & $= c_i \frac{M_i}{\rho}$  & \\
+\hline
+\end{tabular}
+\caption{Expressions of composition. Subscript 0 applied to the solvent, other subscripts applied to solutes.}
+\label{table:composition_expr}
+\end{table}
+Useful associations from these expressions are:\\
+\[
+
+\]
+\subsection{Chemical potential \cite{Denbigh1968} }
+\label{subsec:chemical_potential}
+Suitable conventions are applied to different solutions: Convention I is useful for solutions of miscible liquids at T,P (e.g. ethanol/water). Conventions II, III, and IV are useful for solutions of components that are gases or solids at T,P (e.g. oxygen or sugar in water). \\
+Convention I: Each component approaches ideality as its mole fraction approaches unity.
+\begin{equation}
+\textnormal{component (i): } (\gamma_i \rightarrow 1) as  (x_i \rightarrow 1)\\
+\end{equation}
+Convention II: Ideal solvent as it approaches unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in mole fraction.\\
 \begin{equation}
 \begin{aligned}
 \textnormal{solvent (0): } & (\gamma_0 \rightarrow 1) as  (x_0 \rightarrow 1)\\
 \textnormal{solute (i): } & (\gamma_i \rightarrow 1) as (x_i \rightarrow 0)
 \end{aligned}
 \end{equation}
-Convention III: Ideal solvent towards unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in molality. \\
+Convention III: Ideal solvent as it approaches unit mole fraction; ideal solutes at \textit{infinite dilution}, expressed in molality. \\
 \begin{equation}
 \begin{aligned}
 \textnormal{solvent (0): } & (\gamma_0 \rightarrow 1) as  (x_0 \rightarrow 1)\\
 \textnormal{solute (i): } & (\gamma_i \rightarrow 1) as (m_i \rightarrow 0)
 \end{aligned}
 \end{equation}
-Chemical potential expressed under each convention, where $m_i^{\circ}$ is a reference solute state at unit molality.
+Convention IV: Ideal solutes at \textit{infinite dilution}, expressed in molarity. \\
 \begin{equation}
 \begin{aligned}
-\mu_i = & \mu_i^{*} + RTln(\gamma_i^{II} x_i) \\
-	=	& \mu_i^{\fbox{}} + RTln(\gamma_i^{III} m_i/m_i^{\circ})
+\textnormal{solute (i): } & (\gamma_i \rightarrow 1) as (c_i \rightarrow 0)
+\end{aligned}
+\end{equation}
+Chemical potential expressed under each convention, with $m_i^{\circ}$ and $c_i^{\circ}$selected as reference solute states at unit molality, and molarity respectively.
+\begin{equation}
+\begin{aligned}
+\mu_i = & \mu_i^{*} + RTln(\gamma_i^{I} x_i) \\
+	= 	& \mu_i^{*} + RTln(\gamma_i^{II} x_i) \\
+	=	& \mu_i^{\fbox{}} + RTln(\gamma_i^{III} m_i/m_i^{\circ}) \\
+	= 	& \mu_i^{\diamond} + RTln(\gamma_i^{IV} c_i/c_i^{\circ})
 \end{aligned}
 \end{equation}
 Notes on conversion between conventions: 
 \begin{itemize}
-\item Values of activity coefficients $\gamma_i^{II}$ and $\gamma_i^{III}$ vary, chemical potential does not.
+\item Values of activity coefficients $\gamma_i^{II}$ and $\gamma_i^{III}$ vary, but chemical potential does not vary due to convention selection.
 \item Reference states chemical potentials under each convention $\mu_i^{*}$ and $\mu_i^{\fbox{}}$  are functions of temperature and pressure exclusively. Their difference calculated at infinite dilution does not change at other compositions:
 \end{itemize}
 \[
@@ -45,24 +84,20 @@ Therefore, referring back to conventions II and III, $\gamma_i \rightarrow 1$ at
 \end{aligned}
 \]
 This leads to the following relationship between activity coefficients calculated by each convention:
-\[
+\begin{equation}
 \gamma_i^{II} = \gamma_i^{III} \times \frac{m_i M_0}{x_i}
-\]
-The standard form of this relationship is presented in \cite{Hamer1968} by assuming complete dissociation of a solute $A_0$ into $\nu$ components, so that for all solutes the sum of molalities can be summarized as $\sum_{j \neq 0}m_j = \nu m_j $:
+\end{equation}
+A standard form of equation is obtained by assuming complete dissociation of a solute $A_0$ into $\nu$ components, so that for all solutes the sum of molalities can be expressed as $\sum_{j \neq 0}m_j = \nu m_j $:
 \[
-A_0 \rightleftharpoons A_1 + A_2 + A_2 + ... + A_{\nu}
+A \rightleftharpoons A_1 + A_2 + A_2 + ... + A_{\nu}
 \]
-Other conventions used for expressing composition, using subscript 0 for solvent, and others for solutes:
-\begin{tabular}{|lll|}
-\hline
-variable      & represented as                                                                                    & [=] units                     \\
-mole number   & $n_i = w_i M_i$                                                                                   & mol i                         \\
-mole fraction & $x_i = \frac{n_i}{\sum_i{n_i}} =  \frac{n_i}{n_0 + \sum_{j \neq 0}{n_i}}$                         & [adim.]                       \\
-molal         & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 / \left(1000 \frac{g}{kg} \right)}$               & $\frac{mol_i} {kg_{solvent}}$ \\
-molar         & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\ 
-              & $= \frac{m_i \rho}{1 + \sum_{j\neq 0}{m_j M_j}}$     &       \\
-\hline
-\end{tabular}
+Combined with Table \ref{table:composition_expr}, the matching expression presented in \cite{Hamer1968} is obtained:
+\[
+\begin{aligned}
+\gamma_i^{II} & =  \gamma_i^{III} \times \frac{\left( \frac{n_i M_0}{n_0 M_0}\right) \times (n_0 + \sum_{j\neq0}{n_j}) }{n_i} = \gamma_i^{III} \times \left(1+\sum_{j\neq0}{m_j M_0} \right) \\ 
+\gamma_i^{II} & = \gamma_i^{III} \times \left(1+\frac{\nu m M_0}{1000 \frac{g}{kg}} \right)
+\end{aligned}
+\]
  \begin{thebibliography}{9}
  \bibitem{Denbigh1968} Denbigh, Kenneth G.; The principles of chemical equilibrium; 4th ed. Cambridge University Press, UK 1981.
  \bibitem{Hamer1968} NSRDS 24 Theoretical Mean Activity Coefficients of Strong Electrolytes in Aqueous Solutions from 0 to 100oC - Walter J. Hamer. NSRDS-NBS 24, 271p. (1968). www.nist.gov/data/nsrds/NSRDS-NBS-24.pdf [Apr-2016]
