@@ -17,7 +17,7 @@ mole fraction & $x_i = \frac{n_i}{\sum_j{n_j}} =  \frac{n_i}{n_0 + \sum_{j \neq 
 molal  conc.  & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 / \left(1000 \frac{g}{kg} \right)}$               & $\frac{mol_i} {kg_{solvent}}$ \\
 molar  conc.  & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\ 
               & $= \frac{m_i \rho}{1 + \sum_{j\neq 0}{m_j M_j}}$     &       \\
-density 	  & $\rho_i = w_i/V_r = n_i M_i/V_r = c_i M_i$			 &	$g_i/mL$ \\
+density 	  & $\rho_i = w_i/V_r = n_i M_i/V_r = c_i M_i$			 &	$\frac{g_i}{mL}$ \\
 mass fraction & $x_{w,i} = \frac{w_i}{\sum_j{w_j}} =  \frac{n_i M_i}{n_0 M_0 + \sum_{j \neq 0}{n_j M_j}}$                         & [adim.]                       \\
 			  & $= \frac{c_i M_i}{\rho} = \frac{\rho_i}{\rho}$  &  \\
 \hline
@@ -100,7 +100,7 @@ This leads to the following relationship between activity coefficients calculate
 \label{eq:act_coef_m_to_x}
 \gamma_i^{II} = \gamma_i^{III} \times \frac{m_i M_0}{x_i}
 \end{equation}
-A standard form of equation \ref{eq:act_coef_m_to_x} is obtained by assuming complete dissociation of a solute $A_0$ into $\nu$ components, so that for all solutes the sum of molalities can be expressed as $\sum_{j \neq 0}m_j = \nu m_j $:
+A standard form of equation \ref{eq:act_coef_m_to_x} is obtained by assuming complete dissociation of a solute $A$ with molality $m$ into $\nu$ components, so that for all solutes the sum of molalities can be expressed as $\sum_{i}m_i = \nu m $:
 \[
 A \rightleftharpoons A_1 + A_2 + A_2 + ... + A_{\nu}
 \]

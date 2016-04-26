@@ -14,9 +14,10 @@ import numpy as np
 import csv
 import bisect
 import uuid
+import inflection
 import matplotlib
 import colormaps
-import ctypes # Needed to set the app icon correctly
+import ctypes  # Needed to set the app icon correctly
 from functools import partial
 from mat_Zerlegungen import gausselimination
 from datetime import datetime
@@ -26,7 +27,7 @@ matplotlib.rcParams['backend.qt4'] = 'PySide'
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from PySide import QtGui, QtCore
+from PySide import QtGui, QtCore, QtWebKit
 from mpldatacursor import datacursor
 
 try:
@@ -364,7 +365,8 @@ class UiGroupBox(QtGui.QWidget):
         (filename, _) = \
             QtGui.QFileDialog.getOpenFileName(None,
                                               caption='Open file',
-                                              dir=os.path.join(sys.path[0], 'DATA'),
+                                              dir=os.path.join(
+                                                  sys.path[0], 'DATA'),
                                               filter='*.csv')
         if os.path.isfile(filename):
             # Reset solution state and order of items
@@ -685,7 +687,8 @@ class UiGroupBox(QtGui.QWidget):
                           comps[index_of_variable, 1] + '}/(mol/L)'
         dep_var_labels = \
             ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
-            ['\\xi eq_' + '{' + str(item) + '}/(mol/L)' for item in range(1, nr + 1, 1)]
+            ['\\xi eq_' +
+                '{' + str(item) + '}/(mol/L)' for item in range(1, nr + 1, 1)]
         min_value = self.doubleSpinBox.value()
         max_value = self.doubleSpinBox_2.value()
         n_points = 20
@@ -876,19 +879,20 @@ class UiGroupBox(QtGui.QWidget):
 
     def display_about_info(self):
         row_string = unicode('', 'utf_8')
-        self.aboutBox_1 = QtGui.QTextBrowser()
+        self.aboutBox_1 = QtWebKit.QWebView()
         self.aboutBox_1.setWindowTitle('About')
         self.aboutBox_1.setWindowIcon(QtGui.QIcon(
-            os.path.join(sys.path[0], *['utils', 'icon_batch.png'])))
-        self.aboutBox_1.setOpenExternalLinks(True)
+            os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
         adding_table = False
 
-        html_stream = unicode(
-            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n',
-            'utf_8')
+        html_stream = unicode('<!DOCTYPE html>', 'utf_8')
         html_stream += unicode('<html>', 'utf_8')
         html_stream += unicode(
-            '<head><meta name="qrichtext" content="1" /><style type="text/css">' +
+            '<head>' +
+            '<meta name="qrichtext" content="1">' +
+            '<meta charset="utf-8">' +
+            '<title>README.md</title>' +
+            '<style type="text/css">' +
             '\\np,li {white-space: pre-wrap;}\n' +
             '\\np,br {line-height: 10%;}\n' +
             '</style></head>',
@@ -915,7 +919,8 @@ class UiGroupBox(QtGui.QWidget):
                 if not adding_table and row_string.find('|') != -1:
                     string_to_add = ''.join(
                         ['<table>', '<tr><td>',
-                         row_string.replace('|', '</td><td>').replace('\n', ''),
+                         row_string.replace(
+                             '|', '</td><td>').replace('\n', ''),
                          '</td></tr>'])
                     adding_table = True
                 elif adding_table and row_string.find('|') == -1:
@@ -927,12 +932,23 @@ class UiGroupBox(QtGui.QWidget):
                 elif not adding_table and row_string.find('|') == -1:
                     string_to_add = starting_p + row_string + ending_p
                 if len(row_string.replace('\n', '')) == 0:
-                    html_stream += string_to_add + '<br>'
+                    html_stream += string_to_add  # + '<br>'
                 elif matchingHLine.match(row_string):
-                    html_stream += '<hr />'
+                    html_stream += '<hr>'
                 else:
                     html_stream += string_to_add
-        html_stream += unicode('<hr />', 'utf_8')
+            if adding_table:
+                html_stream += unicode('</table>', 'utf_8')
+        html_stream += unicode('<hr>', 'utf_8')
+        for file in os.listdir(os.path.abspath('docs')):
+            filename_ext = os.path.splitext(os.path.basename(file))
+            ext = filename_ext[-1]
+            file_name = filename_ext[0]
+            if ext == '.html' and file_name.lower() != 'readme':
+                html_stream += unicode(
+                    '<p><a href=' + file + '>' +
+                    inflection.humanize(file_name) + '</a></p>', 'utf-8')
+        html_stream += unicode('<hr>', 'utf_8')
         html_stream += unicode(
             "<footer><p>" +
             '<a href=' +
@@ -944,7 +960,11 @@ class UiGroupBox(QtGui.QWidget):
             'utf_8')
         html_stream += unicode('</body></html>', 'utf_8')
         readme_file.close()
-        self.aboutBox_1.setHtml(html_stream)
+        html_file_path = os.path.join('docs', 'README.html')
+        html_file = open(html_file_path, 'w')
+        html_file.write(html_stream.encode('utf-8'))
+        html_file.close()
+        self.aboutBox_1.load(html_file_path)
         self.aboutBox_1.setMinimumWidth(500)
         self.aboutBox_1.setMinimumHeight(400)
         self.aboutBox_1.show()
@@ -1376,8 +1396,11 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
                 indep_var_values, dep_var_values.A1.tolist(), 'go-', label=series_label,
-                color=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
-                markerfacecolor=colormap_colors[np.random.randint(0, len(colormap_colors), 1)],
+                color=colormap_colors[
+                    np.random.randint(
+                        0, len(colormap_colors), 1)],
+                markerfacecolor=colormap_colors[
+                    np.random.randint(0, len(colormap_colors), 1)],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
             dc[label] = datacursor(
@@ -2093,7 +2116,7 @@ def main():
     if not app:  # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
     # following 2 lines for setting app icon correctly
-    myappid = u'mycompany.myproduct.subproduct.version' # arbitrary string
+    myappid = u'mycompany.myproduct.subproduct.version'  # arbitrary string
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     # ended lines for setting app icon correctly
     main_form = QtGui.QGroupBox()
