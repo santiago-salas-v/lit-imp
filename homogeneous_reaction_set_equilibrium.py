@@ -78,6 +78,8 @@ reac_headers_re = re.compile(
     r'|(^pKaj$)')  # For now, no more than 999 reactions
 comp_headers_re = re.compile(
     r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)')
+doc_hline_re = re.compile(
+    r'(\s*-{3,})')
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -879,9 +881,26 @@ class UiGroupBox(QtGui.QWidget):
 
     def display_about_info(self):
         row_string = unicode('', 'utf_8')
-        self.aboutBox_1 = QtWebKit.QWebView()
-        self.aboutBox_1.setWindowTitle('About')
-        self.aboutBox_1.setWindowIcon(QtGui.QIcon(
+        self.browser_window = QtGui.QWidget()
+        verticalLayout = QtGui.QVBoxLayout(self.browser_window)
+        aboutBox_1 = QtWebKit.QWebView()
+        toolbar_1 = QtGui.QToolBar()
+        back_icon = QtGui.QIcon(
+            os.path.join(
+                sys.path[0],
+                *['utils', 'glyphicons-217-circle-arrow-left.png']))
+        forward_icon = QtGui.QIcon(
+            os.path.join(
+                sys.path[0],
+                *['utils', 'glyphicons-218-circle-arrow-right.png']))
+        action_back = toolbar_1.addAction(back_icon, 'Back')
+        action_forward = toolbar_1.addAction(forward_icon, 'Forward')
+        action_back.triggered.connect(partial(aboutBox_1.back))
+        action_forward.triggered.connect(partial(aboutBox_1.forward))
+        verticalLayout.addWidget(toolbar_1)
+        verticalLayout.addWidget(aboutBox_1)
+        aboutBox_1.setWindowTitle('About')
+        aboutBox_1.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
         adding_table = False
 
@@ -927,10 +946,16 @@ class UiGroupBox(QtGui.QWidget):
                     string_to_add = '</table>' + starting_p + row_string + ending_p
                     adding_table = False
                 elif adding_table and row_string.find('|') != -1:
-                    string_to_add = ''.join(['<tr><td>', row_string.replace(
-                        '|', '</td><td>').replace('\n', ''), '</td></tr>'])
+                    if doc_hline_re.match(row_string) is not None:
+                        string_to_add = starting_p + '<hr>' + ending_p
+                    else:
+                        string_to_add = ''.join(['<tr><td>', row_string.replace(
+                            '|', '</td><td>').replace('\n', ''), '</td></tr>'])
                 elif not adding_table and row_string.find('|') == -1:
-                    string_to_add = starting_p + row_string + ending_p
+                    if doc_hline_re.match(row_string) is not None:
+                        string_to_add = starting_p + '<hr>' + ending_p
+                    else:
+                        string_to_add = starting_p + row_string + ending_p
                 if len(row_string.replace('\n', '')) == 0:
                     html_stream += string_to_add  # + '<br>'
                 elif matchingHLine.match(row_string):
@@ -946,8 +971,9 @@ class UiGroupBox(QtGui.QWidget):
             file_name = filename_ext[0]
             if ext == '.html' and file_name.lower() != 'readme':
                 html_stream += unicode(
-                    '<p><a href=' + file + '>' +
-                    inflection.humanize(file_name) + '</a></p>', 'utf-8')
+                    '<li><a href=' + file + '>' +
+                    '<font size="5">' + inflection.humanize(file_name) +
+                    '</font></a></li>', 'utf-8')
         html_stream += unicode('<hr>', 'utf_8')
         html_stream += unicode(
             "<footer><p>" +
@@ -964,10 +990,11 @@ class UiGroupBox(QtGui.QWidget):
         html_file = open(html_file_path, 'w')
         html_file.write(html_stream.encode('utf-8'))
         html_file.close()
-        self.aboutBox_1.load(html_file_path)
-        self.aboutBox_1.setMinimumWidth(500)
-        self.aboutBox_1.setMinimumHeight(400)
-        self.aboutBox_1.show()
+        aboutBox_1.load(html_file_path)
+        aboutBox_1.setMinimumWidth(500)
+        aboutBox_1.setMinimumHeight(400)
+        aboutBox_1.show()
+        self.browser_window.show()
 
     def show_log(self):
         headers_and_types = np.array(
