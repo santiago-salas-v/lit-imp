@@ -67,10 +67,11 @@ def take_bool(x):
 def take_date(x):
     return datetime.strptime(x, '%Y-%m-%d %H:%M:%S,%f')
 
-
+# Variables used
 colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
 markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+# Regular expression compilations
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 matchingHLine = re.compile('=+')
 reac_headers_re = re.compile(
@@ -80,6 +81,8 @@ comp_headers_re = re.compile(
     r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
+html_title = re.compile('<title>(.*?)</title>', 
+    re.IGNORECASE|re.DOTALL)
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -893,21 +896,22 @@ class UiGroupBox(QtGui.QWidget):
             os.path.join(
                 sys.path[0],
                 *['utils', 'glyphicons-218-circle-arrow-right.png']))
+        comboBox_1 = QtGui.QComboBox()
+        action_select = toolbar_1.addWidget(comboBox_1)
         action_back = toolbar_1.addAction(back_icon, 'Back')
         action_forward = toolbar_1.addAction(forward_icon, 'Forward')
-        action_back.triggered.connect(partial(aboutBox_1.back))
-        action_forward.triggered.connect(partial(aboutBox_1.forward))
+
         verticalLayout.addWidget(toolbar_1)
         verticalLayout.addWidget(aboutBox_1)
         aboutBox_1.setWindowTitle('About')
         aboutBox_1.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
+        
         adding_table = False
-
         html_stream = unicode('<!DOCTYPE html>', 'utf_8')
         html_stream += unicode('<html>', 'utf_8')
         html_stream += unicode(
-            '<head>' +
+            '<head><title>00 - README</title>' +
             '<meta name="qrichtext" content="1">' +
             '<meta charset="utf-8">' +
             '<title>README.md</title>' +
@@ -969,11 +973,19 @@ class UiGroupBox(QtGui.QWidget):
             filename_ext = os.path.splitext(os.path.basename(file))
             ext = filename_ext[-1]
             file_name = filename_ext[0]
-            if ext == '.html' and file_name.lower() != 'readme':
+            humanized_name = inflection.humanize(file_name)
+            if ext == '.html':
                 html_stream += unicode(
                     '<li><a href=' + file + '>' +
-                    '<font size="5">' + inflection.humanize(file_name) +
+                    '<font size="5">' + humanized_name +
                     '</font></a></li>', 'utf-8')
+                file_path = os.path.join('docs',file)
+                with open(file_path) as opened_file:
+                    read_file = '\n'.join(opened_file.readlines())
+                    file_title = \
+                    html_title.search(read_file).groups()[0]
+                    opened_file.close()
+                    comboBox_1.addItem(file_title, file_path)
         html_stream += unicode('<hr>', 'utf_8')
         html_stream += unicode(
             "<footer><p>" +
@@ -995,6 +1007,14 @@ class UiGroupBox(QtGui.QWidget):
         aboutBox_1.setMinimumHeight(400)
         aboutBox_1.show()
         self.browser_window.show()
+        # Make connections at the end
+        action_back.triggered.connect(partial(aboutBox_1.back))
+        action_forward.triggered.connect(partial(aboutBox_1.forward))
+        comboBox_1.currentIndexChanged.connect(
+            partial(
+            lambda x: aboutBox_1.load(
+                comboBox_1.itemData(x))
+            ))
 
     def show_log(self):
         headers_and_types = np.array(
