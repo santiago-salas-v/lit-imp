@@ -17,3 +17,6 @@ docs/*
 !docs/*.tex
 !docs/*.cfg
 !docs/*.mk4
+#!docs/*.html
+#!docs/*.png
+#!docs/*.css

@@ -914,7 +914,6 @@ class UiGroupBox(QtGui.QWidget):
             '<head><title>00 - README</title>' +
             '<meta name="qrichtext" content="1">' +
             '<meta charset="utf-8">' +
-            '<title>README.md</title>' +
             '<style type="text/css">' +
             '\\np,li {white-space: pre-wrap;}\n' +
             '\\np,br {line-height: 10%;}\n' +
@@ -951,17 +950,17 @@ class UiGroupBox(QtGui.QWidget):
                     adding_table = False
                 elif adding_table and row_string.find('|') != -1:
                     if doc_hline_re.match(row_string) is not None:
-                        string_to_add = starting_p + '<hr>' + ending_p
+                        string_to_add = ''
                     else:
                         string_to_add = ''.join(['<tr><td>', row_string.replace(
                             '|', '</td><td>').replace('\n', ''), '</td></tr>'])
                 elif not adding_table and row_string.find('|') == -1:
                     if doc_hline_re.match(row_string) is not None:
-                        string_to_add = starting_p + '<hr>' + ending_p
+                        string_to_add = '<hr>'
                     else:
                         string_to_add = starting_p + row_string + ending_p
                 if len(row_string.replace('\n', '')) == 0:
-                    html_stream += string_to_add  # + '<br>'
+                    html_stream += string_to_add
                 elif matchingHLine.match(row_string):
                     html_stream += '<hr>'
                 else:
@@ -969,16 +968,18 @@ class UiGroupBox(QtGui.QWidget):
             if adding_table:
                 html_stream += unicode('</table>', 'utf_8')
         html_stream += unicode('<hr>', 'utf_8')
+        html_stream += unicode('<ol>', 'utf_8')
         for file in os.listdir(os.path.abspath('docs')):
             filename_ext = os.path.splitext(os.path.basename(file))
             ext = filename_ext[-1]
             file_name = filename_ext[0]
             humanized_name = inflection.humanize(file_name)
             if ext == '.html':
-                html_stream += unicode(
-                    '<li><a href=' + file + '>' +
-                    '<font size="5">' + humanized_name +
-                    '</font></a></li>', 'utf-8')
+                if file_name.lower() != 'readme':
+                    html_stream += unicode(
+                        '<li><a href=' + file + '>' +
+                        humanized_name +
+                        '</a></li>', 'utf-8')
                 file_path = os.path.join('docs',file)
                 with open(file_path) as opened_file:
                     read_file = '\n'.join(opened_file.readlines())
@@ -986,6 +987,9 @@ class UiGroupBox(QtGui.QWidget):
                     html_title.search(read_file).groups()[0]
                     opened_file.close()
                     comboBox_1.addItem(file_title, file_path)
+                comboBox_1.model().sort(0)
+                comboBox_1.setCurrentIndex(0)
+        html_stream += unicode('</ol>', 'utf_8')
         html_stream += unicode('<hr>', 'utf_8')
         html_stream += unicode(
             "<footer><p>" +
