@@ -81,7 +81,7 @@ comp_headers_re = re.compile(
     r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
-html_title = re.compile('<title>(.*?)</title>', 
+html_title = re.compile('<title>(.*?)</title>',
     re.IGNORECASE|re.DOTALL)
 
 
@@ -906,7 +906,7 @@ class UiGroupBox(QtGui.QWidget):
         aboutBox_1.setWindowTitle('About')
         aboutBox_1.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
-        
+
         adding_table = False
         html_stream = unicode('<!DOCTYPE html>', 'utf_8')
         html_stream += unicode('<html>', 'utf_8')

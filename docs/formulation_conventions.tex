@@ -19,7 +19,7 @@ Following are applicable to calculate the chemical potential of a solution, and 
 mole number   & $n_i = \frac{w_i}{M_i}$                                                                                   & mol i                         \\
 mole fraction & $x_i = \frac{n_i}{\sum_j{n_j}} =  \frac{n_i}{n_0 + \sum_{j \neq 0}{n_j}}$                         & [adim.]                       \\
 molal  conc.  & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 / \left(1000 \frac{g}{kg} \right)}$               & $\frac{mol_i} {kg_{solvent}}$ \\
-molar  conc.  & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\ 
+molar  conc.  & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\
               & $= \frac{m_i \rho}{1 + \sum_{j\neq 0}{m_j M_j}}$     &       \\
 density 	  & $\rho_i = w_i/V_r = n_i M_i/V_r = c_i M_i$			 &	$\frac{g_i}{mL}$ \\
 mass fraction & $x_{w,i} = \frac{w_i}{\sum_j{w_j}} =  \frac{n_i M_i}{n_0 M_0 + \sum_{j \neq 0}{n_j M_j}}$                         & [adim.]                       \\
@@ -44,6 +44,32 @@ Combining the last two of these expressions, the following is obtained:
 				& = \rho_0 \frac{m_i}{x_i}
 \end{aligned}
 \]
+Summarizing in terms of both, the density of the solvent $\rho_0$ and of the
+solution $\rho$:
+\begin{table}[h]
+\begin{tabular}{|l|cccc|}
+\hline
+ 			& $x_i$ & $m_i$ & $c_i$ & $\rho_i$ \\
+\hline
+$x_i$ & 	1		& $\frac{x_i}{m_i} = \frac{M_0}{1 + \sum_{j\neq0}{m_jM_0}}$
+			&	$\frac{x_i}{c_i} = \frac{1}{\rho_0} \times
+			\frac{M_0}{1 + \sum_{j\neq0}{m_j M_0}}$
+			& $\frac{x_i}{\rho_i} = \frac{1}{\rho_0 M_i} \times
+			\frac{M_0}{1 + \sum_{j\neq0}{m_j M_0}}$ \\
+$m_i$ & $\frac{x_i}{m_i} = \frac{M_0}{1 + \sum_{j\neq0}{m_jM_0}}$	& 	1
+			&	$\frac{m_i}{c_i} = \frac{1}{\rho_0}$
+			& $\frac{m_i}{\rho_i} = \frac{1}{\rho_0 M_i} $\\
+$c_i$ &	$\frac{x_i}{c_i} = \frac{M_0}{\rho} \times
+			\frac{1+\sum_{j\neq0}{m_j M_j}}{1 + \sum_{j\neq0}{m_j M_0}}$
+			& $\frac{m_i}{c_i} = \frac{1+\sum_{j\neq0}{m_j M_j}}{\rho}$
+			&		1		& $\frac{c_i}{\rho_i} = \frac{1}{M_i}$ \\
+$\rho_i$ & 	$\frac{x_i}{\rho_i} = \frac{M_0}{\rho M_i} \times
+			\frac{1+\sum_{j\neq0}{m_j M_j}}{1 + \sum_{j\neq0}{m_j M_0}}$
+			& $\frac{m_i}{\rho_i} = \frac{1 + \sum_{j\neq0}{m_j M_j}}{\rho M_i}$
+			&	$\frac{c_i}{\rho_i} = \frac{1}{M_i}$	& 1 \\
+\hline
+\end{tabular}
+\end{table}
 \subsection{Chemical potential \cite{Denbigh1968} }
 \label{subsec:chemical_potential}
 Suitable conventions are applied to different solutions: Convention I is useful for solutions of miscible liquids at T,P (e.g. ethanol/water). Conventions II, III, and IV are useful for solutions of components that are gases or solids at T,P (e.g. oxygen or sugar in water). \\
@@ -71,7 +97,7 @@ Convention IV: Ideal solutes at \textit{infinite dilution}, expressed in molarit
 \textnormal{solute (i): } & (\gamma_i \rightarrow 1) as (c_i \rightarrow 0)
 \end{aligned}
 \end{equation}
-Chemical potential expressed under each convention, with $m_i^{\circ}$ and $c_i^{\circ}$selected as reference solute states at unit molality, and molarity respectively.
+Chemical potential expressed under each convention, with $m_i^{\circ}$ and $c_i^{\circ}$ selected as reference solute states at unit molality, and molarity respectively: $m_i^{\circ}=1 \frac{mol}{kg_{solvent}}$ and $c_i^{\circ}=1 \frac{mol}{L}$.
 \begin{equation}
 \begin{aligned}
 \mu_i = & \mu_i^{*} + RTln(\gamma_i^{I} x_i) \\
@@ -80,16 +106,16 @@ Chemical potential expressed under each convention, with $m_i^{\circ}$ and $c_i^
 	= 	& \mu_i^{\diamond} + RTln(\gamma_i^{IV} c_i/c_i^{\circ})
 \end{aligned}
 \end{equation}
-Notes on conversion between conventions: 
+Notes on conversion between conventions:
 \begin{itemize}
 \item Values of activity coefficients $\gamma_i^{II}$ and $\gamma_i^{III}$ vary, but chemical potential does not vary due to convention selection.
 \item Reference states chemical potentials under each convention $\mu_i^{*}$ and $\mu_i^{\fbox{}}$  are functions of temperature and pressure exclusively. Their difference calculated at infinite dilution does not change at other compositions:
 \end{itemize}
 \[
-\mu_i^{*} - \mu_i^{\fbox{}}  =  func(T,P) =  \lim_{x_0 \to 1} \left( \mu_i^{*} - \mu_i^{\fbox{}}\right) 
+\mu_i^{*} - \mu_i^{\fbox{}}  =  func(T,P) =  \lim_{x_0 \to 1} \left( \mu_i^{*} - \mu_i^{\fbox{}}\right)
 \]
 \[
-RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] = \lim_{x_0 \to 1} RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] 
+RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right] = \lim_{x_0 \to 1} RTln\left[ \frac{\gamma_i^{III} m_i/m_i^{\circ}}{\gamma_i^{II} x_i}\right]
 \]
 Therefore, referring back to conventions II and III, $\gamma_i \rightarrow 1$ at \textit{infinite dilution}:
 \[
