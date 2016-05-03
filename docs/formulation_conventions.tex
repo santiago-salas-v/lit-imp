@@ -1,5 +1,6 @@
 \documentclass[onecolumn]{article}
 \usepackage{amsmath}
+\usepackage{lscape}
 \begin{document}
 \title{01 - Conventions}
 \author{}
@@ -44,9 +45,11 @@ Combining the last two of these expressions, the following is obtained:
 				& = \rho_0 \frac{m_i}{x_i}
 \end{aligned}
 \]
-Summarizing in terms of both, the density of the solvent $\rho_0$ and of the
-solution $\rho$:
+Expressions are summarized in terms of the density of the solvent $\rho_0$, and
+of the solution $\rho$:
+\begin{landscape}
 \begin{table}[h]
+\begin{center}
 \begin{tabular}{|l|cccc|}
 \hline
  			& $x_i$ & $m_i$ & $c_i$ & $\rho_i$ \\
@@ -69,7 +72,11 @@ $\rho_i$ & 	$\frac{x_i}{\rho_i} = \frac{M_0}{\rho M_i} \times
 			&	$\frac{c_i}{\rho_i} = \frac{1}{M_i}$	& 1 \\
 \hline
 \end{tabular}
+\end{center}
+\caption{Conversion between composition expressions.}
+\label{table:composition_expr_conv}
 \end{table}
+\end{landscape}
 \subsection{Chemical potential \cite{Denbigh1968} }
 \label{subsec:chemical_potential}
 Suitable conventions are applied to different solutions: Convention I is useful for solutions of miscible liquids at T,P (e.g. ethanol/water). Conventions II, III, and IV are useful for solutions of components that are gases or solids at T,P (e.g. oxygen or sugar in water). \\

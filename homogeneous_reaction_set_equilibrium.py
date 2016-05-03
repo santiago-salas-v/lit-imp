@@ -82,7 +82,7 @@ comp_headers_re = re.compile(
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
-    re.IGNORECASE|re.DOTALL)
+                        re.IGNORECASE | re.DOTALL)
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -980,11 +980,11 @@ class UiGroupBox(QtGui.QWidget):
                         '<li><a href=' + file + '>' +
                         humanized_name +
                         '</a></li>', 'utf-8')
-                file_path = os.path.join('docs',file)
+                file_path = os.path.join('docs', file)
                 with open(file_path) as opened_file:
                     read_file = '\n'.join(opened_file.readlines())
                     file_title = \
-                    html_title.search(read_file).groups()[0]
+                        html_title.search(read_file).groups()[0]
                     opened_file.close()
                     comboBox_1.addItem(file_title, file_path)
                 comboBox_1.model().sort(0)
@@ -1016,8 +1016,8 @@ class UiGroupBox(QtGui.QWidget):
         action_forward.triggered.connect(partial(aboutBox_1.forward))
         comboBox_1.currentIndexChanged.connect(
             partial(
-            lambda x: aboutBox_1.load(
-                comboBox_1.itemData(x))
+                lambda x: aboutBox_1.load(
+                    comboBox_1.itemData(x))
             ))
 
     def show_log(self):

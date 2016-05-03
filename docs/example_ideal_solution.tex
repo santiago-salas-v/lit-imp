@@ -1,7 +1,12 @@
-\documentclass[6pt,a4paper,oneside,preview]{standalone}
+\documentclass[onecolumn]{article}
 \usepackage{lscape}
 \begin{document}
 \begin{landscape}
+\title{04 - Example 01 - Ideal Solution}
+\author{}
+\date{}
+\maketitle
+\section{Example 01 - Ideal Solution} % (fold)
 Ideal solution:
 Example, 7 components, 3 reactions: \\
 \begin{tabular}{llcll|l}
@@ -20,15 +25,15 @@ $H_2O$ & + $H_2O$ & $\rightleftharpoons$ & $H_3O(+)$ & + $OH(-)$ & $pKa_3=13.995
 \\
 \begin{tabular}{ll}
 \hline
-$C_{0,H2SO3}$ & = 0 mol/L\\ 
-$C_{0,HSO3(-)}$ & = 5.10E+00 mol/L \\ 
-$C_{0,SO3(2-)}$ & = 0 mol/L \\ 
-$C_{0,H3O(+)}$ & = 1.00E-07 mol/L \\ 
-$C_{0,OH(-)}$ & = 1.01E-07 mol/L \\ 
-$C_{0,H2O}$ & = 5.54E+01 mol/L \\ 
-$C_{0,Na(+)}$ & = 5.10E+00 mol/L \\ 
+$C_{0,H2SO3}$ & = 0 mol/L\\
+$C_{0,HSO3(-)}$ & = 5.10E+00 mol/L \\
+$C_{0,SO3(2-)}$ & = 0 mol/L \\
+$C_{0,H3O(+)}$ & = 1.00E-07 mol/L \\
+$C_{0,OH(-)}$ & = 1.01E-07 mol/L \\
+$C_{0,H2O}$ & = 5.54E+01 mol/L \\
+$C_{0,Na(+)}$ & = 5.10E+00 mol/L \\
 \hline
-\end{tabular} 
+\end{tabular}
 \\
 \begin{tabular}{llllllllllll}
 (4) 0 &= -$C_{H2SO3}$  &  &  &  &  &  &  &  & -$\xi_1$ & & \\
@@ -38,7 +43,7 @@ $C_{0,Na(+)}$ & = 5.10E+00 mol/L \\
 (8) $-1.01 \times 10^{-7} \frac{mol}{L}$  &= &  &  &  & -$C_{OH(-)}$  &  &  &  &  & & +$\xi_3$ \\
 (9) $-55.4 \frac{mol}{L}$  &= &  &  &  &  & -$C_{H2O}$  &  &  & -$\xi_1$ & -$\xi_2$ & -2$\xi_3$ \\
 (10) $-5.10\frac{mol}{L}$ &= &  &  &  &  &  &  & -$C_{Na(+)}$ &  &  & \\
-\end{tabular} 
+\end{tabular}
 \\
 Non-linear system to solve in matrix form:
 \\
@@ -52,9 +57,9 @@ Non-linear system to solve in matrix form:
 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 & 0 & +1 \\
 0 & 0 & 0 & 0 & 0 & -1 & 0 & -1 & -1 & -2 \\
 0 & 0 & 0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\
-0 & $\frac{Ceq_{H_3O(+)}}{Ceq_{H_2SO_3}}$ &  
+0 & $\frac{Ceq_{H_3O(+)}}{Ceq_{H_2SO_3}}$ &
 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-0 & 0 & $\frac{Ceq_{SO_3(2-)}}{Ceq_{HSO_3(-)}}$ & 
+0 & 0 & $\frac{Ceq_{SO_3(2-)}}{Ceq_{HSO_3(-)}}$ &
 0 & 0 & 0 & 0 & 0 & 0 & 0\\
 0 & 0 & 0 & $C_{H_3O(+)}$ & 0 & 0 & 0 & 0 & 0 & 0
 \end{tabular}
@@ -77,19 +82,19 @@ $\xi eq_3$ \\
 =
 \left(
 \begin{tabular}{c}
-0 mol/L\\ 
-5.10E+00 mol/L \\ 
-0 mol/L \\ 
-1.00E-07 mol/L \\ 
-1.01E-07 mol/L \\ 
-5.54E+01 mol/L \\ 
-5.10E+00 mol/L \\ 
+0 mol/L\\
+5.10E+00 mol/L \\
+0 mol/L \\
+1.00E-07 mol/L \\
+1.01E-07 mol/L \\
+5.54E+01 mol/L \\
+5.10E+00 mol/L \\
 $10^{-1.856985200}$ \\
 $10^{-7.171984936}$ \\
 $10^{-13.99567863}$ \\
 \end{tabular}
 \right)
 \]
-\\ 
+\\
 \end{landscape}
 \end{document}
