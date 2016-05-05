@@ -77,8 +77,12 @@ matchingHLine = re.compile('=+')
 reac_headers_re = re.compile(
     r'nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?' +
     r'|(^pKaj$)')  # For now, no more than 999 reactions
+# Default component headers:
+# ['Comp. i', 'z_i', 'C_0_i']
+# ['Comp. i', 'z_i', 'x_w_0_i', 'M_i']
+# ['Comp. i', 'z_i', 'x_i']
 comp_headers_re = re.compile(
-    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)')
+    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
@@ -441,6 +445,8 @@ class UiGroupBox(QtGui.QWidget):
         header_reacs_groups = [
             x.groups() if x is not None else x for x in map(
                 lambda y: reac_headers_re.match(y), header_reacs)]
+        # Divide into groups:
+        # r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)')
         header_comps_groups = [
             x.groups() if x is not None else x for x in map(
                 lambda y: comp_headers_re.match(y), header_comps)]
@@ -464,7 +470,11 @@ class UiGroupBox(QtGui.QWidget):
             elif row[1] is not None:  # zi
                 priorities_comps.append((1, row[1]))
             elif row[2] is not None:  # c0_i
-                priorities_comps.append((2, row[2]))
+                priorities_comps.append((4, row[2]))
+            elif row[3] is not None:  # xw0_i
+                priorities_comps.append((2, row[3]))
+            elif row[4] is not None:  # M_i
+                priorities_comps.append((3, row[4]))
         # reacs header, form [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form [None, ..., None, 'Comp. i', 'z_i', 'c0_i']
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[0])
@@ -885,6 +895,9 @@ class UiGroupBox(QtGui.QWidget):
     def display_about_info(self):
         row_string = unicode('', 'utf_8')
         self.browser_window = QtGui.QWidget()
+        self.browser_window.setWindowIcon(QtGui.QIcon(
+            os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
+        self.browser_window.setWindowTitle('About')
         verticalLayout = QtGui.QVBoxLayout(self.browser_window)
         aboutBox_1 = QtWebKit.QWebView()
         toolbar_1 = QtGui.QToolBar()
@@ -904,8 +917,6 @@ class UiGroupBox(QtGui.QWidget):
         verticalLayout.addWidget(toolbar_1)
         verticalLayout.addWidget(aboutBox_1)
         aboutBox_1.setWindowTitle('About')
-        aboutBox_1.setWindowIcon(QtGui.QIcon(
-            os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
 
         adding_table = False
         html_stream = unicode('<!DOCTYPE html>', 'utf_8')
