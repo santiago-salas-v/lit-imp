@@ -14,7 +14,7 @@ import numpy as np
 import csv
 import bisect
 import uuid
-import inflection
+import urllib
 import matplotlib
 import colormaps
 import ctypes  # Needed to set the app icon correctly
@@ -431,13 +431,15 @@ class UiGroupBox(QtGui.QWidget):
                     n += 1
                     # put 0 instead of blank and keep only columns to add
                     row_to_add = ['0' if row_without_whitespace[x] == '' else
-                                  row_without_whitespace[x] for x in valid_columns_comps]
+                                  row_without_whitespace[x]
+                                  for x in valid_columns_comps]
                     comps.append(row_to_add)
                 elif reading_reacs:
                     nr += 1
                     # put 0 instead of blank and keep only columns to add
                     row_to_add = ['0' if row_without_whitespace[x] == '' else
-                                  row_without_whitespace[x] for x in valid_columns_reacs]
+                                  row_without_whitespace[x]
+                                  for x in valid_columns_reacs]
                     reacs.append(row_to_add)
         csv_file.close()
         # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
@@ -451,7 +453,6 @@ class UiGroupBox(QtGui.QWidget):
             x.groups() if x is not None else x for x in map(
                 lambda y: comp_headers_re.match(y), header_comps)]
         priorities_reacs = []
-        priorities_comps = []
         for row in header_reacs_groups:
             if row is None:  # j or other. Irrelevant, it will be re-indexed
                 priorities_reacs.append((-1, row))
@@ -462,6 +463,10 @@ class UiGroupBox(QtGui.QWidget):
             elif row[0] is None \
                     and row[2] is not None:
                 priorities_reacs.append((int(row[2]), 'i=' + row[2]))
+        priorities_comps = []
+        molar_conc_in_csv = False
+        weight_frac_in_csv = False
+        molar_mass_in_csv = False
         for row in header_comps_groups:
             if row is None:
                 priorities_comps.append((-1, row))
@@ -470,19 +475,28 @@ class UiGroupBox(QtGui.QWidget):
             elif row[1] is not None:  # zi
                 priorities_comps.append((1, row[1]))
             elif row[2] is not None:  # c0_i
+                molar_conc_in_csv = True
                 priorities_comps.append((4, row[2]))
             elif row[3] is not None:  # xw0_i
+                weight_frac_in_csv = True
                 priorities_comps.append((2, row[3]))
             elif row[4] is not None:  # M_i
+                molar_mass_in_csv = True
                 priorities_comps.append((3, row[4]))
-        # reacs header, form [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
-        # comps header, form [None, ..., None, 'Comp. i', 'z_i', 'c0_i']
+        # reacs header, form
+        # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
+        # comps header, form
+        # [None, ..., None, 'Comp. i', 'z_i', 'xw0_i', 'M_i', 'c0_i']
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[0])
         sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[0])
         sort_indexes_reacs = [priorities_reacs.index(
             x) for x in sorted_priorities_reacs if x[1] is not None]
         sort_indexes_comps = [priorities_comps.index(
             x) for x in sorted_priorities_comps if x[1] is not None]
+        # sort_indexes_reacs form:
+        # ['pKaj', i=1', 'i=2', ... 'i=n']
+        # sort_indexes_comps form:
+        # ['Comp. i', 'z_i', 'xw0_i', 'M_i', 'c0_i']
         sorted_reacs = []
         k = 1
         for row in reacs:
@@ -496,7 +510,8 @@ class UiGroupBox(QtGui.QWidget):
         sorted_comps = []
         k = 1
         for row in comps:
-            # Add components index form ['i', 'Comp. i', 'z_i']
+            # Add components index form:
+            # ['i', 'Comp. i', 'z_i', 'n_i', 'm_i', 'xw0_i', '']
             sorted_comps.append([str(k)] + [row[x]
                                             for x in sort_indexes_comps])
             k += 1
@@ -572,7 +587,7 @@ class UiGroupBox(QtGui.QWidget):
             index_of_second_highest_c0 = highest_c0_indexes[-2]
         else:
             index_of_second_highest_c0 = highest_c0_indexes[-1]
-        c_second_highest_c0_tref = c0_i[index_of_second_highest_c0].item()
+        c_second_highest_c0_Tref = c0_i[index_of_second_highest_c0].item()
 
         self.c0_i = c0_i
         self.index_of_solvent = index_of_solvent
@@ -582,17 +597,17 @@ class UiGroupBox(QtGui.QWidget):
         self.pka_j = np.matrix([row[1] for row in reacs], dtype=float).T
         self.max_it = int(self.spinBox_3.value())
         self.tol = float(self.doubleSpinBox_5.value())
-        self.C_second_highest_C0_Tref = c_second_highest_c0_tref
+        self.c_second_highest_c0_Tref = c_second_highest_c0_Tref
 
         self.comboBox.clear()
         self.comboBox_3.clear()
         for item in comps[:, 0:2]:
-            self.comboBox.addItem('C0_' + item[0] + ' {' + item[1] + '}')
+            self.comboBox.addItem('c0_' + item[0] + ' {' + item[1] + '}')
             self.comboBox_3.addItem(item[1])
         self.comboBox.setCurrentIndex(index_of_second_highest_c0)
-        self.doubleSpinBox.setValue(c_second_highest_c0_tref / 10.0 ** 7)
+        self.doubleSpinBox.setValue(c_second_highest_c0_Tref / 10.0 ** 7)
         self.doubleSpinBox_2.setValue(
-            c_second_highest_c0_tref * (1 + 20 / 100.0))
+            c_second_highest_c0_Tref * (1 + 20 / 100.0))
         self.comboBox_3.setCurrentIndex(index_of_solvent)
         self.doubleSpinBox_6.setValue(c_solvent_tref)
         self.doubleSpinBox_6.setPrefix('(mol/L)')
@@ -698,7 +713,7 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         index_of_variable = self.comboBox.currentIndex()
-        indep_var_label = 'C0_{' + comps[index_of_variable, 0] + ', ' + \
+        indep_var_label = 'c0_{' + comps[index_of_variable, 0] + ', ' + \
                           comps[index_of_variable, 1] + '}/(mol/L)'
         dep_var_labels = \
             ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
@@ -882,7 +897,7 @@ class UiGroupBox(QtGui.QWidget):
             self.ceq_i_0 = ceq_i
             self.xieq_i_0 = xieq_i
             self.label_9.setText(self.label_9.text() +
-                                 '\nsum(C0*z_i) = ' + str((z_i.T * c0_i).item()) +
+                                 '\nsum(c0*z_i) = ' + str((z_i.T * c0_i).item()) +
                                  ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * ceq_i).item()) +
                                  '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * c0_i).item()) +
                                  '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * ceq_i).item()))
@@ -979,18 +994,13 @@ class UiGroupBox(QtGui.QWidget):
             if adding_table:
                 html_stream += unicode('</table>', 'utf_8')
         html_stream += unicode('<hr>', 'utf_8')
-        html_stream += unicode('<ol>', 'utf_8')
+        html_stream += unicode('<ul>', 'utf_8')
+        file_name_list = []
         for file in os.listdir(os.path.abspath('docs')):
             filename_ext = os.path.splitext(os.path.basename(file))
             ext = filename_ext[-1]
             file_name = filename_ext[0]
-            humanized_name = inflection.humanize(file_name)
             if ext == '.html':
-                if file_name.lower() != 'readme':
-                    html_stream += unicode(
-                        '<li><a href=' + file + '>' +
-                        humanized_name +
-                        '</a></li>', 'utf-8')
                 file_path = os.path.join('docs', file)
                 with open(file_path) as opened_file:
                     read_file = '\n'.join(opened_file.readlines())
@@ -998,17 +1008,22 @@ class UiGroupBox(QtGui.QWidget):
                         html_title.search(read_file).groups()[0]
                     opened_file.close()
                     comboBox_1.addItem(file_title, file_path)
-                comboBox_1.model().sort(0)
-                comboBox_1.setCurrentIndex(0)
-        html_stream += unicode('</ol>', 'utf_8')
+                if file_name.lower() != 'readme':
+                    file_name_list.append((file_title, file_path))
+        comboBox_1.model().sort(0)
+        comboBox_1.setCurrentIndex(0)
+        for file_name_path in sorted(file_name_list, key=lambda x: x[0]):
+            html_stream += unicode(
+                '<li><a href=' +
+                'file://' + urllib.pathname2url(file_name_path[1]) + '>' +
+                file_name_path[0] +
+                '</a></li>', 'utf-8')
+        html_stream += unicode('</ul>', 'utf_8')
         html_stream += unicode('<hr>', 'utf_8')
         html_stream += unicode(
             "<footer><p>" +
             '<a href=' +
-            '"' +
-            'https://github.com/santiago-salas-v/lit-impl-py' +
-            '"' +
-            '>' +
+            'https://github.com/santiago-salas-v/lit-impl-py' + '>' +
             'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
             'utf_8')
         html_stream += unicode('</body></html>', 'utf_8')
