@@ -78,11 +78,11 @@ reac_headers_re = re.compile(
     r'nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?' +
     r'|(^pKaj$)')  # For now, no more than 999 reactions
 # Default component headers:
-# ['Comp. i', 'z_i', 'C_0_i']
-# ['Comp. i', 'z_i', 'x_w_0_i', 'M_i']
-# ['Comp. i', 'z_i', 'x_i']
+# ['Comp. i', 'z', 'C_0']
+# ['Comp. i', 'z', 'x_w_0', 'M']
+# ['Comp. i', 'z', 'x']
 comp_headers_re = re.compile(
-    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)')
+    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)|(n_?i?)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
@@ -360,7 +360,7 @@ class UiGroupBox(QtGui.QWidget):
 
     def populate_input_spinboxes(self, index):
         comps = self.comps
-        c0_component = self.c0_i[index]
+        c0_component = self.c0[index]
         self.doubleSpinBox.setValue(c0_component / 10.0 ** 7)
         self.doubleSpinBox_2.setValue(c0_component * (1 + 20 / 100.0))
 
@@ -443,12 +443,12 @@ class UiGroupBox(QtGui.QWidget):
                     reacs.append(row_to_add)
         csv_file.close()
         # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
-        # Rearrange comps rearrange to Comp. i zi c0_i
+        # Rearrange comps rearrange to Comp. i zi c0
         header_reacs_groups = [
             x.groups() if x is not None else x for x in map(
                 lambda y: reac_headers_re.match(y), header_reacs)]
         # Divide into groups:
-        # r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)')
+        # r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)|(n_?i?)')
         header_comps_groups = [
             x.groups() if x is not None else x for x in map(
                 lambda y: comp_headers_re.match(y), header_comps)]
@@ -474,19 +474,22 @@ class UiGroupBox(QtGui.QWidget):
                 priorities_comps.append((0, row[0]))
             elif row[1] is not None:  # zi
                 priorities_comps.append((1, row[1]))
-            elif row[2] is not None:  # c0_i
+            elif row[2] is not None:  # c0
                 molar_conc_in_csv = True
                 priorities_comps.append((4, row[2]))
-            elif row[3] is not None:  # xw0_i
+            elif row[3] is not None:  # xw0
                 weight_frac_in_csv = True
                 priorities_comps.append((2, row[3]))
-            elif row[4] is not None:  # M_i
+            elif row[4] is not None:  # M
+                molar_mass_in_csv = True
+                priorities_comps.append((3, row[4]))
+            elif row[5] is not None:  # n
                 molar_mass_in_csv = True
                 priorities_comps.append((3, row[4]))
         # reacs header, form
         # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form
-        # [None, ..., None, 'Comp. i', 'z_i', 'xw0_i', 'M_i', 'c0_i']
+        # [None, ..., None, 'Comp. i', 'z', 'xw0', 'M', 'c0']
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[0])
         sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[0])
         sort_indexes_reacs = [priorities_reacs.index(
@@ -496,7 +499,7 @@ class UiGroupBox(QtGui.QWidget):
         # sort_indexes_reacs form:
         # ['pKaj', i=1', 'i=2', ... 'i=n']
         # sort_indexes_comps form:
-        # ['Comp. i', 'z_i', 'xw0_i', 'M_i', 'c0_i']
+        # ['Comp. i', 'z', 'xw0', 'M', 'c0']
         sorted_reacs = []
         k = 1
         for row in reacs:
@@ -511,7 +514,7 @@ class UiGroupBox(QtGui.QWidget):
         k = 1
         for row in comps:
             # Add components index form:
-            # ['i', 'Comp. i', 'z_i', 'n_i', 'm_i', 'xw0_i', '']
+            # ['i', 'Comp. i', 'z', 'n', 'm', 'xw0', '']
             sorted_comps.append([str(k)] + [row[x]
                                             for x in sort_indexes_comps])
             k += 1
@@ -525,12 +528,12 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.setRowCount(n)
         self.tableComps.setColumnCount(len(header_comps) + 3)
         self.tableComps.setHorizontalHeaderLabels(
-            header_comps + ['ceq_i, mol/L', '-log10(c0_i)', '-log10(ceq_i)'])
+            header_comps + ['ceq, mol/L', '-log10(c0)', '-log10(ceq)'])
 
         self.tableReacs.setRowCount(nr)
         self.tableReacs.setColumnCount(n + 2 + 1)
         self.tableReacs.setHorizontalHeaderLabels(
-            header_reacs + ['xieq_i'])
+            header_reacs + ['xieq'])
 
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
@@ -579,22 +582,22 @@ class UiGroupBox(QtGui.QWidget):
         reacs = self.reacs
         # Gui setup with calculated values
 
-        c0_i = np.matrix([row[3] for row in comps], dtype=float).T
-        highest_c0_indexes = np.argpartition(c0_i.A1, (-1, -2))
+        c0 = np.matrix([row[3] for row in comps], dtype=float).T
+        highest_c0_indexes = np.argpartition(c0.A1, (-1, -2))
         index_of_solvent = highest_c0_indexes[-1]
-        c_solvent_tref = c0_i[index_of_solvent].item()
-        if len(c0_i) > 1:
+        c_solvent_tref = c0[index_of_solvent].item()
+        if len(c0) > 1:
             index_of_second_highest_c0 = highest_c0_indexes[-2]
         else:
             index_of_second_highest_c0 = highest_c0_indexes[-1]
-        c_second_highest_c0_Tref = c0_i[index_of_second_highest_c0].item()
+        c_second_highest_c0_Tref = c0[index_of_second_highest_c0].item()
 
-        self.c0_i = c0_i
+        self.c0 = c0
         self.index_of_solvent = index_of_solvent
         self.c_solvent_tref = c_solvent_tref
-        self.z_i = np.matrix([row[2] for row in comps], dtype=float).T
+        self.z = np.matrix([row[2] for row in comps], dtype=float).T
         self.nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-        self.pka_j = np.matrix([row[1] for row in reacs], dtype=float).T
+        self.pka = np.matrix([row[1] for row in reacs], dtype=float).T
         self.max_it = int(self.spinBox_3.value())
         self.tol = float(self.doubleSpinBox_5.value())
         self.c_second_highest_c0_Tref = c_second_highest_c0_Tref
@@ -616,13 +619,13 @@ class UiGroupBox(QtGui.QWidget):
         # Collect variables
         n = self.n
         nr = self.nr
-        c0_i = self.c0_i
+        c0 = self.c0
         comps = self.comps
         reacs = self.reacs
         header_comps = self.header_comps
         header_reacs = self.header_reacs
-        ceq_i = self.ceq_i
-        xieq_i = self.xieq_i
+        ceq = self.ceq
+        xieq = self.xieq
         if hasattr(self, 'component_order_in_table'):
             i = getattr(self, 'component_order_in_table')
         else:
@@ -643,19 +646,19 @@ class UiGroupBox(QtGui.QWidget):
                 if column < 4:
                     new_item = QtGui.QTableWidgetItem(str(comps[row, column]))
                 elif column == 4:
-                    new_item = QtGui.QTableWidgetItem(str(ceq_i[row].item()))
+                    new_item = QtGui.QTableWidgetItem(str(ceq[row].item()))
                 elif column == 5:
-                    if c0_i[row] <= 0:
+                    if c0[row] <= 0:
                         new_item = QtGui.QTableWidgetItem(str(np.nan))
                     else:
                         new_item = QtGui.QTableWidgetItem(
-                            str(-np.log10(c0_i[row].item())))
+                            str(-np.log10(c0[row].item())))
                 elif column == 6:
-                    if ceq_i[row].item() <= 0:
+                    if ceq[row].item() <= 0:
                         new_item = QtGui.QTableWidgetItem(str(np.nan))
                     else:
                         new_item = QtGui.QTableWidgetItem(
-                            str(-np.log10(ceq_i[row].item())))
+                            str(-np.log10(ceq[row].item())))
                 # sortierbar machen
                 if column != 1:  # Comp. i <Str>
                     new_item = NSortableTableWidgetItem(new_item)
@@ -675,7 +678,7 @@ class UiGroupBox(QtGui.QWidget):
                         row, column, NSortableTableWidgetItem(str(reacs[row][column])))
                 elif column == n + 2:
                     self.tableReacs.setItem(
-                        row, column, NSortableTableWidgetItem(str(xieq_i[row].item())))
+                        row, column, NSortableTableWidgetItem(str(xieq[row].item())))
 
         # Widths and heights, re-enable sorting
         self.tableComps.setSortingEnabled(True)
@@ -709,7 +712,7 @@ class UiGroupBox(QtGui.QWidget):
                 delattr(self, var)
         comps = self.comps
         reacs = self.reacs
-        c0_i = self.c0_i
+        c0 = self.c0
         n = self.n
         nr = self.nr
         index_of_variable = self.comboBox.currentIndex()
@@ -725,39 +728,39 @@ class UiGroupBox(QtGui.QWidget):
         indep_var_series_single = \
             [min_value + x
              for x in np.arange(n_points + 1) * (max_value - min_value) / n_points]
-        c0_variable_comp = c0_i[index_of_variable]
+        c0_variable_comp = c0[index_of_variable]
         mid_index = bisect.bisect(
             indep_var_series_single,
             c0_variable_comp) - 1
-        xieq_i = self.xieq_i
-        ceq_i = self.ceq_i
-        ceq_series = np.matrix(np.zeros([n_points + 1, len(ceq_i)]))
-        xieq_series = np.matrix(np.zeros([n_points + 1, len(xieq_i)]))
+        xieq = self.xieq
+        ceq = self.ceq
+        ceq_series = np.matrix(np.zeros([n_points + 1, len(ceq)]))
+        xieq_series = np.matrix(np.zeros([n_points + 1, len(xieq)]))
         dep_var_series = dict(
             zip(dep_var_labels, np.empty(n + nr, dtype=np.ndarray)))
         indep_var_series = dict.fromkeys(
             dep_var_labels, indep_var_series_single)
         # Keep current solution intact for after plotting range
-        self.stored_solution_ceq_i = self.ceq_i
-        self.stored_solution_xieq_i = self.xieq_i
+        self.stored_solution_ceq = self.ceq
+        self.stored_solution_xieq = self.xieq
         for j in range(mid_index, -1, -1):
-            self.c0_i[index_of_variable] = indep_var_series_single[j]
+            self.c0[index_of_variable] = indep_var_series_single[j]
             self.equilibrate()
-            ceq_series[j, :] = self.ceq_i.T
-            xieq_series[j, :] = self.xieq_i.T
-        self.ceq_i = self.stored_solution_ceq_i
-        self.xieq_i = self.stored_solution_xieq_i
+            ceq_series[j, :] = self.ceq.T
+            xieq_series[j, :] = self.xieq.T
+        self.ceq = self.stored_solution_ceq
+        self.xieq = self.stored_solution_xieq
         for j in range(mid_index + 1, n_points + 1, +1):
-            self.c0_i[index_of_variable] = indep_var_series_single[j]
+            self.c0[index_of_variable] = indep_var_series_single[j]
             self.equilibrate()
-            ceq_series[j, :] = self.ceq_i.T
-            xieq_series[j, :] = self.xieq_i.T
+            ceq_series[j, :] = self.ceq.T
+            xieq_series[j, :] = self.xieq.T
         for j in range(n):
             dep_var_series[dep_var_labels[j]] = ceq_series[:, j]
         for j in range(nr):
             dep_var_series[dep_var_labels[n + j]] = xieq_series[:, j]
-        self.ceq_i = self.stored_solution_ceq_i
-        self.xieq_i = self.stored_solution_xieq_i
+        self.ceq = self.stored_solution_ceq
+        self.xieq = self.stored_solution_xieq
         self.Ceq_series = ceq_series
         self.Xieq_series = xieq_series
         self.indep_var_series = indep_var_series
@@ -814,21 +817,21 @@ class UiGroupBox(QtGui.QWidget):
         # Collect variables
         n = self.n
         nr = self.nr
-        c0_i = self.c0_i
-        z_i = self.z_i
+        c0 = self.c0
+        z = self.z
         comps = self.comps
         reacs = self.reacs
         nu_ij = self.nu_ij
-        pka_j = self.pka_j
+        pka = self.pka
         max_it = self.max_it
         tol = self.tol
         c_solvent_tref = self.c_solvent_tref
         index_of_solvent = self.index_of_solvent
 
         # Init. calculations
-        kc_j = np.multiply(
-            np.power(10, -pka_j), np.power(c_solvent_tref, nu_ij[index_of_solvent, :]).T)
-        self.kc_j = kc_j
+        kc = np.multiply(
+            np.power(10, -pka), np.power(c_solvent_tref, nu_ij[index_of_solvent, :]).T)
+        self.kc = kc
 
         # Setup logging
         if not os.path.exists('./logs'):
@@ -840,20 +843,20 @@ class UiGroupBox(QtGui.QWidget):
 
         # First estimates for eq. Composition Ceq and Reaction extent Xieq
         if not hasattr(self, 'acceptable_solution'):
-            ceq_i_0 = c0_i
+            ceq_0 = c0
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
             # 10.1002/cjce.5450660409
-            ceq_i_0[c0_i == 0] = min(c0_i[c0_i != 0].A1) * np.finfo(float).eps
-            xieq_i_0 = np.matrix(np.zeros([nr, 1]))
+            ceq_0[c0 == 0] = min(c0[c0 != 0].A1) * np.finfo(float).eps
+            xieq_0 = np.matrix(np.zeros([nr, 1]))
         else:
             # Use previous solution as initial estimate, if it was valid.
-            ceq_i_0 = self.ceq_i_0
-            xieq_i_0 = self.xieq_i_0
+            ceq_0 = self.ceq_0
+            xieq_0 = self.xieq_0
 
         # Pass variables to self before loop start
-        variables_to_pass = ['c0_i', 'z_i', 'nu_ij', 'pka_j',
+        variables_to_pass = ['c0', 'z', 'nu_ij', 'pka',
                              'max_it', 'tol',
-                             'ceq_i_0', 'xieq_i_0']
+                             'ceq_0', 'xieq_0']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
@@ -870,23 +873,23 @@ class UiGroupBox(QtGui.QWidget):
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            ceq_i, xieq_i = calc_xieq(self)
+            ceq, xieq = calc_xieq(self)
             k += 1
             # TODO: if progress_var.wasCanceled() == True then stop
-            if all(ceq_i >= 0) and not any(np.isnan(ceq_i)):
+            if all(ceq >= 0) and not any(np.isnan(ceq)):
                 self.acceptable_solution = True
             else:
                 # Set reactions to random extent and recalculate
                 # TODO: scale to concentration sizes
-                self.xieq_i_0 = np.matrix(
+                self.xieq_0 = np.matrix(
                     np.random.normal(0.0, 1.0 / 3.0, nr)).T
                 # Set aequilibrium composition to initial value + estimated
                 # conversion
-                self.ceq_i_0 = c0_i  # + nu_ij * self.xieq_i_0
+                self.ceq_0 = c0  # + nu_ij * self.xieq_0
                 # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
                 # 10.1002/cjce.5450660409
-                self.ceq_i_0[self.ceq_i_0 == 0] = min(
-                    c0_i[c0_i != 0].A1) * np.finfo(float).eps
+                self.ceq_0[self.ceq_0 == 0] = min(
+                    c0[c0 != 0].A1) * np.finfo(float).eps
                 self.initialEstimateAttempts += 1
                 self.methodLoops = [0, 0]
 
@@ -894,16 +897,16 @@ class UiGroupBox(QtGui.QWidget):
             delattr(self, 'acceptable_solution')
             self.label_9.setText(self.label_9.text() + '\n')
         else:
-            self.ceq_i_0 = ceq_i
-            self.xieq_i_0 = xieq_i
+            self.ceq_0 = ceq
+            self.xieq_0 = xieq
             self.label_9.setText(self.label_9.text() +
-                                 '\nsum(c0*z_i) = ' + str((z_i.T * c0_i).item()) +
-                                 ' \t\t\t sum(Ceq_i*z_i) = ' + str((z_i.T * ceq_i).item()) +
-                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z_i, 2).T * c0_i).item()) +
-                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z_i, 2).T * ceq_i).item()))
+                                 '\nsum(c0*z) = ' + str((z.T * c0).item()) +
+                                 ' \t\t\t sum(Ceq*z) = ' + str((z.T * ceq).item()) +
+                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * c0).item()) +
+                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * ceq).item()))
 
-        self.ceq_i = ceq_i
-        self.xieq_i = xieq_i
+        self.ceq = ceq
+        self.xieq = xieq
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
 
@@ -1015,7 +1018,9 @@ class UiGroupBox(QtGui.QWidget):
         for file_name_path in sorted(file_name_list, key=lambda x: x[0]):
             html_stream += unicode(
                 '<li><a href=' +
-                'file://' + urllib.pathname2url(file_name_path[1]) + '>' +
+                'file://' +
+                urllib.pathname2url(os.path.abspath(file_name_path[1])) +
+                '>' +
                 file_name_path[0] +
                 '</a></li>', 'utf-8')
         html_stream += unicode('</ul>', 'utf_8')
@@ -1790,30 +1795,30 @@ class LogWidget(QtGui.QWidget):
 
 def calc_xieq(form):
     """Steepest descent for good initial estimate, then Newton method for non-linear algebraic system
-    :return: tuple with ceq_i, xieq_i, f_0
-    :param c0_i: np.matrix (n x 1) - Conc(i, alimentación)
-    :param z_i: np.matrix (n x 1) - Carga(i, alimentación)
+    :return: tuple with ceq, xieq, f_0
+    :param c0: np.matrix (n x 1) - Conc(i, alimentación)
+    :param z: np.matrix (n x 1) - Carga(i, alimentación)
     :param nu_ij: np.matrix (n x nr) - Coefs. esteq. componente i en reacción j
-    :param pka_j: np.matrix (n x 1) - (-1)*log10("Cte." de equilibrio en reacción j) = -log10 kc_j(T)
-    :param xieq_i_0: np.matrix (n x 1) - avance de reacción j - estimado inicial
-    :param ceq_i_0: np.matrix (n x 1) - Conc(i, equilibrio)
+    :param pka: np.matrix (n x 1) - (-1)*log10("Cte." de equilibrio en reacción j) = -log10 kc(T)
+    :param xieq_0: np.matrix (n x 1) - avance de reacción j - estimado inicial
+    :param ceq_0: np.matrix (n x 1) - Conc(i, equilibrio)
     """
     n = form.n
     nr = form.nr
-    c0_i = form.c0_i
-    pka_j = form.pka_j
+    c0 = form.c0
+    pka = form.pka
     nu_ij = form.nu_ij
-    ceq_i_0 = form.ceq_i_0
-    xieq_i_0 = form.xieq_i_0
+    ceq_0 = form.ceq_0
+    xieq_0 = form.xieq_0
     max_it = form.max_it
     tol = form.tol
-    z_i = form.z_i
-    kc_j = form.kc_j
+    z = form.z
+    kc = form.kc
 
-    f = lambda x: f_gl_0(x, c0_i, nu_ij, n, nr, kc_j)
-    j = lambda x: jac(x, c0_i, nu_ij, n, nr, kc_j)
+    f = lambda x: f_gl_0(x, c0, nu_ij, n, nr, kc)
+    j = lambda x: jac(x, c0, nu_ij, n, nr, kc)
 
-    x0 = np.concatenate([ceq_i_0, xieq_i_0])
+    x0 = np.concatenate([ceq_0, xieq_0])
     x = x0
     # Newton method: G(x) = J(x)^-1 * F(x)
     k = 0
@@ -1944,24 +1949,24 @@ def calc_xieq(form):
         form,
         k,
         'solved.' if stop and not divergent else 'solution not found.')
-    ceq_i = x[0:n]
-    xieq_i = x[n:n + nr]
-    return ceq_i, xieq_i
+    ceq = x[0:n]
+    xieq = x[n:n + nr]
+    return ceq, xieq
 
 
-def f_gl_0(x, c0_i, nu_ij, n, nr, kc_j):
-    ceq_i = x[0:n, 0]
-    xieq_i = x[n:n + nr, 0]
+def f_gl_0(x, c0, nu_ij, n, nr, kc):
+    ceq = x[0:n, 0]
+    xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
-    result[0:n] = -ceq_i + c0_i + nu_ij * xieq_i
-    result[n:n + nr] = -kc_j + np.prod(np.power(ceq_i, nu_ij), 0).T
+    result[0:n] = -ceq + c0 + nu_ij * xieq
+    result[n:n + nr] = -kc + np.prod(np.power(ceq, nu_ij), 0).T
     return result
 
 
-def jac(x, c0_i, nu_ij, n, nr, kc_j):
-    ceq_i = x[0:n, 0]
-    eins_durch_c = np.diag(np.power(ceq_i, -1).A1, 0)
-    quotient = np.diag(np.prod(np.power(ceq_i, nu_ij), 0).A1)
+def jac(x, c0, nu_ij, n, nr, kc):
+    ceq = x[0:n, 0]
+    eins_durch_c = np.diag(np.power(ceq, -1).A1, 0)
+    quotient = np.diag(np.prod(np.power(ceq, nu_ij), 0).A1)
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
     result[0:n, 0:n] = -1 * np.eye(n).astype(float)
     result[0:n, n:n + nr] = nu_ij
