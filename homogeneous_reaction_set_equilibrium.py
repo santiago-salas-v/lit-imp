@@ -423,11 +423,8 @@ class UiGroupBox(QtGui.QWidget):
                     reading_comps = True
                     reading_reacs = False
                     header_comps = next(reader)
-                    # valid_columns_comps = [header_comps.index(x)
-                    #                        for x in header_comps if
-                    #                        x.replace(' ', '') != '']
-                    # header_comps = [header_comps[x].replace(' ', '')
-                    #                 for x in valid_columns_comps]
+                    # Enumerate (index, column)
+                    # Remove spaces.
                     header_comps_enum = [(i, j.replace(' ','')) for i, j in
                                          enumerate(header_comps) if
                                          j.replace(' ', '') != '']
@@ -436,11 +433,8 @@ class UiGroupBox(QtGui.QWidget):
                     reading_reacs = True
                     reading_comps = False
                     header_reacs = next(reader)
-                    # valid_columns_reacs = [header_reacs.index(x)
-                    #                        for x in header_reacs if
-                    #                        x.replace(' ', '') != '']
-                    # header_reacs = [header_reacs[x].replace(' ', '')
-                    #                 for x in valid_columns_reacs]
+                    # Enumerate (index, column)
+                    # Remove spaces.
                     header_reacs_enum = [(i, j.replace(' ','')) for i, j in
                                          enumerate(header_reacs) if
                                          j.replace(' ', '') != '']
@@ -468,13 +462,13 @@ class UiGroupBox(QtGui.QWidget):
         csv_file.close()
         # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
         # Rearrange comps rearrange to Comp. i zi c0
-        # header_reacs_groups = [
-        #     x.groups() if x is not None else x for x in map(
-        #         lambda y: reac_headers_re.match(y), header_reacs)]
         header_reacs_groups_enum = \
             map(lambda y: [y[0], reac_headers_re.match(y[1]).groups()],
                 header_reacs_enum)
         priorities_reacs = []
+        # Get reaction set structure based on same order as regex groups.
+        # Group 2 corresponds to nu_2j or nu_2j(i=2). First is priority.
+        # Group 4 corresponds to nu_ij(i=2). If redundant with 2, 2 used.
         for x in header_reacs_groups_enum:
             if x is not None:
                 index_origin = x[0]
@@ -490,42 +484,22 @@ class UiGroupBox(QtGui.QWidget):
                     variable = 'nu_ij(i=' + x[1][4] + ')'
                     index_destination = int(x[1][4]) + 0 + 1 # add space for [j, pKaj]
                 priorities_reacs.append((variable, index_origin, index_destination))
-            # if row is None:  # j or other. Irrelevant, it will be re-indexed
-            #     priorities_reacs.append((-1, row))
-            # elif row[3] is not None:  # pKaj
-            #     priorities_reacs.append((0, row[3]))
-            # elif row[0] is not None:  # if spec. as nu_xj(i=y), prioritize x
-            #     priorities_reacs.append((int(row[0]), 'i=' + row[0]))
-            # elif row[0] is None \
-            #         and row[2] is not None:
-            #     priorities_reacs.append((int(row[2]), 'i=' + row[2]))
-            #priorities_reacs.append((variable, index_origin, index_destination))
         # Divide into groups with regular expression:
         # '(\bi)(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)|([c|C]_?0_?i?)'
         # Required: n0, c0 or m0
         # Optional: M (unless using m0)
-        # If M is not in the input, or incomplete, M=18.01528 for the solvent.
-        # header_comps_groups = [
-        #     x.groups() if x is not None else x for x in map(
-        #         lambda y: comp_headers_re.match(y), header_comps)]
+        # TODO: If M is not in the input, or incomplete, M=18.01528 for the solvent.
         header_comps_groups_enum = \
             map(lambda y: [y[0], comp_headers_re.match(y[1]).groups()],
                 header_comps_enum)
-        c_in_csv = False
-        w_in_csv = False
-        n_in_csv = False
-        mm_in_csv = False
         # priorities_comps is of the form (variable, index_origin, index_destination)
         priorities_comps = []
-        k = 0
         for x in header_comps_groups_enum:
             if x is not None:
                 index_origin = x[0]
                 variable = [y for y in x[1] if y is not None][0]
                 index_destination = [i for i, j in enumerate(x[1]) if j is not None][0]
                 priorities_comps.append((variable, index_origin, index_destination))
-        if not n_in_csv and w_in_csv and not mm_in_csv:
-            raise Exception('Need molar mass')
         # reacs header, form
         # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form
@@ -533,15 +507,6 @@ class UiGroupBox(QtGui.QWidget):
         # Sort priorities arrays by destination
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[2])
         sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[2])
-        sort_indexes_reacs = [priorities_reacs.index(
-            x) for x in sorted_priorities_reacs if x[1] is not None]
-        sort_indexes_comps = [priorities_comps.index(
-            x) for x in sorted_priorities_comps if x[1] is not None and
-                              x[0] != 0]
-        # sort_indexes_reacs form:
-        # ['pKaj', i=1', 'i=2', ... 'i=n']
-        # sort_indexes_comps form:
-        # ['Comp. i', 'z', 'M', 'n0', 'w0', 'xw0', 'x0', 'c0', 'm0']
         sorted_reacs = []
         k = 1
         for row in reacs:
@@ -552,8 +517,7 @@ class UiGroupBox(QtGui.QWidget):
             k += 1
         header_reacs = \
             [str(x[0]) for x in sorted_priorities_reacs]
-        sorted_comps = []
-        # k = 1 # remove header row
+        # Keep format of header_comps_model in table of components
         sorted_comps = comps
         already_ineverted = []
         for row in sorted_priorities_comps:
@@ -568,20 +532,8 @@ class UiGroupBox(QtGui.QWidget):
                     new_comp = comps_row[new_index]
                     comps_row[new_index] = old_comp
                     comps_row[old_index] = new_comp
-        # for row in comps:
-        #     # Add components index form:
-        #     # Opt. 1 ['i', 'Comp. i', 'z', 'w0', 'M']
-        #     # Opt. 2 ['i', 'Comp. i', 'z', 'c0', ('M')]
-        #     # Opt. 3 ['i', 'Comp. i', 'z', 'n0', ('M')]
-        #     for col in enumerate(row):
-        #         index = col[0]
-        #         value = col[1]
-        #         if index in valid_columns_comps:
-        #             new_index = \
-        #                 sorted_priorities_comps[valid_columns_comps.index(index)][2]
-        #     sorted_comps.append([str(k)] + [row[x]
-        #                                     for x in sort_indexes_comps])
-        #    k += 1
+        # Add components index form. All have been worked on in
+        # scaffold.
         header_comps = header_comps_model
         comps = np.array(sorted_comps)
         reacs = np.array(sorted_reacs)
@@ -601,6 +553,13 @@ class UiGroupBox(QtGui.QWidget):
                              'n', 'nr']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
+
+    def initialize_variables(self):
+        header_comps = self.header_comps
+        header_reacs = self.header_reacs
+        comps = self.comps
+        reacs = self.reacs
+
     def load_variables_from_form(self):
         n = self.n
         nr = self.nr
@@ -2270,6 +2229,7 @@ def main():
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
     main_form.ui.load_csv('./DATA/COMPONENTS_REACTIONS_EX_001.csv')
+    main_form.ui.initialize_variables()
     main_form.ui.gui_equilibrate()
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
