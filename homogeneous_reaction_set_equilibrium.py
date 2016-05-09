@@ -75,14 +75,16 @@ fillstyles = matplotlib.markers.MarkerStyle.fillstyles
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 matchingHLine = re.compile('=+')
 reac_headers_re = re.compile(
-    r'nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?' +
-    r'|(^pKaj$)')  # For now, no more than 999 reactions
+    r'(\bj)' +
+    r'|(^pKaj$)' +
+    r'|nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?')  # For now, no more than 999 reactions
 # Default component headers:
 # ['Comp. i', 'z', 'C_0']
 # ['Comp. i', 'z', 'x_w_0', 'M']
 # ['Comp. i', 'z', 'x']
 comp_headers_re = re.compile(
-    r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)|(n_?i?)')
+    r'(\bi)|(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)' +
+    r'|(x_?w_?0?)|(x_?0)|([c|C]_?0_?i?)|(m_?0)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
@@ -403,6 +405,14 @@ class UiGroupBox(QtGui.QWidget):
             reacs = []
             valid_columns_reacs = []
             valid_columns_comps = []
+            # Header of components will match this expression, only need to find
+            # indexes in file.
+            header_comps_model = ['i', 'Comp.', 'z', 'M/(g/mol)', 'n0/mol',
+                            'w0/g', 'xw0', 'x0', 'c0/(mol/L)',
+                            'm0/(mol/kg_{solvent})']
+            # First two columns of the header of reacions will match this expression,
+            # need to find indexes in file and append coefficient matrix.
+            header_reacs_model = ['j', 'pKa']
             for row in reader:
                 row_without_whitespace = [x.replace(' ', '') for x in row]
                 row_without_blanks = [
@@ -413,26 +423,40 @@ class UiGroupBox(QtGui.QWidget):
                     reading_comps = True
                     reading_reacs = False
                     header_comps = next(reader)
-                    valid_columns_comps = [header_comps.index(x)
-                                           for x in header_comps if
-                                           x.replace(' ', '') != '']
-                    header_comps = [header_comps[x].replace(' ', '')
-                                    for x in valid_columns_comps]
+                    # valid_columns_comps = [header_comps.index(x)
+                    #                        for x in header_comps if
+                    #                        x.replace(' ', '') != '']
+                    # header_comps = [header_comps[x].replace(' ', '')
+                    #                 for x in valid_columns_comps]
+                    header_comps_enum = [(i, j.replace(' ','')) for i, j in
+                                         enumerate(header_comps) if
+                                         j.replace(' ', '') != '']
+                    valid_columns_comps = [x[0] for x in header_comps_enum]
                 elif 'REAC' in row:
                     reading_reacs = True
                     reading_comps = False
                     header_reacs = next(reader)
-                    valid_columns_reacs = [header_reacs.index(x)
-                                           for x in header_reacs if
-                                           x.replace(' ', '') != '']
-                    header_reacs = [header_reacs[x].replace(' ', '')
-                                    for x in valid_columns_reacs]
+                    # valid_columns_reacs = [header_reacs.index(x)
+                    #                        for x in header_reacs if
+                    #                        x.replace(' ', '') != '']
+                    # header_reacs = [header_reacs[x].replace(' ', '')
+                    #                 for x in valid_columns_reacs]
+                    header_reacs_enum = [(i, j.replace(' ','')) for i, j in
+                                         enumerate(header_reacs) if
+                                         j.replace(' ', '') != '']
+                    valid_columns_reacs = [x[0] for x in header_reacs_enum]
                 elif reading_comps:
                     n += 1
-                    # put 0 instead of blank and keep only columns to add
-                    row_to_add = ['0' if row_without_whitespace[x] == '' else
-                                  row_without_whitespace[x]
-                                  for x in valid_columns_comps]
+                    # put 0 instead of blank and keep all columns to add in model
+                    row_to_add = []
+                    for x in range(len(header_comps_model)):
+                        if x in valid_columns_comps:
+                            if row_without_whitespace[x] == '':
+                                row_to_add.append('0')
+                            else:
+                                row_to_add.append(row_without_whitespace[x])
+                        else:
+                            row_to_add.append('')
                     comps.append(row_to_add)
                 elif reading_reacs:
                     nr += 1
@@ -444,83 +468,121 @@ class UiGroupBox(QtGui.QWidget):
         csv_file.close()
         # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
         # Rearrange comps rearrange to Comp. i zi c0
-        header_reacs_groups = [
-            x.groups() if x is not None else x for x in map(
-                lambda y: reac_headers_re.match(y), header_reacs)]
-        # Divide into groups:
-        # r'(Comp\.?i?)|(z_?i?|Z_?i?)|(C_?0_?i?)|(x_?w_?0_?i?)|(M_?i?)|(n_?i?)')
-        header_comps_groups = [
-            x.groups() if x is not None else x for x in map(
-                lambda y: comp_headers_re.match(y), header_comps)]
+        # header_reacs_groups = [
+        #     x.groups() if x is not None else x for x in map(
+        #         lambda y: reac_headers_re.match(y), header_reacs)]
+        header_reacs_groups_enum = \
+            map(lambda y: [y[0], reac_headers_re.match(y[1]).groups()],
+                header_reacs_enum)
         priorities_reacs = []
-        for row in header_reacs_groups:
-            if row is None:  # j or other. Irrelevant, it will be re-indexed
-                priorities_reacs.append((-1, row))
-            elif row[3] is not None:  # pKaj
-                priorities_reacs.append((0, row[3]))
-            elif row[0] is not None:  # if spec. as nu_xj(i=y), prioritize x
-                priorities_reacs.append((int(row[0]), 'i=' + row[0]))
-            elif row[0] is None \
-                    and row[2] is not None:
-                priorities_reacs.append((int(row[2]), 'i=' + row[2]))
+        for x in header_reacs_groups_enum:
+            if x is not None:
+                index_origin = x[0]
+                if x[1][2] is None \
+                        and x[1][4] is None:
+                    variable = [y for y in x[1] if y is not None][0]
+                    index_destination = [i for i, j in enumerate(x[1]) if j is not None][0]
+                elif x[1][2] is not None:
+                    variable = 'nu_ij(i=' + x[1][2] + ')'
+                    index_destination = int(x[1][2]) + 0 + 1 # add space for [j, pKaj]
+                elif x[1][2] is None \
+                        and x[1][4] is not None:
+                    variable = 'nu_ij(i=' + x[1][4] + ')'
+                    index_destination = int(x[1][4]) + 0 + 1 # add space for [j, pKaj]
+                priorities_reacs.append((variable, index_origin, index_destination))
+            # if row is None:  # j or other. Irrelevant, it will be re-indexed
+            #     priorities_reacs.append((-1, row))
+            # elif row[3] is not None:  # pKaj
+            #     priorities_reacs.append((0, row[3]))
+            # elif row[0] is not None:  # if spec. as nu_xj(i=y), prioritize x
+            #     priorities_reacs.append((int(row[0]), 'i=' + row[0]))
+            # elif row[0] is None \
+            #         and row[2] is not None:
+            #     priorities_reacs.append((int(row[2]), 'i=' + row[2]))
+            #priorities_reacs.append((variable, index_origin, index_destination))
+        # Divide into groups with regular expression:
+        # '(\bi)(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)|([c|C]_?0_?i?)'
+        # Required: n0, c0 or m0
+        # Optional: M (unless using m0)
+        # If M is not in the input, or incomplete, M=18.01528 for the solvent.
+        # header_comps_groups = [
+        #     x.groups() if x is not None else x for x in map(
+        #         lambda y: comp_headers_re.match(y), header_comps)]
+        header_comps_groups_enum = \
+            map(lambda y: [y[0], comp_headers_re.match(y[1]).groups()],
+                header_comps_enum)
+        c_in_csv = False
+        w_in_csv = False
+        n_in_csv = False
+        mm_in_csv = False
+        # priorities_comps is of the form (variable, index_origin, index_destination)
         priorities_comps = []
-        molar_conc_in_csv = False
-        weight_frac_in_csv = False
-        molar_mass_in_csv = False
-        for row in header_comps_groups:
-            if row is None:
-                priorities_comps.append((-1, row))
-            elif row[0] is not None:  # Comp. i
-                priorities_comps.append((0, row[0]))
-            elif row[1] is not None:  # zi
-                priorities_comps.append((1, row[1]))
-            elif row[2] is not None:  # c0
-                molar_conc_in_csv = True
-                priorities_comps.append((4, row[2]))
-            elif row[3] is not None:  # xw0
-                weight_frac_in_csv = True
-                priorities_comps.append((2, row[3]))
-            elif row[4] is not None:  # M
-                molar_mass_in_csv = True
-                priorities_comps.append((3, row[4]))
-            elif row[5] is not None:  # n
-                molar_mass_in_csv = True
-                priorities_comps.append((3, row[4]))
+        k = 0
+        for x in header_comps_groups_enum:
+            if x is not None:
+                index_origin = x[0]
+                variable = [y for y in x[1] if y is not None][0]
+                index_destination = [i for i, j in enumerate(x[1]) if j is not None][0]
+                priorities_comps.append((variable, index_origin, index_destination))
+        if not n_in_csv and w_in_csv and not mm_in_csv:
+            raise Exception('Need molar mass')
         # reacs header, form
         # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form
-        # [None, ..., None, 'Comp. i', 'z', 'xw0', 'M', 'c0']
-        sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[0])
-        sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[0])
+        # [None, ..., None, 'Comp. i', 'z', 'M', 'n0', 'w0']
+        # Sort priorities arrays by destination
+        sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[2])
+        sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[2])
         sort_indexes_reacs = [priorities_reacs.index(
             x) for x in sorted_priorities_reacs if x[1] is not None]
         sort_indexes_comps = [priorities_comps.index(
-            x) for x in sorted_priorities_comps if x[1] is not None]
+            x) for x in sorted_priorities_comps if x[1] is not None and
+                              x[0] != 0]
         # sort_indexes_reacs form:
         # ['pKaj', i=1', 'i=2', ... 'i=n']
         # sort_indexes_comps form:
-        # ['Comp. i', 'z', 'xw0', 'M', 'c0']
+        # ['Comp. i', 'z', 'M', 'n0', 'w0', 'xw0', 'x0', 'c0', 'm0']
         sorted_reacs = []
         k = 1
         for row in reacs:
             # Add reaction index form ['j', 'pKaj', i=1, i=2, ... i=n]
-            sorted_reacs.append([str(k)] + [row[x]
-                                            for x in sort_indexes_reacs])
+            sorted_reacs.append(
+                [str(k)] +
+                [row[x[2]] for x in sorted_priorities_reacs if x[0] != 'j'])
             k += 1
         header_reacs = \
-            ['j'] + \
-            [str(x[1]) for x in sorted_priorities_reacs if x[1] is not None]
+            [str(x[0]) for x in sorted_priorities_reacs]
         sorted_comps = []
-        k = 1
-        for row in comps:
-            # Add components index form:
-            # ['i', 'Comp. i', 'z', 'n', 'm', 'xw0', '']
-            sorted_comps.append([str(k)] + [row[x]
-                                            for x in sort_indexes_comps])
-            k += 1
-        header_comps = \
-            ['i'] + \
-            [str(x[1]) for x in sorted_priorities_comps if x[1] is not None]
+        # k = 1 # remove header row
+        sorted_comps = comps
+        already_ineverted = []
+        for row in sorted_priorities_comps:
+            old_index = row[1]
+            new_index = row[2]
+            if old_index != new_index \
+                    and old_index not in already_ineverted:
+                # in sorted_priorities_comps, old_index > new_index
+                already_ineverted.append(new_index)
+                for comps_row in sorted_comps:
+                    old_comp = comps_row[old_index]
+                    new_comp = comps_row[new_index]
+                    comps_row[new_index] = old_comp
+                    comps_row[old_index] = new_comp
+        # for row in comps:
+        #     # Add components index form:
+        #     # Opt. 1 ['i', 'Comp. i', 'z', 'w0', 'M']
+        #     # Opt. 2 ['i', 'Comp. i', 'z', 'c0', ('M')]
+        #     # Opt. 3 ['i', 'Comp. i', 'z', 'n0', ('M')]
+        #     for col in enumerate(row):
+        #         index = col[0]
+        #         value = col[1]
+        #         if index in valid_columns_comps:
+        #             new_index = \
+        #                 sorted_priorities_comps[valid_columns_comps.index(index)][2]
+        #     sorted_comps.append([str(k)] + [row[x]
+        #                                     for x in sort_indexes_comps])
+        #    k += 1
+        header_comps = header_comps_model
         comps = np.array(sorted_comps)
         reacs = np.array(sorted_reacs)
         self.spinBox.setProperty("value", n)
@@ -529,7 +591,6 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.setColumnCount(len(header_comps) + 3)
         self.tableComps.setHorizontalHeaderLabels(
             header_comps + ['ceq, mol/L', '-log10(c0)', '-log10(ceq)'])
-
         self.tableReacs.setRowCount(nr)
         self.tableReacs.setColumnCount(n + 2 + 1)
         self.tableReacs.setHorizontalHeaderLabels(
@@ -540,7 +601,6 @@ class UiGroupBox(QtGui.QWidget):
                              'n', 'nr']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
-
     def load_variables_from_form(self):
         n = self.n
         nr = self.nr
@@ -580,6 +640,8 @@ class UiGroupBox(QtGui.QWidget):
         nr = self.nr
         comps = self.comps
         reacs = self.reacs
+        header_comps = self.header_comps
+        header_reacs = self.header_reacs
         # Gui setup with calculated values
 
         c0 = np.matrix([row[3] for row in comps], dtype=float).T
