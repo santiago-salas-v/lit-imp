@@ -6,7 +6,7 @@ j,pKaj,nu_ij (i=1),nu_ij (i=2),nu_ij (i=3),nu_ij (i=4),nu_ij (i=5),nu_ij (i=6),n
 ,,,,
 ,,
 COMP,,,,,,,,
-i,Comp. i,zi,"C0_i, mol/L",,,,,
+i,Comp. i,zi,"C0_i, mol/L",,,,,M
 1,H2SO3,0,0,,,,,,,
 2,HSO3(-),-1,5.100858754,,,,,
 3,SO3(2-),-2,0,,,,,

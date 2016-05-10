@@ -588,8 +588,8 @@ class UiGroupBox(QtGui.QWidget):
             for i in range(reacs.shape[0]):
                 reacs[i, j] = self.tableReacs.item(i, j).text()
         # Pass variables to self before loop start
-        variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
-                             'component_order_in_table']
+        variables_to_pass = ['header_comps', 'comps', 'header_reacs',
+                             'reacs', 'component_order_in_table']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
@@ -601,39 +601,126 @@ class UiGroupBox(QtGui.QWidget):
         reacs = self.reacs
         header_comps = self.header_comps
         header_reacs = self.header_reacs
+        molar_masses_valid = False
+        comp_variable_names = [
+            'index', 'comp_id', 'z', 'molar_mass',
+            'n0', 'w0', 'xw0', 'x0', 'c0', 'm0'
+        ]
+        unset_variables = []
+        for col, name in enumerate(comp_variable_names):
+            if name in ['comp_id']:
+                data_type = str
+            else:
+                data_type = float
+            try:
+                column_vector = \
+                    np.matrix(
+                        [row[col] for row in comps],
+                        dtype=data_type).T
+                # exec name + ' = ' + 'column_vector'
+            except ValueError as detail:
+                unset_variables.append(name)
+                column_vector = np.empty([n, 1])
+                if name in ['index', 'comp_id', 'z']:
+                    print detail
+                    raise Exception('Input field missing: '
+                                    + name)
+            setattr(self, name, column_vector)
+        index = self.index
+        comp_id = self.comp_id
+        z = self.z
+        molar_mass = self.molar_mass
+        n0 = self.n0
+        w0 = self.c0
+        xw0 = self.xw0
+        x0 = self.x0
+        c0 = self.c0
+        m0 = self.m0
+        rho_solvent = 0.998
+        positive_molar_masses = \
+            all(map(lambda x: x > 0, molar_mass))
+        can_calculate_n_from_w = \
+            all(map(lambda x: x not in unset_variables,
+                    ['w0', 'molar_mass']))
+        mol_variables_empty = \
+            all(map(lambda x: x in unset_variables,
+                    ['n0', 'c0']))
         # Gui setup with calculated values
-
-        c0 = np.matrix([row[3] for row in comps], dtype=float).T
-        highest_c0_indexes = np.argpartition(c0.A1, (-1, -2))
-        index_of_solvent = highest_c0_indexes[-1]
-        c_solvent_tref = c0[index_of_solvent].item()
-        if len(c0) > 1:
-            index_of_second_highest_c0 = highest_c0_indexes[-2]
+        # First determine concentration variables from available data, and
+        # determine the index of the solvent.
+        highest_n0_indexes = []
+        index_of_solvent = []
+        n_solvent_tref = []
+        if mol_variables_empty:
+            # If there moles cannot be determined, reaction quotients
+            # cannot be determined either, request molar mass inputs.
+            if not can_calculate_n_from_w or \
+                    not positive_molar_masses:
+                raise Exception('Need positive molar masses defined')
+        elif 'n0' in unset_variables and \
+                'c0' not in unset_variables:
+            # moles not given, but molarity given:
+            # overwrite mole number based on 1L of molarity
+            n0 = c0
+        elif 'n0' not in unset_variables:
+            # moles and molar masses given:
+            # use as main generators
+            pass
+        highest_n0_indexes = np.argpartition(n0.A1, (-1, -2))
+        index_of_solvent = highest_n0_indexes[-1]
+        n_solvent_tref = n0[index_of_solvent].item()
+        x0 = n0/sum(n0)
+        if positive_molar_masses:
+            mm0 = molar_mass[index_of_solvent]
+            n0_mm0 = n0[index_of_solvent]*mm0
+            # always calculate weight values & fract.
+            w0 = np.multiply(n0, molar_mass)
+            xw0 = w0/sum(w0)
         else:
-            index_of_second_highest_c0 = highest_c0_indexes[-1]
-        c_second_highest_c0_Tref = c0[index_of_second_highest_c0].item()
-
+            # Default molar mass of solvent
+            molar_mass[index_of_solvent] = 18.01528
+            mm0 = molar_mass[index_of_solvent]
+            n0_mm0 = n0[index_of_solvent]*mm0
+        # overwrite molality and molarity based on available n0.
+        # molarity has units mol/g, leave conversion to mol/kg
+        # for the end.
+        m0 = n0/(n0_mm0)
+        c0 = m0*rho_solvent
+        mi_mm0_over_xi = 1 + sum(m0*mm0)
+        rho0 = (mi_mm0_over_xi)*rho_solvent
+        # Determine second highest component for plotting possibilities
+        if len(n0) > 1:
+            index_of_second_highest_n0 = highest_n0_indexes[-2]
+        else:
+            index_of_second_highest_n0 = highest_n0_indexes[-1]
+        n_second_highest_n0_Tref = n0[index_of_second_highest_n0].item()
+        variables_to_pass = [
+            'index_of_solvent', 'molar_mass',
+            'n0', 'x0', 'w0', 'xw0','c0', 'z', 'm0',
+            'rho_solvent', 'rho0']
+        for var in variables_to_pass:
+            setattr(self, var, locals()[var])
         self.c0 = c0
         self.index_of_solvent = index_of_solvent
-        self.c_solvent_tref = c_solvent_tref
+        self.c_solvent_tref = n_solvent_tref
         self.z = np.matrix([row[2] for row in comps], dtype=float).T
         self.nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
         self.pka = np.matrix([row[1] for row in reacs], dtype=float).T
         self.max_it = int(self.spinBox_3.value())
         self.tol = float(self.doubleSpinBox_5.value())
-        self.c_second_highest_c0_Tref = c_second_highest_c0_Tref
+        self.c_second_highest_c0_Tref = n_second_highest_n0_Tref
 
         self.comboBox.clear()
         self.comboBox_3.clear()
         for item in comps[:, 0:2]:
             self.comboBox.addItem('c0_' + item[0] + ' {' + item[1] + '}')
             self.comboBox_3.addItem(item[1])
-        self.comboBox.setCurrentIndex(index_of_second_highest_c0)
-        self.doubleSpinBox.setValue(c_second_highest_c0_Tref / 10.0 ** 7)
+        self.comboBox.setCurrentIndex(index_of_second_highest_n0)
+        self.doubleSpinBox.setValue(n_second_highest_n0_Tref / 10.0 ** 7)
         self.doubleSpinBox_2.setValue(
-            c_second_highest_c0_Tref * (1 + 20 / 100.0))
+            n_second_highest_n0_Tref * (1 + 20 / 100.0))
         self.comboBox_3.setCurrentIndex(index_of_solvent)
-        self.doubleSpinBox_6.setValue(c_solvent_tref)
+        self.doubleSpinBox_6.setValue(n_solvent_tref)
         self.doubleSpinBox_6.setPrefix('(mol/L)')
 
     def retabulate(self):
