@@ -650,7 +650,7 @@ class UiGroupBox(QtGui.QWidget):
         # determine the index of the solvent.
         highest_n0_indexes = []
         index_of_solvent = []
-        n_solvent_tref = []
+        c_solvent_tref = []
         if mol_variables_empty:
             # If there moles cannot be determined, reaction quotients
             # cannot be determined either, request molar mass inputs.
@@ -668,7 +668,7 @@ class UiGroupBox(QtGui.QWidget):
             pass
         highest_n0_indexes = np.argpartition(n0.A1, (-1, -2))
         index_of_solvent = highest_n0_indexes[-1]
-        n_solvent_tref = n0[index_of_solvent].item()
+        # Calculate concentration types based on n0, M
         x0 = n0/sum(n0)
         if positive_molar_masses:
             mm0 = molar_mass[index_of_solvent]
@@ -686,41 +686,45 @@ class UiGroupBox(QtGui.QWidget):
         # for the end.
         m0 = n0/(n0_mm0)
         c0 = m0*rho_solvent
-        mi_mm0_over_xi = 1 + sum(m0*mm0)
+        # \frac{x_i}{m_i} = \frac{M_0}{1 + sum_{j\neq0}{m_j M_0}}
+        mi_mm0_over_xi = \
+            1 + sum([m_j for j, m_j in enumerate(m0) if
+                     j != index_of_solvent])
         rho0 = (mi_mm0_over_xi)*rho_solvent
+        c_solvent_tref = c0[index_of_solvent].item()
+        z = np.matrix([row[2] for row in comps], dtype=float).T
+        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+        pka = np.matrix([row[1] for row in reacs], dtype=float).T
+        max_it = int(self.spinBox_3.value())
+        tol = float(self.doubleSpinBox_5.value())
         # Determine second highest component for plotting possibilities
         if len(n0) > 1:
             index_of_second_highest_n0 = highest_n0_indexes[-2]
         else:
             index_of_second_highest_n0 = highest_n0_indexes[-1]
-        n_second_highest_n0_Tref = n0[index_of_second_highest_n0].item()
+        n_second_highest_n0_tref = n0[index_of_second_highest_n0].item()
+        # Calculated variables to output.
         variables_to_pass = [
             'index_of_solvent', 'molar_mass',
             'n0', 'x0', 'w0', 'xw0','c0', 'z', 'm0',
-            'rho_solvent', 'rho0']
+            'rho_solvent', 'rho0', 'c_solvent_tref',
+            'nu_ij', 'pka', 'max_it', 'tol',
+            'n_second_highest_n0_tref'
+            ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
-        self.c0 = c0
-        self.index_of_solvent = index_of_solvent
-        self.c_solvent_tref = n_solvent_tref
-        self.z = np.matrix([row[2] for row in comps], dtype=float).T
-        self.nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
-        self.pka = np.matrix([row[1] for row in reacs], dtype=float).T
-        self.max_it = int(self.spinBox_3.value())
-        self.tol = float(self.doubleSpinBox_5.value())
-        self.c_second_highest_c0_Tref = n_second_highest_n0_Tref
-
+        # Setup plotting comboboxes
         self.comboBox.clear()
         self.comboBox_3.clear()
         for item in comps[:, 0:2]:
             self.comboBox.addItem('c0_' + item[0] + ' {' + item[1] + '}')
             self.comboBox_3.addItem(item[1])
         self.comboBox.setCurrentIndex(index_of_second_highest_n0)
-        self.doubleSpinBox.setValue(n_second_highest_n0_Tref / 10.0 ** 7)
+        self.doubleSpinBox.setValue(n_second_highest_n0_tref / 10.0 ** 7)
         self.doubleSpinBox_2.setValue(
-            n_second_highest_n0_Tref * (1 + 20 / 100.0))
+            n_second_highest_n0_tref * (1 + 20 / 100.0))
         self.comboBox_3.setCurrentIndex(index_of_solvent)
-        self.doubleSpinBox_6.setValue(n_solvent_tref)
+        self.doubleSpinBox_6.setValue(c_solvent_tref)
         self.doubleSpinBox_6.setPrefix('(mol/L)')
 
     def retabulate(self):
