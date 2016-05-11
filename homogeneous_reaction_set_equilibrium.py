@@ -407,11 +407,43 @@ class UiGroupBox(QtGui.QWidget):
             valid_columns_comps = []
             # Header of components will match this expression, only need to find
             # indexes in file.
-            header_comps_model = ['i', 'Comp.', 'z', 'M/(g/mol)', 'n0/mol',
-                            'w0/g', 'xw0', 'x0', 'c0/(mol/L)',
-                            'm0/(mol/kg_{solvent})']
-            # First two columns of the header of reacions will match this expression,
-            # need to find indexes in file and append coefficient matrix.
+            header_comps_input_model = [
+                'i', 'Comp.', 'z', 'M/(g/mol)', 'w0/g', 'xw0',
+                'n0/mol', 'x0', 'c0/(mol/L)',
+                'm0/(mol/kg_{solvent})'
+            ]
+            comp_variable_input_names = [
+                'index', 'comp_id', 'z', 'molar_mass',
+                'w0', 'xw0', 'n0', 'x0', 'c0', 'm0'
+            ]
+            header_comps_output_model = [
+                'weq/g', 'xweq', 'neq/mol', 'xeq',
+                'ceq/(mol/L)', 'meq/(mol/kg_{solvent})',
+                'aeq',
+                '-log10(xw0)', '-log10(x0)', '-log10(c0)',
+                '-log10(m0)', '-log10(a0)',
+                '-log10(\gamma_{eq}^{II})',
+                '-log10(\gamma_{eq}^{III})',
+                '-log10(xweq)', '-log10(xeq)', '-log10(ceq)',
+                '-log10(meq)', '-log10(aeq)'
+            ]
+            comp_variable_output_names = [
+                'weq', 'xweq', 'neq', 'xeq',
+                'ceq', 'meq',
+                'aeq',
+                'mlog10xw0', 'mlog10x0', 'mlog10c0',
+                'mlog10m0', 'mlog10a0',
+                'mlog10gammaeq_ii',
+                'mlog10gammaeq_iii',
+                'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
+                'mlog10meq', 'mlog10aeq',
+            ]
+            # Store programatic name vs. header name in a dict.
+            comp_names_headers = \
+                dict(zip(header_comps_input_model + header_comps_output_model,
+                         comp_variable_input_names + comp_variable_output_names))
+            # First two columns of the header of reacions will match this
+            # expression, need to find indexes in file and append coefficient matrix.
             header_reacs_model = ['j', 'pKa']
             for row in reader:
                 row_without_whitespace = [x.replace(' ', '') for x in row]
@@ -443,7 +475,7 @@ class UiGroupBox(QtGui.QWidget):
                     n += 1
                     # put 0 instead of blank and keep all columns to add in model
                     row_to_add = []
-                    for x in range(len(header_comps_model)):
+                    for x in range(len(header_comps_input_model)):
                         if x in valid_columns_comps:
                             if row_without_whitespace[x] == '':
                                 row_to_add.append('0')
@@ -517,7 +549,7 @@ class UiGroupBox(QtGui.QWidget):
             k += 1
         header_reacs = \
             [str(x[0]) for x in sorted_priorities_reacs]
-        # Keep format of header_comps_model in table of components
+        # Keep format of header_comps_input_model in table of components
         sorted_comps = comps
         already_ineverted = []
         for row in sorted_priorities_comps:
@@ -534,23 +566,27 @@ class UiGroupBox(QtGui.QWidget):
                     comps_row[old_index] = new_comp
         # Add components index form. All have been worked on in
         # scaffold.
-        header_comps = header_comps_model
+        header_comps = comp_variable_input_names
         comps = np.array(sorted_comps)
         reacs = np.array(sorted_reacs)
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         self.tableComps.setRowCount(n)
-        self.tableComps.setColumnCount(len(header_comps) + 3)
+        self.tableComps.setColumnCount(len(header_comps_input_model) +
+                                       len(header_comps_output_model))
         self.tableComps.setHorizontalHeaderLabels(
-            header_comps + ['ceq, mol/L', '-log10(c0)', '-log10(ceq)'])
+            header_comps_input_model + header_comps_output_model)
         self.tableReacs.setRowCount(nr)
         self.tableReacs.setColumnCount(n + 2 + 1)
         self.tableReacs.setHorizontalHeaderLabels(
             header_reacs + ['xieq'])
 
         # Pass variables to self before loop start
-        variables_to_pass = ['header_comps', 'comps', 'header_reacs', 'reacs',
-                             'n', 'nr']
+        variables_to_pass = ['header_comps',
+                             'comps', 'header_reacs', 'reacs',
+                             'n', 'nr',
+                             'comp_names_headers',
+                             ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
@@ -602,14 +638,12 @@ class UiGroupBox(QtGui.QWidget):
         header_comps = self.header_comps
         header_reacs = self.header_reacs
         molar_masses_valid = False
-        comp_variable_names = [
-            'index', 'comp_id', 'z', 'molar_mass',
-            'n0', 'w0', 'xw0', 'x0', 'c0', 'm0'
-        ]
         unset_variables = []
-        for col, name in enumerate(comp_variable_names):
+        for col, name in enumerate(header_comps):
             if name in ['comp_id']:
                 data_type = str
+            elif name in ['index']:
+                data_type = int
             else:
                 data_type = float
             try:
@@ -617,26 +651,27 @@ class UiGroupBox(QtGui.QWidget):
                     np.matrix(
                         [row[col] for row in comps],
                         dtype=data_type).T
-                # exec name + ' = ' + 'column_vector'
             except ValueError as detail:
                 unset_variables.append(name)
                 column_vector = np.empty([n, 1])
+                column_vector[:] = np.nan
                 if name in ['index', 'comp_id', 'z']:
                     print detail
                     raise Exception('Input field missing: '
                                     + name)
+            # Put values of each column name into self by name
             setattr(self, name, column_vector)
         index = self.index
         comp_id = self.comp_id
         z = self.z
         molar_mass = self.molar_mass
         n0 = self.n0
-        w0 = self.c0
+        w0 = self.w0
         xw0 = self.xw0
         x0 = self.x0
         c0 = self.c0
         m0 = self.m0
-        rho_solvent = 0.998
+        rho_solvent = 0.997
         positive_molar_masses = \
             all(map(lambda x: x > 0, molar_mass))
         can_calculate_n_from_w = \
@@ -685,7 +720,7 @@ class UiGroupBox(QtGui.QWidget):
         # molarity has units mol/g, leave conversion to mol/kg
         # for the end.
         m0 = n0/(n0_mm0)
-        c0 = m0*rho_solvent
+        c0 = m0*rho_solvent*1000
         # \frac{x_i}{m_i} = \frac{M_0}{1 + sum_{j\neq0}{m_j M_0}}
         mi_mm0_over_xi = \
             1 + sum([m_j for j, m_j in enumerate(m0) if
@@ -709,11 +744,13 @@ class UiGroupBox(QtGui.QWidget):
             'n0', 'x0', 'w0', 'xw0','c0', 'z', 'm0',
             'rho_solvent', 'rho0', 'c_solvent_tref',
             'nu_ij', 'pka', 'max_it', 'tol',
-            'n_second_highest_n0_tref'
-            ]
+            'n_second_highest_n0_tref',
+            'positive_molar_masses',
+            'can_calculate_n_from_w'
+        ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
-        # Setup plotting comboboxes
+        # Setup plotting tools
         self.comboBox.clear()
         self.comboBox_3.clear()
         for item in comps[:, 0:2]:
@@ -728,21 +765,37 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox_6.setPrefix('(mol/L)')
 
     def retabulate(self):
-        # Collect variables
         n = self.n
         nr = self.nr
-        c0 = self.c0
-        comps = self.comps
-        reacs = self.reacs
         header_comps = self.header_comps
         header_reacs = self.header_reacs
+        comp_names_headers = self.comp_names_headers
+        index = self.index
+        comp_id = self.comp_id
+        z = self.z
+        molar_mass = self.molar_mass
+        n0 = self.n0
+        w0 = self.c0
+        xw0 = self.xw0
+        x0 = self.x0
+        c0 = self.c0
+        m0 = self.m0
+        rho_solvent = self.rho_solvent
+        comps = self.comps
+        reacs = self.reacs
         ceq = self.ceq
         xieq = self.xieq
+        # TODO: Calculate the following conc. variables
+        # neq = self.neq
+        # weq = self.weq
+        # xweq = self.xweq
+        # xeq = self.xeq
+        # meq = self.meq
         if hasattr(self, 'component_order_in_table'):
             i = getattr(self, 'component_order_in_table')
         else:
             i = range(0, n)
-        j = range(0, 4 + 3)
+        j = range(0, len(header_comps))
 
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
@@ -754,30 +807,36 @@ class UiGroupBox(QtGui.QWidget):
         self.tableReacs.setSortingEnabled(False)
 
         for column in j:
+            column_name = self.tableComps.model().headerData(
+                column, QtCore.Qt.Horizontal)
+            var_name = comp_names_headers[column_name]
+            column_data = getattr(self, var_name)
+            if var_name in ['m0', 'meq']:
+                # Present units converted: mol/gsolvent to mol/kgsolvent
+                column_data = 1000*column_data
             for row in i:
-                if column < 4:
-                    new_item = QtGui.QTableWidgetItem(str(comps[row, column]))
-                elif column == 4:
-                    new_item = QtGui.QTableWidgetItem(str(ceq[row].item()))
-                elif column == 5:
-                    if c0[row] <= 0:
-                        new_item = QtGui.QTableWidgetItem(str(np.nan))
-                    else:
-                        new_item = QtGui.QTableWidgetItem(
-                            str(-np.log10(c0[row].item())))
-                elif column == 6:
-                    if ceq[row].item() <= 0:
-                        new_item = QtGui.QTableWidgetItem(str(np.nan))
-                    else:
-                        new_item = QtGui.QTableWidgetItem(
-                            str(-np.log10(ceq[row].item())))
+                if column <= len(header_comps):
+                    new_item = \
+                        QtGui.QTableWidgetItem(str(column_data[row].item()))
+                # elif column == 5:
+                #     if c0[row] <= 0:
+                #         new_item = QtGui.QTableWidgetItem(str(np.nan))
+                #     else:
+                #         new_item = QtGui.QTableWidgetItem(
+                #             str(-np.log10(c0[row].item())))
+                # elif column == 6:
+                #     if ceq[row].item() <= 0:
+                #         new_item = QtGui.QTableWidgetItem(str(np.nan))
+                #     else:
+                #         new_item = QtGui.QTableWidgetItem(
+                #             str(-np.log10(ceq[row].item())))
                 # sortierbar machen
                 if column != 1:  # Comp. i <Str>
                     new_item = NSortableTableWidgetItem(new_item)
                     self.tableComps.setItem(row, column, new_item)
                 else:
                     self.tableComps.setItem(row, column, new_item)
-                if column not in range(1, 3 + 1):
+                if column not in range(1, len(header_comps)):
                     new_item.setFlags(QtCore.Qt.ItemIsEnabled)
 
         i = range(0, nr)
@@ -1017,6 +1076,7 @@ class UiGroupBox(QtGui.QWidget):
                                  '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * c0).item()) +
                                  '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * ceq).item()))
 
+        # TODO: Make final calculations
         self.ceq = ceq
         self.xieq = xieq
         self.cancelButton.setEnabled(False)
