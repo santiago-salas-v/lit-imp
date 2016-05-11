@@ -419,6 +419,8 @@ class UiGroupBox(QtGui.QWidget):
             header_comps_output_model = [
                 'weq/g', 'xweq', 'neq/mol', 'xeq',
                 'ceq/(mol/L)', 'meq/(mol/kg_{solvent})',
+                'rhoeq/(g/mL)',
+                '\gamma_{eq}^{II}', '\gamma_{eq}^{III}',
                 'aeq',
                 '-log10(xw0)', '-log10(x0)', '-log10(c0)',
                 '-log10(m0)', '-log10(a0)',
@@ -430,6 +432,8 @@ class UiGroupBox(QtGui.QWidget):
             comp_variable_output_names = [
                 'weq', 'xweq', 'neq', 'xeq',
                 'ceq', 'meq',
+                'rhoeq',
+                'gammaeq_ii', 'gammaeq_iii',
                 'aeq',
                 'mlog10xw0', 'mlog10x0', 'mlog10c0',
                 'mlog10m0', 'mlog10a0',
@@ -443,7 +447,8 @@ class UiGroupBox(QtGui.QWidget):
                 dict(zip(header_comps_input_model + header_comps_output_model,
                          comp_variable_input_names + comp_variable_output_names))
             # First two columns of the header of reacions will match this
-            # expression, need to find indexes in file and append coefficient matrix.
+            # expression, need to find indexes in file and append coefficient
+            # matrix.
             header_reacs_model = ['j', 'pKa']
             for row in reader:
                 row_without_whitespace = [x.replace(' ', '') for x in row]
@@ -457,7 +462,7 @@ class UiGroupBox(QtGui.QWidget):
                     header_comps = next(reader)
                     # Enumerate (index, column)
                     # Remove spaces.
-                    header_comps_enum = [(i, j.replace(' ','')) for i, j in
+                    header_comps_enum = [(i, j.replace(' ', '')) for i, j in
                                          enumerate(header_comps) if
                                          j.replace(' ', '') != '']
                     valid_columns_comps = [x[0] for x in header_comps_enum]
@@ -467,13 +472,14 @@ class UiGroupBox(QtGui.QWidget):
                     header_reacs = next(reader)
                     # Enumerate (index, column)
                     # Remove spaces.
-                    header_reacs_enum = [(i, j.replace(' ','')) for i, j in
+                    header_reacs_enum = [(i, j.replace(' ', '')) for i, j in
                                          enumerate(header_reacs) if
                                          j.replace(' ', '') != '']
                     valid_columns_reacs = [x[0] for x in header_reacs_enum]
                 elif reading_comps:
                     n += 1
-                    # put 0 instead of blank and keep all columns to add in model
+                    # put 0 instead of blank and keep all columns to add in
+                    # model
                     row_to_add = []
                     for x in range(len(header_comps_input_model)):
                         if x in valid_columns_comps:
@@ -507,31 +513,39 @@ class UiGroupBox(QtGui.QWidget):
                 if x[1][2] is None \
                         and x[1][4] is None:
                     variable = [y for y in x[1] if y is not None][0]
-                    index_destination = [i for i, j in enumerate(x[1]) if j is not None][0]
+                    index_destination = [i for i, j in enumerate(x[1]) if j is not None][
+                        0]
                 elif x[1][2] is not None:
                     variable = 'nu_ij(i=' + x[1][2] + ')'
-                    index_destination = int(x[1][2]) + 0 + 1 # add space for [j, pKaj]
+                    # add space for [j, pKaj]
+                    index_destination = int(x[1][2]) + 0 + 1
                 elif x[1][2] is None \
                         and x[1][4] is not None:
                     variable = 'nu_ij(i=' + x[1][4] + ')'
-                    index_destination = int(x[1][4]) + 0 + 1 # add space for [j, pKaj]
-                priorities_reacs.append((variable, index_origin, index_destination))
+                    # add space for [j, pKaj]
+                    index_destination = int(x[1][4]) + 0 + 1
+                priorities_reacs.append(
+                    (variable, index_origin, index_destination))
         # Divide into groups with regular expression:
         # '(\bi)(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)|([c|C]_?0_?i?)'
         # Required: n0, c0 or m0
         # Optional: M (unless using m0)
-        # TODO: If M is not in the input, or incomplete, M=18.01528 for the solvent.
+        # TODO: If M is not in the input, or incomplete, M=18.01528 for the
+        # solvent.
         header_comps_groups_enum = \
             map(lambda y: [y[0], comp_headers_re.match(y[1]).groups()],
                 header_comps_enum)
-        # priorities_comps is of the form (variable, index_origin, index_destination)
+        # priorities_comps is of the form (variable, index_origin,
+        # index_destination)
         priorities_comps = []
         for x in header_comps_groups_enum:
             if x is not None:
                 index_origin = x[0]
                 variable = [y for y in x[1] if y is not None][0]
-                index_destination = [i for i, j in enumerate(x[1]) if j is not None][0]
-                priorities_comps.append((variable, index_origin, index_destination))
+                index_destination = [i for i, j in enumerate(x[1]) if j is not None][
+                    0]
+                priorities_comps.append(
+                    (variable, index_origin, index_destination))
         # reacs header, form
         # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form
@@ -704,28 +718,29 @@ class UiGroupBox(QtGui.QWidget):
         highest_n0_indexes = np.argpartition(n0.A1, (-1, -2))
         index_of_solvent = highest_n0_indexes[-1]
         # Calculate concentration types based on n0, M
-        x0 = n0/sum(n0)
+        x0 = n0 / sum(n0)
         if positive_molar_masses:
             mm0 = molar_mass[index_of_solvent]
-            n0_mm0 = n0[index_of_solvent]*mm0
+            n0_mm0 = n0[index_of_solvent] * mm0
             # always calculate weight values & fract.
             w0 = np.multiply(n0, molar_mass)
-            xw0 = w0/sum(w0)
+            xw0 = w0 / sum(w0)
         else:
             # Default molar mass of solvent
             molar_mass[index_of_solvent] = 18.01528
             mm0 = molar_mass[index_of_solvent]
-            n0_mm0 = n0[index_of_solvent]*mm0
+            n0_mm0 = n0[index_of_solvent] * mm0
         # overwrite molality and molarity based on available n0.
         # molarity has units mol/g, leave conversion to mol/kg
         # for the end.
-        m0 = n0/(n0_mm0)
-        c0 = m0*rho_solvent*1000
+        m0 = n0 / (n0_mm0)
+        c0 = m0 * rho_solvent * 1000
         # \frac{x_i}{m_i} = \frac{M_0}{1 + sum_{j\neq0}{m_j M_0}}
         mi_mm0_over_xi = \
-            1 + sum([m_j for j, m_j in enumerate(m0) if
+            1 + sum([m_j for j, m_j in enumerate(m0 * mm0) if
                      j != index_of_solvent])
-        rho0 = (mi_mm0_over_xi)*rho_solvent
+        rho0 = (mi_mm0_over_xi) * rho_solvent
+        rho0_i = np.multiply(c0, mm0)
         c_solvent_tref = c0[index_of_solvent].item()
         z = np.matrix([row[2] for row in comps], dtype=float).T
         nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
@@ -741,7 +756,7 @@ class UiGroupBox(QtGui.QWidget):
         # Calculated variables to output.
         variables_to_pass = [
             'index_of_solvent', 'molar_mass',
-            'n0', 'x0', 'w0', 'xw0','c0', 'z', 'm0',
+            'n0', 'x0', 'w0', 'xw0', 'c0', 'z', 'm0',
             'rho_solvent', 'rho0', 'c_solvent_tref',
             'nu_ij', 'pka', 'max_it', 'tol',
             'n_second_highest_n0_tref',
@@ -768,34 +783,15 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         header_comps = self.header_comps
-        header_reacs = self.header_reacs
-        comp_names_headers = self.comp_names_headers
-        index = self.index
-        comp_id = self.comp_id
-        z = self.z
-        molar_mass = self.molar_mass
-        n0 = self.n0
-        w0 = self.c0
-        xw0 = self.xw0
-        x0 = self.x0
-        c0 = self.c0
-        m0 = self.m0
-        rho_solvent = self.rho_solvent
-        comps = self.comps
         reacs = self.reacs
-        ceq = self.ceq
+        comp_names_headers = self.comp_names_headers
         xieq = self.xieq
-        # TODO: Calculate the following conc. variables
-        # neq = self.neq
-        # weq = self.weq
-        # xweq = self.xweq
-        # xeq = self.xeq
-        # meq = self.meq
+
         if hasattr(self, 'component_order_in_table'):
             i = getattr(self, 'component_order_in_table')
         else:
             i = range(0, n)
-        j = range(0, len(header_comps))
+        j = range(0, len(comp_names_headers))
 
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
@@ -813,23 +809,11 @@ class UiGroupBox(QtGui.QWidget):
             column_data = getattr(self, var_name)
             if var_name in ['m0', 'meq']:
                 # Present units converted: mol/gsolvent to mol/kgsolvent
-                column_data = 1000*column_data
+                column_data = 1000 * column_data
             for row in i:
-                if column <= len(header_comps):
+                if column <= len(comp_names_headers):
                     new_item = \
                         QtGui.QTableWidgetItem(str(column_data[row].item()))
-                # elif column == 5:
-                #     if c0[row] <= 0:
-                #         new_item = QtGui.QTableWidgetItem(str(np.nan))
-                #     else:
-                #         new_item = QtGui.QTableWidgetItem(
-                #             str(-np.log10(c0[row].item())))
-                # elif column == 6:
-                #     if ceq[row].item() <= 0:
-                #         new_item = QtGui.QTableWidgetItem(str(np.nan))
-                #     else:
-                #         new_item = QtGui.QTableWidgetItem(
-                #             str(-np.log10(ceq[row].item())))
                 # sortierbar machen
                 if column != 1:  # Comp. i <Str>
                     new_item = NSortableTableWidgetItem(new_item)
@@ -988,8 +972,15 @@ class UiGroupBox(QtGui.QWidget):
         # Collect variables
         n = self.n
         nr = self.nr
+        n0 = self.n0
+        w0 = self.w0
+        xw0 = self.xw0
+        x0 = self.x0
         c0 = self.c0
+        m0 = self.m0
         z = self.z
+        mm = self.molar_mass
+        rho_solvent = self.rho_solvent
         comps = self.comps
         reacs = self.reacs
         nu_ij = self.nu_ij
@@ -1014,20 +1005,20 @@ class UiGroupBox(QtGui.QWidget):
 
         # First estimates for eq. Composition Ceq and Reaction extent Xieq
         if not hasattr(self, 'acceptable_solution'):
-            ceq_0 = c0
+            neq_0 = n0
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
             # 10.1002/cjce.5450660409
-            ceq_0[c0 == 0] = min(c0[c0 != 0].A1) * np.finfo(float).eps
+            neq_0[n0 == 0] = min(n0[n0 != 0].A1) * np.finfo(float).eps
             xieq_0 = np.matrix(np.zeros([nr, 1]))
         else:
             # Use previous solution as initial estimate, if it was valid.
-            ceq_0 = self.ceq_0
+            neq_0 = self.neq_0
             xieq_0 = self.xieq_0
 
         # Pass variables to self before loop start
-        variables_to_pass = ['c0', 'z', 'nu_ij', 'pka',
+        variables_to_pass = ['n0', 'z', 'nu_ij', 'pka',
                              'max_it', 'tol',
-                             'ceq_0', 'xieq_0']
+                             'neq_0', 'xieq_0']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
@@ -1044,10 +1035,10 @@ class UiGroupBox(QtGui.QWidget):
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            ceq, xieq = calc_xieq(self)
+            neq, xieq = calc_xieq(self)
             k += 1
             # TODO: if progress_var.wasCanceled() == True then stop
-            if all(ceq >= 0) and not any(np.isnan(ceq)):
+            if all(neq >= 0) and not any(np.isnan(neq)):
                 self.acceptable_solution = True
             else:
                 # Set reactions to random extent and recalculate
@@ -1056,11 +1047,11 @@ class UiGroupBox(QtGui.QWidget):
                     np.random.normal(0.0, 1.0 / 3.0, nr)).T
                 # Set aequilibrium composition to initial value + estimated
                 # conversion
-                self.ceq_0 = c0  # + nu_ij * self.xieq_0
+                self.neq_0 = n0  # + nu_ij * self.xieq_0
                 # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
                 # 10.1002/cjce.5450660409
-                self.ceq_0[self.ceq_0 == 0] = min(
-                    c0[c0 != 0].A1) * np.finfo(float).eps
+                self.neq_0[self.neq_0 == 0] = min(
+                    n0[n0 != 0].A1) * np.finfo(float).eps
                 self.initialEstimateAttempts += 1
                 self.methodLoops = [0, 0]
 
@@ -1068,17 +1059,61 @@ class UiGroupBox(QtGui.QWidget):
             delattr(self, 'acceptable_solution')
             self.label_9.setText(self.label_9.text() + '\n')
         else:
-            self.ceq_0 = ceq
+            self.neq_0 = neq
             self.xieq_0 = xieq
             self.label_9.setText(self.label_9.text() +
-                                 '\nsum(c0*z) = ' + str((z.T * c0).item()) +
-                                 ' \t\t\t sum(Ceq*z) = ' + str((z.T * ceq).item()) +
-                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * c0).item()) +
-                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * ceq).item()))
+                                 '\nsum(n0*z) = ' + str((z.T * n0).item()) +
+                                 ' \t\t\t sum(Ceq*z) = ' + str((z.T * neq).item()) +
+                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * n0).item()) +
+                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * neq).item()))
 
-        # TODO: Make final calculations
-        self.ceq = ceq
-        self.xieq = xieq
+        # Once solved, calculate conc. variables at equilibrium
+        mm0 = mm[index_of_solvent]
+        n0_mm0 = neq[index_of_solvent] * mm0
+        meq = neq / (n0_mm0)
+        ceq = meq * rho_solvent * 1000
+        # \frac{x_i}{m_i} = \frac{M_0}{1 + sum_{j\neq0}{m_j M_0}}
+        mi_mm0_over_xi = \
+            1 + sum([m_j for j, m_j in enumerate(meq * mm0) if
+                     j != index_of_solvent])
+        rho = (mi_mm0_over_xi) * rho_solvent
+        rhoeq = np.multiply(ceq, mm)
+        weq = np.multiply(neq, mm)
+        xweq = weq / sum(weq)
+        xeq = neq / sum(neq)
+        # TODO: Implement activity coefficients
+        gammaeq_ii = np.ones_like(meq)
+        gammaeq_iii = np.ones_like(meq)
+        aeq = np.multiply(gammaeq_iii, meq)
+        a0 = np.multiply(gammaeq_iii, m0)
+        mlog10xw0 = -np.log10(xw0)
+        mlog10x0 = -np.log10(x0)
+        mlog10c0 = -np.log10(c0)
+        mlog10m0 = -np.log10(m0)
+        mlog10a0 = -np.log10(a0)
+        mlog10gammaeq_ii = -np.log10(np.ones_like(meq))
+        mlog10gammaeq_iii = -np.log10(np.ones_like(meq))
+        mlog10xweq = -np.log10(xweq)
+        mlog10xeq = -np.log10(xeq)
+        mlog10ceq = -np.log10(ceq)
+        mlog10meq = -np.log10(meq)
+        mlog10aeq = -np.log10(aeq)
+        variables_to_pass = [
+            'xieq',
+            'weq', 'xweq', 'neq', 'xeq',
+            'ceq', 'meq',
+            'rhoeq',
+            'gammaeq_ii', 'gammaeq_iii',
+            'aeq',
+            'mlog10xw0', 'mlog10x0', 'mlog10c0',
+            'mlog10m0', 'mlog10a0',
+            'mlog10gammaeq_ii',
+            'mlog10gammaeq_iii',
+            'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
+            'mlog10meq', 'mlog10aeq',
+        ]
+        for var in variables_to_pass:
+            setattr(self, var, locals()[var])
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
 
@@ -1966,31 +2001,33 @@ class LogWidget(QtGui.QWidget):
 
 
 def calc_xieq(form):
-    """Steepest descent for good initial estimate, then Newton method for non-linear algebraic system
-    :return: tuple with ceq, xieq, f_0
-    :param c0: np.matrix (n x 1) - Conc(i, alimentación)
+    """Newton method for non-linear algebraic system, with line-search
+    :return: tuple with neq, xieq, f_0
+    :param n0: np.matrix (n x 1) - Mol(i, alimentación)
     :param z: np.matrix (n x 1) - Carga(i, alimentación)
     :param nu_ij: np.matrix (n x nr) - Coefs. esteq. componente i en reacción j
     :param pka: np.matrix (n x 1) - (-1)*log10("Cte." de equilibrio en reacción j) = -log10 kc(T)
     :param xieq_0: np.matrix (n x 1) - avance de reacción j - estimado inicial
-    :param ceq_0: np.matrix (n x 1) - Conc(i, equilibrio)
+    :param neq_0: np.matrix (n x 1) - Mol(i, equilibrio)
     """
     n = form.n
     nr = form.nr
-    c0 = form.c0
+    n0 = form.n0
+    mm = form.molar_mass
+    s_index = form.index_of_solvent
     pka = form.pka
     nu_ij = form.nu_ij
-    ceq_0 = form.ceq_0
+    neq_0 = form.neq_0
     xieq_0 = form.xieq_0
     max_it = form.max_it
     tol = form.tol
     z = form.z
     kc = form.kc
 
-    f = lambda x: f_gl_0(x, c0, nu_ij, n, nr, kc)
-    j = lambda x: jac(x, c0, nu_ij, n, nr, kc)
+    f = lambda x: f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index)
+    j = lambda x: jac(x, n0, nu_ij, n, nr, kc, mm, s_index)
 
-    x0 = np.concatenate([ceq_0, xieq_0])
+    x0 = np.concatenate([neq_0, xieq_0])
     x = x0
     # Newton method: G(x) = J(x)^-1 * F(x)
     k = 0
@@ -2121,28 +2158,32 @@ def calc_xieq(form):
         form,
         k,
         'solved.' if stop and not divergent else 'solution not found.')
-    ceq = x[0:n]
+    neq = x[0:n]
     xieq = x[n:n + nr]
-    return ceq, xieq
+    return neq, xieq
 
 
-def f_gl_0(x, c0, nu_ij, n, nr, kc):
-    ceq = x[0:n, 0]
+def f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index):
+    neq = x[0:n, 0]
+    n0_mm0 = n0[s_index] * mm[s_index]
+    meq = neq / n0_mm0
     xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
-    result[0:n] = -ceq + c0 + nu_ij * xieq
-    result[n:n + nr] = -kc + np.prod(np.power(ceq, nu_ij), 0).T
+    result[0:n] = -neq + n0 + nu_ij * xieq
+    result[n:n + nr] = -kc + np.prod(np.power(meq, nu_ij), 0).T
     return result
 
 
-def jac(x, c0, nu_ij, n, nr, kc):
-    ceq = x[0:n, 0]
-    eins_durch_c = np.diag(np.power(ceq, -1).A1, 0)
-    quotient = np.diag(np.prod(np.power(ceq, nu_ij), 0).A1)
+def jac(x, n0, nu_ij, n, nr, kc, mm, s_index):
+    neq = x[0:n, 0]
+    n0_mm0 = n0[s_index] * mm[s_index]
+    meq = neq / n0_mm0
+    eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
+    quotient = np.diag(np.prod(np.power(meq, nu_ij), 0).A1)
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
     result[0:n, 0:n] = -1 * np.eye(n).astype(float)
     result[0:n, n:n + nr] = nu_ij
-    result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_c
+    result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_m * 1 / n0_mm0
     return result
 
 
