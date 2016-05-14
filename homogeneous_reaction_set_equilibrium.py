@@ -162,12 +162,12 @@ class UiGroupBox(QtGui.QWidget):
         self.label_4 = QtGui.QLabel()
         self.label = QtGui.QLabel()
         self.spinBox = QtGui.QSpinBox()
-        self.tableComps = QtGui.QTableWidget()
+        self.tableComps = QtGui.QTableView()
         self.label_9 = QtGui.QLabel()
         self.progress_var = QtGui.QProgressBar(parent)
         self.cancelButton = QtGui.QPushButton(parent)
         self.doubleSpinBox_5 = ScientificDoubleSpinBox()
-        item = QtGui.QTableWidgetItem()
+        # item = QtGui.QTableWidgetItem()
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.label_5 = QtGui.QLabel()
@@ -177,7 +177,7 @@ class UiGroupBox(QtGui.QWidget):
         self.label_2 = QtGui.QLabel()
         self.spinBox_2 = QtGui.QSpinBox()
         self.horizontalLayout = QtGui.QHBoxLayout()
-        self.tableReacs = QtGui.QTableWidget()
+        self.tableReacs = QtGui.QTableView()
         self.verticalLayout = QtGui.QVBoxLayout()
         self.label_7 = QtGui.QLabel()
         self.comboBox = QtGui.QComboBox()
@@ -272,7 +272,7 @@ class UiGroupBox(QtGui.QWidget):
         self.horizontalLayout_5.addWidget(self.spinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
-        item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        #item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.tableComps.horizontalHeader().setCascadingSectionResizes(False)
         self.tableComps.horizontalHeader().setDefaultSectionSize(100)
         self.tableComps.horizontalHeader().setMinimumSectionSize(27)
@@ -330,8 +330,8 @@ class UiGroupBox(QtGui.QWidget):
         self.plotButton.clicked.connect(partial(self.solve_intervals))
         self.equilibrate_button.clicked.connect(
             partial(self.recalculate_after_cell_edit, 0, 0))
-        self.tableComps.cellChanged.connect(
-            partial(self.recalculate_after_cell_edit))
+        #self.tableComps.connect(
+        #    partial(self.recalculate_after_cell_edit))
         self.info_button.clicked.connect(partial(self.display_about_info))
         self.log_button.clicked.connect(partial(self.show_log))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
@@ -571,18 +571,38 @@ class UiGroupBox(QtGui.QWidget):
         reacs = np.array(sorted_reacs, dtype=str) # do not convert yet
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
-        self.tableComps.setRowCount(n)
-        self.tableComps.setColumnCount(len(header_comps_input_model) +
-                                       len(header_comps_output_model))
-        self.tableComps.setHorizontalHeaderLabels(
-            header_comps_input_model + header_comps_output_model)
-        self.tableReacs.setRowCount(nr)
-        self.tableReacs.setColumnCount(n + 2 + 1)
-        self.tableReacs.setHorizontalHeaderLabels(
-            header_reacs + ['xieq'])
-
+        #self.tableComps.setRowCount(n)
+        #self.tableComps.setColumnCount(len(header_comps_input_model) +
+        #                               len(header_comps_output_model))
+        #self.tableComps.setHorizontalHeaderLabels(
+        #    header_comps_input_model + header_comps_output_model)
+        #self.tableReacs.setRowCount(nr)
+        #self.tableReacs.setColumnCount(n + 2 + 1)
+        #self.tableReacs.setHorizontalHeaderLabels(
+        #    header_reacs + ['xieq'])
+        header_comps_complete = \
+            header_comps_input_model + header_comps_output_model
+        header_reacs_complete = \
+            header_reacs + ['xieq']
+        comps_column_width = len(header_comps_complete)
+        reacs_column_width = len(header_reacs_complete)
+        comps_completed_matrix = np.empty(
+            [comps.shape[0], comps_column_width], dtype=object
+        )
+        comps_completed_matrix[:, 0:comps.shape[1]] = comps
+        reacs_completed_matrix = np.empty(
+            [reacs.shape[0], reacs_column_width], dtype=object
+        )
+        self.comps_model = MatrixModel(comps_completed_matrix,
+                                       header_comps_complete)
+        self.reacs_model = MatrixModel(reacs_completed_matrix,
+                                       header_reacs_complete)
+        self.tableComps.setModel(self.comps_model)
+        self.tableReacs.setModel(self.reacs_model)
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps',
+                             'header_reacs_complete',
+                             'header_comps_complete',
                              'comps', 'header_reacs', 'reacs',
                              'n', 'nr'
                              ]
@@ -762,7 +782,8 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         header_comps = self.header_comps
-        header_comps_complete = header_comps_input_model + header_comps_output_model
+        header_comps_complete = self.header_comps_complete
+        header_reacs_complete = self.header_reacs_complete
         reacs = self.reacs
         xieq = self.xieq
 
@@ -790,29 +811,19 @@ class UiGroupBox(QtGui.QWidget):
                 # Present units converted: mol/gsolvent to mol/kgsolvent.
                 # Add -log10(10^3)
                 column_data = column_data - 3
-            for row in i:
-                new_item = \
-                    QtGui.QTableWidgetItem(str(column_data[row].item()))
-                # sortierbar machen
-                if var_name != 'comp_id':  # Comp. i <Str>
-                    new_item = NSortableTableWidgetItem(new_item)
-                    self.tableComps.setItem(row, column, new_item)
-                else:
-                    self.tableComps.setItem(row, column, new_item)
-                if column not in range(1, len(header_comps)):
-                    new_item.setFlags(QtCore.Qt.ItemIsEnabled)
+            self.comps_model.set_column(column, column_data)
 
-        i = range(0, nr)
-        j = range(0, n + 2 + 1)
-
-        for column in j:
-            for row in i:
-                if column != n + 2:
-                    self.tableReacs.setItem(
-                        row, column, NSortableTableWidgetItem(str(reacs[row][column])))
-                elif column == n + 2:
-                    self.tableReacs.setItem(
-                        row, column, NSortableTableWidgetItem(str(xieq[row].item())))
+        for column, column_name in enumerate(header_reacs_complete):
+            if column != n + 0 + 1 + 1:
+                column_data = reacs[:, column]
+                # TODO: Confirm numeric sorting still works.
+                # self.tableReacs.setItem(
+                #     row, column, NSortableTableWidgetItem(str(reacs[row][column])))
+            elif column == n + 0 + 1 + 1:
+                column_data = getattr(self, column_name)
+                # self.tableReacs.setItem(
+                #     row, column, NSortableTableWidgetItem(str(xieq[row].item())))
+            self.reacs_model.set_column(column, column_data)
 
         # Widths and heights, re-enable sorting
         self.tableComps.setSortingEnabled(True)
@@ -830,6 +841,24 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.blockSignals(False)
         self.tableReacs.blockSignals(False)
         self.comboBox.blockSignals(False)
+
+    def setup_table(self):
+        n = self.n
+        nr = self.nr
+        header_comps = self.header_comps
+        header_comps_complete = header_comps_input_model + header_comps_output_model
+        header_reacs = self.header_reacs
+
+        for column in range(0, n + 2 + 1):
+            for row in range(0, nr):
+                if column != n + 2:
+                    self.tableReacs.setItem(
+                        row, column, NSortableTableWidgetItem(''))
+                elif column == n + 2:
+                    self.tableReacs.setItem(
+                        row, column, NSortableTableWidgetItem(''))
+
+
 
     def save_file(self):
         pass
@@ -2237,6 +2266,50 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._data.columns[col]
         # TODO: Implement vertical header indicating row numbers
         return None
+
+
+class MatrixModel(QtCore.QAbstractTableModel):
+    """
+    Used to populate a QTableView with an np.Matrix
+    """
+
+    def __init__(self, data, column_names, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        self._data = data
+        width = data.shape[1]
+        if len(column_names) == width:
+            self._column_names = column_names
+        else:
+            self._column_names = ['']*width
+
+    def rowCount(self, *args, **kwargs):
+        return self._data.shape[0]
+
+    def columnCount(self, *args, **kwargs):
+        return self._data.shape[1]
+
+    def data(self, index, role=QtCore.Qt.DisplayPropertyRole):
+        if index.isValid():
+            if role == QtCore.Qt.DisplayRole:
+                return str(self._data[index.row(), index.column()])
+        return None
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._column_names[col]
+        return None
+
+    def set_column(self, index, column_array):
+        height = len(self._data)
+        # match whether it is column or row vector
+        if column_array.shape[0] == height:
+            self._data[:, index] = column_array.reshape(1, -1)
+        elif column_array.shape[1] == height:
+            self._data[:, index] = column_array
+
+    def set_data(self, new_data):
+        if self._data.shape == new_data.shape:
+            self._data = new_data
 
 
 class AboutBox(QtGui.QMessageBox):
