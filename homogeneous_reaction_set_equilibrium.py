@@ -71,20 +71,59 @@ def take_date(x):
 colormap_colors = colormaps.viridis.colors + colormaps.inferno.colors
 markers = matplotlib.markers.MarkerStyle.filled_markers
 fillstyles = matplotlib.markers.MarkerStyle.fillstyles
+# Structure of input files
+# Header of components will match this expression, only need to find
+# indexes in file.
+header_comps_input_model = [
+    'i', 'Comp.', 'z', 'M/(g/mol)', 'w0/g', 'xw0',
+    'n0/mol', 'x0', 'c0/(mol/L)',
+    'm0/(mol/kg_{solvent})'
+]
+comp_variable_input_names = [
+    'index', 'comp_id', 'z', 'molar_mass',
+    'w0', 'xw0', 'n0', 'x0', 'c0', 'm0'
+]
+header_comps_output_model = [
+    'weq/g', 'xweq', 'neq/mol', 'xeq',
+    'ceq/(mol/L)', 'meq/(mol/kg_{solvent})',
+    'rhoeq/(g/mL)',
+    '\gamma_{eq}^{II}', '\gamma_{eq}^{III}',
+    'aeq',
+    '-log10(xw0)', '-log10(x0)', '-log10(c0)',
+    '-log10(m0)', '-log10(a0)',
+    '-log10(\gamma_{eq}^{II})',
+    '-log10(\gamma_{eq}^{III})',
+    '-log10(xweq)', '-log10(xeq)', '-log10(ceq)',
+    '-log10(meq)', '-log10(aeq)'
+]
+comp_variable_output_names = [
+    'weq', 'xweq', 'neq', 'xeq',
+    'ceq', 'meq',
+    'rhoeq',
+    'gammaeq_ii', 'gammaeq_iii',
+    'aeq',
+    'mlog10xw0', 'mlog10x0', 'mlog10c0',
+    'mlog10m0', 'mlog10a0',
+    'mlog10gammaeq_ii',
+    'mlog10gammaeq_iii',
+    'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
+    'mlog10meq', 'mlog10aeq',
+]
+# Store programatic name vs. header name in a dict.
+comp_names_headers = \
+    dict(zip(header_comps_input_model + header_comps_output_model,
+             comp_variable_input_names + comp_variable_output_names))
 # Regular expression compilations
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 matchingHLine = re.compile('=+')
+# Default component and reaction headers according to structure
 reac_headers_re = re.compile(
     r'(\bj)' +
     r'|(^pKaj$)' +
     r'|nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?')  # For now, no more than 999 reactions
-# Default component headers:
-# ['Comp. i', 'z', 'C_0']
-# ['Comp. i', 'z', 'x_w_0', 'M']
-# ['Comp. i', 'z', 'x']
 comp_headers_re = re.compile(
-    r'(\bi)|(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)' +
-    r'|(x_?w_?0?)|(x_?0)|([c|C]_?0_?i?)|(m_?0)')
+    r'(\bi)|(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(w_?0_?i?)|(x_?w_?0?)|' +
+    r'(n_?0?_?i?)|(x_?0)|([c|C]_?0_?i?)|(m_?0)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
@@ -381,7 +420,8 @@ class UiGroupBox(QtGui.QWidget):
                                               filter='*.csv')
         if os.path.isfile(filename):
             # Reset solution state and order of items
-            del self.acceptable_solution
+            if hasattr(self, 'acceptable_solution'):
+                delattr(self, 'acceptable_solution')
             if hasattr(self, 'component_order_in_table'):
                 delattr(self, 'component_order_in_table')
             # Load csv data into form variables
@@ -405,51 +445,11 @@ class UiGroupBox(QtGui.QWidget):
             reacs = []
             valid_columns_reacs = []
             valid_columns_comps = []
-            # Header of components will match this expression, only need to find
-            # indexes in file.
-            header_comps_input_model = [
-                'i', 'Comp.', 'z', 'M/(g/mol)', 'w0/g', 'xw0',
-                'n0/mol', 'x0', 'c0/(mol/L)',
-                'm0/(mol/kg_{solvent})'
-            ]
-            comp_variable_input_names = [
-                'index', 'comp_id', 'z', 'molar_mass',
-                'w0', 'xw0', 'n0', 'x0', 'c0', 'm0'
-            ]
-            header_comps_output_model = [
-                'weq/g', 'xweq', 'neq/mol', 'xeq',
-                'ceq/(mol/L)', 'meq/(mol/kg_{solvent})',
-                'rhoeq/(g/mL)',
-                '\gamma_{eq}^{II}', '\gamma_{eq}^{III}',
-                'aeq',
-                '-log10(xw0)', '-log10(x0)', '-log10(c0)',
-                '-log10(m0)', '-log10(a0)',
-                '-log10(\gamma_{eq}^{II})',
-                '-log10(\gamma_{eq}^{III})',
-                '-log10(xweq)', '-log10(xeq)', '-log10(ceq)',
-                '-log10(meq)', '-log10(aeq)'
-            ]
-            comp_variable_output_names = [
-                'weq', 'xweq', 'neq', 'xeq',
-                'ceq', 'meq',
-                'rhoeq',
-                'gammaeq_ii', 'gammaeq_iii',
-                'aeq',
-                'mlog10xw0', 'mlog10x0', 'mlog10c0',
-                'mlog10m0', 'mlog10a0',
-                'mlog10gammaeq_ii',
-                'mlog10gammaeq_iii',
-                'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
-                'mlog10meq', 'mlog10aeq',
-            ]
-            # Store programatic name vs. header name in a dict.
-            comp_names_headers = \
-                dict(zip(header_comps_input_model + header_comps_output_model,
-                         comp_variable_input_names + comp_variable_output_names))
             # First two columns of the header of reacions will match this
             # expression, need to find indexes in file and append coefficient
             # matrix.
             header_reacs_model = ['j', 'pKa']
+            max_row_length = len([])
             for row in reader:
                 row_without_whitespace = [x.replace(' ', '') for x in row]
                 row_without_blanks = [
@@ -460,12 +460,22 @@ class UiGroupBox(QtGui.QWidget):
                     reading_comps = True
                     reading_reacs = False
                     header_comps = next(reader)
-                    # Enumerate (index, column)
-                    # Remove spaces.
-                    header_comps_enum = [(i, j.replace(' ', '')) for i, j in
-                                         enumerate(header_comps) if
-                                         j.replace(' ', '') != '']
-                    valid_columns_comps = [x[0] for x in header_comps_enum]
+                    # Get column mappings of form
+                    # [
+                    # [output_index_1, input_index_1],
+                    # [output_index_2, input_index_2],
+                    # ...]
+                    io_column_index_map = []
+                    for (col_no, column) in enumerate(header_comps):
+                        old_index = col_no
+                        matches = comp_headers_re.match(column)
+                        if matches is not None:
+                            new_index = [j for j, match \
+                                         in enumerate(matches.groups()) \
+                                         if  match is not None]
+                            io_column_index_map.append(
+                                [new_index[0], old_index]
+                            )
                 elif 'REAC' in row:
                     reading_reacs = True
                     reading_comps = False
@@ -480,15 +490,10 @@ class UiGroupBox(QtGui.QWidget):
                     n += 1
                     # put 0 instead of blank and keep all columns to add in
                     # model
-                    row_to_add = []
-                    for x in range(len(header_comps_input_model)):
-                        if x in valid_columns_comps:
-                            if row_without_whitespace[x] == '':
-                                row_to_add.append('0')
-                            else:
-                                row_to_add.append(row_without_whitespace[x])
-                        else:
-                            row_to_add.append('')
+                    row_to_add = ['']*len(header_comps_input_model)
+                    for new_index, old_index  in io_column_index_map:
+                        row_to_add[new_index] = \
+                            row_without_whitespace[old_index]
                     comps.append(row_to_add)
                 elif reading_reacs:
                     nr += 1
@@ -526,63 +531,19 @@ class UiGroupBox(QtGui.QWidget):
                     index_destination = int(x[1][4]) + 0 + 1
                 priorities_reacs.append(
                     (variable, index_origin, index_destination))
-        # Divide into groups with regular expression:
-        # '(\bi)(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(n_?0?_?i?)|(w_?0_?i?)|([c|C]_?0_?i?)'
-        # Required: n0, c0 or m0
-        # Optional: M (unless using m0)
-        # TODO: If M is not in the input, or incomplete, M=18.01528 for the
-        # solvent.
-        header_comps_groups_enum = \
-            map(lambda y: [y[0], comp_headers_re.match(y[1]).groups()],
-                header_comps_enum)
-        # priorities_comps is of the form (variable, index_origin,
-        # index_destination)
-        priorities_comps = []
-        for x in header_comps_groups_enum:
-            if x is not None:
-                index_origin = x[0]
-                variable = [y for y in x[1] if y is not None][0]
-                index_destination = [i for i, j in enumerate(x[1]) if j is not None][
-                    0]
-                priorities_comps.append(
-                    (variable, index_origin, index_destination))
         # reacs header, form
         # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
         # comps header, form
         # [None, ..., None, 'Comp. i', 'z', 'M', 'n0', 'w0']
         # Sort priorities arrays by destination
         sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[2])
-        sorted_priorities_comps = sorted(priorities_comps, key=lambda y: y[2])
-        sorted_reacs = []
-        k = 1
-        for row in reacs:
-            # Add reaction index form ['j', 'pKaj', i=1, i=2, ... i=n]
-            sorted_reacs.append(
-                [str(k)] +
-                [row[x[2]] for x in sorted_priorities_reacs if x[0] != 'j'])
-            k += 1
         header_reacs = \
             [str(x[0]) for x in sorted_priorities_reacs]
-        # Keep format of header_comps_input_model in table of components
-        sorted_comps = comps
-        already_ineverted = []
-        for row in sorted_priorities_comps:
-            old_index = row[1]
-            new_index = row[2]
-            if old_index != new_index \
-                    and old_index not in already_ineverted:
-                # in sorted_priorities_comps, old_index > new_index
-                already_ineverted.append(new_index)
-                for comps_row in sorted_comps:
-                    old_comp = comps_row[old_index]
-                    new_comp = comps_row[new_index]
-                    comps_row[new_index] = old_comp
-                    comps_row[old_index] = new_comp
         # Add components index form. All have been worked on in
         # scaffold.
         header_comps = comp_variable_input_names
-        comps = np.array(sorted_comps)
-        reacs = np.array(sorted_reacs)
+        comps = np.array(comps)
+        reacs = np.array(reacs)
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         self.tableComps.setRowCount(n)
@@ -598,8 +559,7 @@ class UiGroupBox(QtGui.QWidget):
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps',
                              'comps', 'header_reacs', 'reacs',
-                             'n', 'nr',
-                             'comp_names_headers',
+                             'n', 'nr'
                              ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
@@ -784,7 +744,6 @@ class UiGroupBox(QtGui.QWidget):
         nr = self.nr
         header_comps = self.header_comps
         reacs = self.reacs
-        comp_names_headers = self.comp_names_headers
         xieq = self.xieq
 
         if hasattr(self, 'component_order_in_table'):
@@ -810,6 +769,10 @@ class UiGroupBox(QtGui.QWidget):
             if var_name in ['m0', 'meq']:
                 # Present units converted: mol/gsolvent to mol/kgsolvent
                 column_data = 1000 * column_data
+            elif var_name in ['mlog10m0', 'mlog10meq']:
+                # Present units converted: mol/gsolvent to mol/kgsolvent.
+                # Add -log10(10^3)
+                column_data = column_data - 3
             for row in i:
                 if column <= len(comp_names_headers):
                     new_item = \
@@ -1084,7 +1047,7 @@ class UiGroupBox(QtGui.QWidget):
         # TODO: Implement activity coefficients
         gammaeq_ii = np.ones_like(meq)
         gammaeq_iii = np.ones_like(meq)
-        aeq = np.multiply(gammaeq_iii, meq)
+        aeq = np.multiply(gammaeq_iii, meq)*np.nan
         a0 = np.multiply(gammaeq_iii, m0)
         mlog10xw0 = -np.log10(xw0)
         mlog10x0 = -np.log10(x0)
