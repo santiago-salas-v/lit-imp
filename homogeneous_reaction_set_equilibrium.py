@@ -167,7 +167,6 @@ class UiGroupBox(QtGui.QWidget):
         self.progress_var = QtGui.QProgressBar(parent)
         self.cancelButton = QtGui.QPushButton(parent)
         self.doubleSpinBox_5 = ScientificDoubleSpinBox()
-        # item = QtGui.QTableWidgetItem()
         self.horizontalLayout_7 = QtGui.QHBoxLayout()
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.label_5 = QtGui.QLabel()
@@ -571,15 +570,6 @@ class UiGroupBox(QtGui.QWidget):
         reacs = np.array(sorted_reacs, dtype=str) # do not convert yet
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
-        #self.tableComps.setRowCount(n)
-        #self.tableComps.setColumnCount(len(header_comps_input_model) +
-        #                               len(header_comps_output_model))
-        #self.tableComps.setHorizontalHeaderLabels(
-        #    header_comps_input_model + header_comps_output_model)
-        #self.tableReacs.setRowCount(nr)
-        #self.tableReacs.setColumnCount(n + 2 + 1)
-        #self.tableReacs.setHorizontalHeaderLabels(
-        #    header_reacs + ['xieq'])
         header_comps_complete = \
             header_comps_input_model + header_comps_output_model
         header_reacs_complete = \
@@ -795,8 +785,8 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
         self.comboBox.blockSignals(True)
-        # As usual, problems occurr when sorting is combined with setting QTableWidgetItems.
-        # Therefore disable sorting, then set QTableWidgetItems and finally
+        # As usual, problems occurr when sorting is combined with setting QTableView.
+        # Therefore disable sorting, then set model and finally
         # reenable sorting.
         self.tableComps.setSortingEnabled(False)
         self.tableReacs.setSortingEnabled(False)
@@ -817,12 +807,8 @@ class UiGroupBox(QtGui.QWidget):
             if column != n + 0 + 1 + 1:
                 column_data = reacs[:, column]
                 # TODO: Confirm numeric sorting still works.
-                # self.tableReacs.setItem(
-                #     row, column, NSortableTableWidgetItem(str(reacs[row][column])))
             elif column == n + 0 + 1 + 1:
                 column_data = getattr(self, column_name)
-                # self.tableReacs.setItem(
-                #     row, column, NSortableTableWidgetItem(str(xieq[row].item())))
             self.reacs_model.set_column(column, column_data)
 
         # Widths and heights, re-enable sorting
@@ -841,24 +827,7 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.blockSignals(False)
         self.tableReacs.blockSignals(False)
         self.comboBox.blockSignals(False)
-
-    def setup_table(self):
-        n = self.n
-        nr = self.nr
-        header_comps = self.header_comps
-        header_comps_complete = header_comps_input_model + header_comps_output_model
-        header_reacs = self.header_reacs
-
-        for column in range(0, n + 2 + 1):
-            for row in range(0, nr):
-                if column != n + 2:
-                    self.tableReacs.setItem(
-                        row, column, NSortableTableWidgetItem(''))
-                elif column == n + 2:
-                    self.tableReacs.setItem(
-                        row, column, NSortableTableWidgetItem(''))
-
-
+        
 
     def save_file(self):
         pass
