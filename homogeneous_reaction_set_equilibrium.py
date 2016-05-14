@@ -565,8 +565,10 @@ class UiGroupBox(QtGui.QWidget):
         for k, row in enumerate(sorted_reacs):
             row[column_of_index_reacs] = k + 1
         header_comps = comp_variable_input_names
-        comps = np.array(sorted_comps)
-        reacs = np.array(sorted_reacs)
+        header_reacs = header_reacs_model \
+                       + ['nu_' + str(x + 1) + 'j' for x in range(n)]
+        comps = np.array(sorted_comps, dtype=str) # do not convert yet
+        reacs = np.array(sorted_reacs, dtype=str) # do not convert yet
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         self.tableComps.setRowCount(n)
@@ -586,12 +588,6 @@ class UiGroupBox(QtGui.QWidget):
                              ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
-
-    def initialize_variables(self):
-        header_comps = self.header_comps
-        header_reacs = self.header_reacs
-        comps = self.comps
-        reacs = self.reacs
 
     def load_variables_from_form(self):
         n = self.n
@@ -766,6 +762,7 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         header_comps = self.header_comps
+        header_comps_complete = header_comps_input_model + header_comps_output_model
         reacs = self.reacs
         xieq = self.xieq
 
@@ -773,7 +770,6 @@ class UiGroupBox(QtGui.QWidget):
             i = getattr(self, 'component_order_in_table')
         else:
             i = range(0, n)
-        j = range(0, len(comp_names_headers))
 
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
@@ -784,9 +780,7 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.setSortingEnabled(False)
         self.tableReacs.setSortingEnabled(False)
 
-        for column in j:
-            column_name = self.tableComps.model().headerData(
-                column, QtCore.Qt.Horizontal)
+        for column, column_name in enumerate(header_comps_complete):
             var_name = comp_names_headers[column_name]
             column_data = getattr(self, var_name)
             if var_name in ['m0', 'meq']:
@@ -797,11 +791,10 @@ class UiGroupBox(QtGui.QWidget):
                 # Add -log10(10^3)
                 column_data = column_data - 3
             for row in i:
-                if column <= len(comp_names_headers):
-                    new_item = \
-                        QtGui.QTableWidgetItem(str(column_data[row].item()))
+                new_item = \
+                    QtGui.QTableWidgetItem(str(column_data[row].item()))
                 # sortierbar machen
-                if column != 1:  # Comp. i <Str>
+                if var_name != 'comp_id':  # Comp. i <Str>
                     new_item = NSortableTableWidgetItem(new_item)
                     self.tableComps.setItem(row, column, new_item)
                 else:
@@ -2407,7 +2400,6 @@ def main():
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
     main_form.ui.load_csv('./DATA/COMPONENTS_REACTIONS_EX_001.csv')
-    main_form.ui.initialize_variables()
     main_form.ui.gui_equilibrate()
     main_form.ui.tableComps.sortByColumn(0, QtCore.Qt.AscendingOrder)
     main_form.ui.tableReacs.sortByColumn(0, QtCore.Qt.AscendingOrder)
