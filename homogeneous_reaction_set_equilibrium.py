@@ -109,6 +109,10 @@ comp_variable_output_names = [
     'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
     'mlog10meq', 'mlog10aeq',
 ]
+# First two columns of the header of reacions will match this
+# expression, need to find indexes in file and append coefficient
+# matrix.
+header_reacs_model = ['j', 'pKa']
 # Store programatic name vs. header name in a dict.
 comp_names_headers = \
     dict(zip(header_comps_input_model + header_comps_output_model,
@@ -117,12 +121,18 @@ comp_names_headers = \
 float_re = re.compile(r'(([+-]?\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?)')
 matchingHLine = re.compile('=+')
 # Default component and reaction headers according to structure
+# [j, pKa, nu_ij(i=1), nu_ij(i=2),...]
+# Sample resulting regex groups when applied to text values:
+# 'j'           ['j', None,  None, None, None]
+# 'pKaj'        [None, 'pKaj', None, None, None]
+# 'nu2000j'     [None, None, 2000, None, None]
+# 'nu2j(i=99)'  [None, None, 2, (i=99), 99]
 reac_headers_re = re.compile(
-    r'(\bj)' +
+    r'(\bj$)' +
     r'|(^pKaj$)' +
-    r'|nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?')  # For now, no more than 999 reactions
+    r'|nu_?i?([0-9]+)?j(\(i=([0-9]+)\))?')
 comp_headers_re = re.compile(
-    r'(\bi)|(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(w_?0_?i?)|(x_?w_?0?)|' +
+    r'(\bi$)|(Comp\.?i?)|([z|Z]_?i?)|(M_?i?)|(w_?0_?i?)|(x_?w_?0?)|' +
     r'(n_?0?_?i?)|(x_?0)|([c|C]_?0_?i?)|(m_?0)')
 doc_hline_re = re.compile(
     r'(\s*-{3,})')
@@ -443,13 +453,6 @@ class UiGroupBox(QtGui.QWidget):
             reading_reacs = False
             comps = []
             reacs = []
-            valid_columns_reacs = []
-            valid_columns_comps = []
-            # First two columns of the header of reacions will match this
-            # expression, need to find indexes in file and append coefficient
-            # matrix.
-            header_reacs_model = ['j', 'pKa']
-            max_row_length = len([])
             for row in reader:
                 row_without_whitespace = [x.replace(' ', '') for x in row]
                 row_without_blanks = [
@@ -468,82 +471,102 @@ class UiGroupBox(QtGui.QWidget):
                     io_column_index_map = []
                     for (col_no, column) in enumerate(header_comps):
                         old_index = col_no
-                        matches = comp_headers_re.match(column)
+                        matches = \
+                            comp_headers_re.match(column.replace(' ', ''))
                         if matches is not None:
-                            new_index = [j for j, match \
-                                         in enumerate(matches.groups()) \
-                                         if  match is not None]
+                            new_index = [j for j, match
+                                         in enumerate(matches.groups())
+                                         if match is not None][0]
                             io_column_index_map.append(
-                                [new_index[0], old_index]
+                                [new_index, old_index]
                             )
                 elif 'REAC' in row:
                     reading_reacs = True
                     reading_comps = False
                     header_reacs = next(reader)
-                    # Enumerate (index, column)
-                    # Remove spaces.
-                    header_reacs_enum = [(i, j.replace(' ', '')) for i, j in
-                                         enumerate(header_reacs) if
-                                         j.replace(' ', '') != '']
-                    valid_columns_reacs = [x[0] for x in header_reacs_enum]
+                    # Get column mappings of form
+                    # [
+                    # [output_index_1, input_index_1],
+                    # [output_index_2, input_index_2],
+                    # ...]
+                    io_column_index_map = []
+                    for (col_no, column) in enumerate(header_reacs):
+                        old_index = col_no
+                        matches = \
+                            reac_headers_re.match(column.replace(' ', ''))
+                        if matches is not None:
+                            re_index = [(j, match) for j, match
+                                        in enumerate(matches.groups())
+                                        if match is not None]
+                            # When index is
+                            # 0: 'j', 1: 'pKa'
+                            # 2: X , 3: '(i=Y)',
+                            # 4: Y
+                            if len(re_index) == 1:
+                                first_index = re_index[0][0]
+                                if first_index in [0, 1]:
+                                    # 0: 'j', 1: 'pKa'
+                                    new_index = first_index
+                                else:
+                                    # In 'nu_Xj'
+                                    # 2: X
+                                    # add 0 + 1 for j, pKa
+                                    new_index = \
+                                        int(re_index[0][1]) + 0 + 1
+                            elif len(re_index) > 2:  # In 'nu_iX(i=Y)'
+                                                    # 2: X , 3: '(i=Y)',
+                                                    # 4: Y
+                                # Prioritize 4
+                                # add 0 + 1 for j, pKa
+                                new_index = \
+                                    int(re_index[-1][1]) + 0 + 1
+                            elif len(re_index) == 2:  # In 'nu_iX(i=Y)'
+                                                    # 3: '(i=Y)',
+                                                    # 4: Y
+                                # Prioritize 4
+                                # add 0 + 1 for j, pKa
+                                new_index = \
+                                    int(re_index[-1][1]) + 0 + 1
+                            io_column_index_map.append(
+                                [new_index, old_index]
+                            )
                 elif reading_comps:
                     n += 1
                     # put 0 instead of blank and keep all columns to add in
                     # model
-                    row_to_add = ['']*len(header_comps_input_model)
-                    for new_index, old_index  in io_column_index_map:
+                    row_to_add = [''] * len(header_comps_input_model)
+                    for new_index, old_index in io_column_index_map:
                         row_to_add[new_index] = \
                             row_without_whitespace[old_index]
                     comps.append(row_to_add)
                 elif reading_reacs:
                     nr += 1
+                    sorted_io_column_index_map =\
+                        sorted(io_column_index_map, key=lambda x: x[1])
+                    max_column_no = sorted_io_column_index_map[-1][0] + 1
+                    row_to_add = [''] * max_column_no
                     # put 0 instead of blank and keep only columns to add
-                    row_to_add = ['0' if row_without_whitespace[x] == '' else
-                                  row_without_whitespace[x]
-                                  for x in valid_columns_reacs]
+                    for new_index, old_index in sorted_io_column_index_map:
+                        text_with_number = row_without_whitespace[old_index]
+                        if len(text_with_number) == 0:
+                            row_to_add[new_index] = float(0)
+                        else:
+                            row_to_add[new_index] = float(text_with_number)
                     reacs.append(row_to_add)
         csv_file.close()
-        # Rearrange reacs to pKaj nu_ij (i=1) nu_ij(i=2) ... nu_ij(i=n)
-        # Rearrange comps rearrange to Comp. i zi c0
-        header_reacs_groups_enum = \
-            map(lambda y: [y[0], reac_headers_re.match(y[1]).groups()],
-                header_reacs_enum)
-        priorities_reacs = []
-        # Get reaction set structure based on same order as regex groups.
-        # Group 2 corresponds to nu_2j or nu_2j(i=2). First is priority.
-        # Group 4 corresponds to nu_ij(i=2). If redundant with 2, 2 used.
-        for x in header_reacs_groups_enum:
-            if x is not None:
-                index_origin = x[0]
-                if x[1][2] is None \
-                        and x[1][4] is None:
-                    variable = [y for y in x[1] if y is not None][0]
-                    index_destination = [i for i, j in enumerate(x[1]) if j is not None][
-                        0]
-                elif x[1][2] is not None:
-                    variable = 'nu_ij(i=' + x[1][2] + ')'
-                    # add space for [j, pKaj]
-                    index_destination = int(x[1][2]) + 0 + 1
-                elif x[1][2] is None \
-                        and x[1][4] is not None:
-                    variable = 'nu_ij(i=' + x[1][4] + ')'
-                    # add space for [j, pKaj]
-                    index_destination = int(x[1][4]) + 0 + 1
-                priorities_reacs.append(
-                    (variable, index_origin, index_destination))
-        # reacs header, form
-        # [None, ..., None, 'pKaj', i=1', 'i=2', ... 'i=n']
-        # comps header, form
-        # [None, ..., None, 'Comp. i', 'z', 'M', 'n0', 'w0']
-        # Sort priorities arrays by destination
-        sorted_priorities_reacs = sorted(priorities_reacs, key=lambda y: y[2])
-        header_reacs = \
-            [str(x[0]) for x in sorted_priorities_reacs]
-        # Add components index form. All have been worked on in
-        # scaffold.
+        column_of_index_comps = comp_variable_input_names.index('index')
+        column_of_index_reacs = header_reacs_model.index('j')
+        # First, sort by existing order, if available
+        sorted_comps = sorted(comps, key=lambda x: x[column_of_index_comps])
+        sorted_reacs = sorted(reacs, key=lambda x: x[column_of_index_reacs])
+        # Add indexes or replace existing indexes with simple ones.
+        for k, row in enumerate(sorted_comps):
+            row[column_of_index_comps] = k + 1
+        for k, row in enumerate(sorted_reacs):
+            row[column_of_index_reacs] = k + 1
         header_comps = comp_variable_input_names
-        comps = np.array(comps)
-        reacs = np.array(reacs)
+        comps = np.array(sorted_comps)
+        reacs = np.array(sorted_reacs)
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         self.tableComps.setRowCount(n)
@@ -703,7 +726,7 @@ class UiGroupBox(QtGui.QWidget):
         rho0_i = np.multiply(c0, mm0)
         c_solvent_tref = c0[index_of_solvent].item()
         z = np.matrix([row[2] for row in comps], dtype=float).T
-        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=int).T
+        nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=float).T
         pka = np.matrix([row[1] for row in reacs], dtype=float).T
         max_it = int(self.spinBox_3.value())
         tol = float(self.doubleSpinBox_5.value())
@@ -1047,7 +1070,7 @@ class UiGroupBox(QtGui.QWidget):
         # TODO: Implement activity coefficients
         gammaeq_ii = np.ones_like(meq)
         gammaeq_iii = np.ones_like(meq)
-        aeq = np.multiply(gammaeq_iii, meq)*np.nan
+        aeq = np.multiply(gammaeq_iii, meq) * np.nan
         a0 = np.multiply(gammaeq_iii, m0)
         mlog10xw0 = -np.log10(xw0)
         mlog10x0 = -np.log10(x0)
