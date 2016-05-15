@@ -329,7 +329,7 @@ class UiGroupBox(QtGui.QWidget):
         self.plotButton.clicked.connect(partial(self.solve_intervals))
         self.equilibrate_button.clicked.connect(
             partial(self.recalculate_after_cell_edit, 0, 0))
-        #self.tableComps.connect(
+        # self.tableComps.connect(
         #    partial(self.recalculate_after_cell_edit))
         self.info_button.clicked.connect(partial(self.display_about_info))
         self.log_button.clicked.connect(partial(self.show_log))
@@ -565,9 +565,9 @@ class UiGroupBox(QtGui.QWidget):
             row[column_of_index_reacs] = k + 1
         header_comps = comp_variable_input_names
         header_reacs = header_reacs_model \
-                       + ['nu_' + str(x + 1) + 'j' for x in range(n)]
-        comps = np.array(sorted_comps, dtype=str) # do not convert yet
-        reacs = np.array(sorted_reacs, dtype=str) # do not convert yet
+            + ['nu_' + str(x + 1) + 'j' for x in range(n)]
+        comps = np.array(sorted_comps, dtype=str)  # do not convert yet
+        reacs = np.array(sorted_reacs, dtype=str)  # do not convert yet
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         header_comps_complete = \
@@ -583,10 +583,19 @@ class UiGroupBox(QtGui.QWidget):
         reacs_completed_matrix = np.empty(
             [reacs.shape[0], reacs_column_width], dtype=object
         )
-        self.comps_model = MatrixModel(comps_completed_matrix,
-                                       header_comps_complete)
-        self.reacs_model = MatrixModel(reacs_completed_matrix,
-                                       header_reacs_complete)
+        reacs_completed_matrix[:, 0:reacs.shape[1]] = reacs
+        self.comps_model = MatrixModel(
+            comps_completed_matrix,
+            header_comps_complete,
+            editable_columns=range(len(header_comps_input_model))
+        )
+        self.reacs_model = MatrixModel(
+            reacs_completed_matrix,
+            header_reacs_complete,
+            editable_columns=range(len(header_reacs_complete) - 1)
+        )
+        self.tableComps.setSortingEnabled(False)
+        self.tableReacs.setSortingEnabled(False)
         self.tableComps.setModel(self.comps_model)
         self.tableReacs.setModel(self.reacs_model)
         # Pass variables to self before loop start
@@ -827,7 +836,6 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.blockSignals(False)
         self.tableReacs.blockSignals(False)
         self.comboBox.blockSignals(False)
-        
 
     def save_file(self):
         pass
@@ -2242,14 +2250,21 @@ class MatrixModel(QtCore.QAbstractTableModel):
     Used to populate a QTableView with an np.Matrix
     """
 
-    def __init__(self, data, column_names, parent=None):
+    def __init__(self, data, column_names,
+                 editable_columns=None, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self._data = data
+        if editable_columns is None:
+            self._editable_columns = [None]
+        elif len(editable_columns) == 1:
+            self._editable_columns = [editable_columns]
+        elif len(editable_columns) > 1:
+            self._editable_columns = editable_columns
         width = data.shape[1]
         if len(column_names) == width:
             self._column_names = column_names
         else:
-            self._column_names = ['']*width
+            self._column_names = [''] * width
 
     def rowCount(self, *args, **kwargs):
         return self._data.shape[0]
@@ -2276,9 +2291,41 @@ class MatrixModel(QtCore.QAbstractTableModel):
         elif column_array.shape[1] == height:
             self._data[:, index] = column_array
 
-    def set_data(self, new_data):
-        if self._data.shape == new_data.shape:
-            self._data = new_data
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        # if self._data.shape == value.shape:
+        #     self._data = new_data
+        if index.isValid() and 0 <= index.row() < len(self._data):
+            row = index.row()
+            column = index.column()
+            self._data[row, column] = value
+            self.dirty = True
+            self.emit(
+                QtCore.SIGNAL('dataChanged(QModelIndex,QModelIndex)'),
+                index, index
+            )
+            return True
+        return False
+
+    def sort(self, column, order=QtCore.Qt.AscendingOrder):
+        if order == QtCore.Qt.AscendingOrder:
+            reverse = False
+        else:
+            reverse = True
+        self._data = np.array(
+            sorted(self._data,
+                   key=lambda x: x[column],
+                   reverse=reverse)
+        )
+        self.reset()
+
+    def flags(self, index):
+        if index.column() in self._editable_columns:
+            return QtCore.Qt.ItemIsEnabled | \
+                QtCore.Qt.ItemIsSelectable | \
+                QtCore.Qt.ItemIsEditable
+        else:
+            return QtCore.Qt.ItemIsEnabled | \
+                QtCore.Qt.ItemIsSelectable
 
 
 class AboutBox(QtGui.QMessageBox):
@@ -2291,20 +2338,6 @@ class AboutBox(QtGui.QMessageBox):
         self.setText(title_text)
         self.setDetailedText(contained_text)
         self.show()
-
-
-class NSortableTableWidgetItem(QtGui.QTableWidgetItem):
-    # Implement less than (<) for numeric table widget items.
-
-    def __init__(self, text):
-        QtGui.QTableWidgetItem.__init__(self, text)
-
-    def __lt__(self, y):
-        float_self = float(self.text())
-        if np.isnan(float_self):
-            return True
-        else:
-            return float(self.text()) < float(y.text())
 
 
 class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
