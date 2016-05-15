@@ -329,8 +329,6 @@ class UiGroupBox(QtGui.QWidget):
         self.plotButton.clicked.connect(partial(self.solve_intervals))
         self.equilibrate_button.clicked.connect(
             partial(self.recalculate_after_cell_edit, 0, 0))
-        # self.tableComps.connect(
-        #    partial(self.recalculate_after_cell_edit))
         self.info_button.clicked.connect(partial(self.display_about_info))
         self.log_button.clicked.connect(partial(self.show_log))
         self.cancelButton.clicked.connect(partial(self.cancel_loop))
@@ -566,8 +564,8 @@ class UiGroupBox(QtGui.QWidget):
         header_comps = comp_variable_input_names
         header_reacs = header_reacs_model \
             + ['nu_' + str(x + 1) + 'j' for x in range(n)]
-        comps = np.array(sorted_comps, dtype=str)  # do not convert yet
-        reacs = np.array(sorted_reacs, dtype=str)  # do not convert yet
+        comps = np.array(sorted_comps, dtype=object)  # do not convert yet
+        reacs = np.array(sorted_reacs, dtype=object)  # do not convert yet
         self.spinBox.setProperty("value", n)
         self.spinBox_2.setProperty("value", nr)
         header_comps_complete = \
@@ -609,32 +607,16 @@ class UiGroupBox(QtGui.QWidget):
             setattr(self, var, locals()[var])
 
     def load_variables_from_form(self):
-        n = self.n
-        nr = self.nr
-        comps = np.empty([n, 4], dtype='S50')
-        reacs = np.empty([nr, n + 2], dtype='S50')
-        header_comps = []
-        header_reacs = []
-        component_order_in_table = []
-        for i in range(self.tableComps.rowCount()):
-            component_order_in_table.append(
-                int(self.tableComps.item(i, 0).text()) - 1)
-        for i in range(comps.shape[1]):
-            header_comps.append(
-                self.tableComps.horizontalHeaderItem(i).data(0))
-        for i in range(reacs.shape[1]):
-            header_reacs.append(
-                self.tableReacs.horizontalHeaderItem(i).data(0))
-        for j in range(comps.shape[1]):
-            for i in range(comps.shape[0]):
-                comps[
-                    component_order_in_table[i],
-                    j] = self.tableComps.item(
-                    i,
-                    j).text()
-        for j in range(reacs.shape[1]):
-            for i in range(reacs.shape[0]):
-                reacs[i, j] = self.tableReacs.item(i, j).text()
+        comps = self.tableComps.model().return_data()
+        reacs = self.tableReacs.model().return_data()
+        header_comps = self.tableComps.model().return_headers()
+        header_reacs = self.tableReacs.model().return_headers()
+        n = len(comps)
+        nr = len(reacs)
+        index_of_component_order_in_table = \
+            header_comps.index('i')
+        component_order_in_table = \
+            comps[:, index_of_component_order_in_table].reshape(1, -1)
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps', 'comps', 'header_reacs',
                              'reacs', 'component_order_in_table']
@@ -767,7 +749,8 @@ class UiGroupBox(QtGui.QWidget):
         self.comboBox.clear()
         self.comboBox_3.clear()
         for item in comps[:, 0:2]:
-            self.comboBox.addItem('c0_' + item[0] + ' {' + item[1] + '}')
+            self.comboBox.addItem('c0_' + str(item[0]) +
+                                  ' {' + item[1] + '}')
             self.comboBox_3.addItem(item[1])
         self.comboBox.setCurrentIndex(index_of_second_highest_n0)
         self.doubleSpinBox.setValue(n_second_highest_n0_tref / 10.0 ** 7)
@@ -1392,8 +1375,6 @@ class UiGroupBoxPlot(QtGui.QWidget):
             partial(self.move_to_available))
         self.listWidget.itemDoubleClicked.connect(
             partial(self.move_to_displayed))
-        # self.all_to_available.clicked.connect(
-        #    partial(self.move_to_available(self.listWidget_2.items)))
         self.toggleLogButtonX.toggled.connect(
             partial(self.toggled_toggle_log_button_x))
         self.toggleLogButtonY.toggled.connect(
@@ -2326,6 +2307,12 @@ class MatrixModel(QtCore.QAbstractTableModel):
         else:
             return QtCore.Qt.ItemIsEnabled | \
                 QtCore.Qt.ItemIsSelectable
+
+    def return_data(self):
+        return self._data
+
+    def return_headers(self):
+        return self._column_names
 
 
 class AboutBox(QtGui.QMessageBox):
