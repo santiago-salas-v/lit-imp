@@ -601,7 +601,7 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.setModel(self.comps_model)
         self.tableReacs.setModel(self.reacs_model)
         # Pass variables to self before loop start
-        variables_to_pass = ['header_comps',  'comps',
+        variables_to_pass = ['header_comps', 'comps',
                              'header_comps_complete',
                              'comps_completed_matrix',
                              'header_reacs', 'reacs',
@@ -627,11 +627,11 @@ class UiGroupBox(QtGui.QWidget):
             header_reacs.index('j')
         component_order_in_table = \
             (comps_completed_matrix[
-            :, index_of_component_order_in_table
+                :, index_of_component_order_in_table
             ] - 1).tolist()
         reaction_order_in_table = \
             (reacs_completed_matrix[
-            :, index_of_reaction_order_in_table
+                :, index_of_reaction_order_in_table
             ] - 1).tolist()
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps',
@@ -878,10 +878,11 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         index_of_variable = self.comboBox.currentIndex()
-        indep_var_label = 'c0_{' + comps[index_of_variable, 0] + ', ' + \
+        # TODO: Get plotting to work with format QTableView model (comps matrix)
+        indep_var_label = 'c0_{' + str(comps[index_of_variable, 0]) + ', ' + \
                           comps[index_of_variable, 1] + '}/(mol/L)'
         dep_var_labels = \
-            ['Ceq_' + '{' + item[0] + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
+            ['Ceq_' + '{' + str(item[0]) + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
             ['\\xi eq_' +
                 '{' + str(item) + '}/(mol/L)' for item in range(1, nr + 1, 1)]
         min_value = self.doubleSpinBox.value()
