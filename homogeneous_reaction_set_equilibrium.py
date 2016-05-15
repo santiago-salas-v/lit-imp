@@ -77,11 +77,15 @@ fillstyles = matplotlib.markers.MarkerStyle.fillstyles
 header_comps_input_model = [
     'i', 'Comp.', 'z', 'M/(g/mol)', 'w0/g', 'xw0',
     'n0/mol', 'x0', 'c0/(mol/L)',
-    'm0/(mol/kg_{solvent})'
+    'm0/(mol/kg_{solvent})',
+    '-log10(xw0)', '-log10(x0)', '-log10(c0)',
+    '-log10(m0)', '-log10(a0)'
 ]
 comp_variable_input_names = [
     'index', 'comp_id', 'z', 'molar_mass',
-    'w0', 'xw0', 'n0', 'x0', 'c0', 'm0'
+    'w0', 'xw0', 'n0', 'x0', 'c0', 'm0',
+    'mlog10xw0', 'mlog10x0', 'mlog10c0',
+    'mlog10m0', 'mlog10a0'
 ]
 header_comps_output_model = [
     'weq/g', 'xweq', 'neq/mol', 'xeq',
@@ -89,8 +93,6 @@ header_comps_output_model = [
     'rhoeq/(g/mL)',
     '\gamma_{eq}^{II}', '\gamma_{eq}^{III}',
     'aeq',
-    '-log10(xw0)', '-log10(x0)', '-log10(c0)',
-    '-log10(m0)', '-log10(a0)',
     '-log10(\gamma_{eq}^{II})',
     '-log10(\gamma_{eq}^{III})',
     '-log10(xweq)', '-log10(xeq)', '-log10(ceq)',
@@ -102,8 +104,6 @@ comp_variable_output_names = [
     'rhoeq',
     'gammaeq_ii', 'gammaeq_iii',
     'aeq',
-    'mlog10xw0', 'mlog10x0', 'mlog10c0',
-    'mlog10m0', 'mlog10a0',
     'mlog10gammaeq_ii',
     'mlog10gammaeq_iii',
     'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
@@ -561,13 +561,14 @@ class UiGroupBox(QtGui.QWidget):
             row[column_of_index_comps] = k + 1
         for k, row in enumerate(sorted_reacs):
             row[column_of_index_reacs] = k + 1
-        header_comps = comp_variable_input_names
+        header_comps = comp_variable_input_names \
+            + comp_variable_output_names
         header_reacs = header_reacs_model \
             + ['nu_' + str(x + 1) + 'j' for x in range(n)]
         comps = np.array(sorted_comps, dtype=object)  # do not convert yet
         reacs = np.array(sorted_reacs, dtype=object)  # do not convert yet
-        self.spinBox.setProperty("value", n)
-        self.spinBox_2.setProperty("value", nr)
+        # Grow comps and reacs to their final widths from the start.
+        # Width of reactions matrix could not be known before this step.
         header_comps_complete = \
             header_comps_input_model + header_comps_output_model
         header_reacs_complete = \
@@ -582,6 +583,9 @@ class UiGroupBox(QtGui.QWidget):
             [reacs.shape[0], reacs_column_width], dtype=object
         )
         reacs_completed_matrix[:, 0:reacs.shape[1]] = reacs
+        self.spinBox.setProperty("value", n)
+        self.spinBox_2.setProperty("value", nr)
+
         self.comps_model = MatrixModel(
             comps_completed_matrix,
             header_comps_complete,
@@ -597,29 +601,45 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.setModel(self.comps_model)
         self.tableReacs.setModel(self.reacs_model)
         # Pass variables to self before loop start
-        variables_to_pass = ['header_comps',
-                             'header_reacs_complete',
+        variables_to_pass = ['header_comps',  'comps',
                              'header_comps_complete',
-                             'comps', 'header_reacs', 'reacs',
+                             'comps_completed_matrix',
+                             'header_reacs', 'reacs',
+                             'header_reacs_complete',
+                             'reacs_completed_matrix',
                              'n', 'nr'
                              ]
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
     def load_variables_from_form(self):
-        comps = self.tableComps.model().return_data()
-        reacs = self.tableReacs.model().return_data()
+        comps_completed_matrix = \
+            self.tableComps.model().return_data()
+        reacs_completed_matrix = \
+            self.tableReacs.model().return_data()
         header_comps = self.tableComps.model().return_headers()
         header_reacs = self.tableReacs.model().return_headers()
-        n = len(comps)
-        nr = len(reacs)
+        n = len(comps_completed_matrix)
+        nr = len(reacs_completed_matrix)
         index_of_component_order_in_table = \
             header_comps.index('i')
+        index_of_reaction_order_in_table = \
+            header_reacs.index('j')
         component_order_in_table = \
-            comps[:, index_of_component_order_in_table].reshape(1, -1)
+            (comps_completed_matrix[
+            :, index_of_component_order_in_table
+            ] - 1).tolist()
+        reaction_order_in_table = \
+            (reacs_completed_matrix[
+            :, index_of_reaction_order_in_table
+            ] - 1).tolist()
         # Pass variables to self before loop start
-        variables_to_pass = ['header_comps', 'comps', 'header_reacs',
-                             'reacs', 'component_order_in_table']
+        variables_to_pass = ['header_comps',
+                             'comps_completed_matrix',
+                             'header_reacs',
+                             'reacs_completed_matrix',
+                             'component_order_in_table',
+                             'reaction_order_in_table']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
 
@@ -627,13 +647,16 @@ class UiGroupBox(QtGui.QWidget):
         # Collect variables
         n = self.n
         nr = self.nr
-        comps = self.comps
-        reacs = self.reacs
+        comps = np.array(sorted(
+            self.comps_completed_matrix, key=lambda x: x[0]))
+        reacs = np.array(sorted(
+            self.reacs_completed_matrix, key=lambda x: x[0]))
+        # TODO: sort rows, avoid bad location of nu_ij
         header_comps = self.header_comps
         header_reacs = self.header_reacs
         molar_masses_valid = False
         unset_variables = []
-        for col, name in enumerate(header_comps):
+        for col, name in enumerate(comp_variable_input_names):
             if name in ['comp_id']:
                 data_type = str
             elif name in ['index']:
@@ -642,9 +665,8 @@ class UiGroupBox(QtGui.QWidget):
                 data_type = float
             try:
                 column_vector = \
-                    np.matrix(
-                        [row[col] for row in comps],
-                        dtype=data_type).T
+                    np.matrix(comps[:, col].reshape(-1, 1),
+                              dtype=data_type)
             except ValueError as detail:
                 unset_variables.append(name)
                 column_vector = np.empty([n, 1])
@@ -720,9 +742,18 @@ class UiGroupBox(QtGui.QWidget):
             1 + sum([m_j for j, m_j in enumerate(m0 * mm0) if
                      j != index_of_solvent])
         rho0 = (mi_mm0_over_xi) * rho_solvent
+        gamma0_ii = np.ones_like(m0)
+        gamma0_iii = np.ones_like(m0)
+        a0 = np.multiply(gamma0_iii, m0) * np.nan
         rho0_i = np.multiply(c0, mm0)
         c_solvent_tref = c0[index_of_solvent].item()
-        z = np.matrix([row[2] for row in comps], dtype=float).T
+        # Overwrite logarithmic calculations, no need to keep
+        # supplied values
+        mlog10xw0 = -np.log10(xw0)
+        mlog10x0 = -np.log10(x0)
+        mlog10c0 = -np.log10(c0)
+        mlog10m0 = -np.log10(m0)
+        mlog10a0 = -np.log10(a0)
         nu_ij = np.matrix([row[2:2 + n] for row in reacs], dtype=float).T
         pka = np.matrix([row[1] for row in reacs], dtype=float).T
         max_it = int(self.spinBox_3.value())
@@ -733,16 +764,17 @@ class UiGroupBox(QtGui.QWidget):
         else:
             index_of_second_highest_n0 = highest_n0_indexes[-1]
         n_second_highest_n0_tref = n0[index_of_second_highest_n0].item()
-        # Calculated variables to output.
+        # Calculated variables to output for other functions.
         variables_to_pass = [
             'index_of_solvent', 'molar_mass',
-            'n0', 'x0', 'w0', 'xw0', 'c0', 'z', 'm0',
-            'rho_solvent', 'rho0', 'c_solvent_tref',
-            'nu_ij', 'pka', 'max_it', 'tol',
+            'rho0', 'rho_solvent', 'c_solvent_tref',
+            'max_it', 'tol',
             'n_second_highest_n0_tref',
             'positive_molar_masses',
-            'can_calculate_n_from_w'
-        ]
+            'can_calculate_n_from_w',
+            'comps', 'reacs'
+        ]   + comp_variable_input_names \
+            + ['nu_ij', 'pka']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
         # Setup plotting tools
@@ -763,7 +795,6 @@ class UiGroupBox(QtGui.QWidget):
     def retabulate(self):
         n = self.n
         nr = self.nr
-        header_comps = self.header_comps
         header_comps_complete = self.header_comps_complete
         header_reacs_complete = self.header_reacs_complete
         reacs = self.reacs
@@ -773,6 +804,11 @@ class UiGroupBox(QtGui.QWidget):
             i = getattr(self, 'component_order_in_table')
         else:
             i = range(0, n)
+
+        if hasattr(self, 'reaction_order_in_table'):
+            j = getattr(self, 'reaction_order_in_table')
+        else:
+            j = range(0, nr)
 
         self.tableComps.blockSignals(True)
         self.tableReacs.blockSignals(True)
@@ -785,7 +821,8 @@ class UiGroupBox(QtGui.QWidget):
 
         for column, column_name in enumerate(header_comps_complete):
             var_name = comp_names_headers[column_name]
-            column_data = getattr(self, var_name)
+            # Keep original order from table
+            column_data = getattr(self, var_name)[i]
             if var_name in ['m0', 'meq']:
                 # Present units converted: mol/gsolvent to mol/kgsolvent
                 column_data = 1000 * column_data
@@ -797,10 +834,12 @@ class UiGroupBox(QtGui.QWidget):
 
         for column, column_name in enumerate(header_reacs_complete):
             if column != n + 0 + 1 + 1:
-                column_data = reacs[:, column]
+                # Keep original order from table in sorted_reacs
+                column_data = reacs[j, column]
                 # TODO: Confirm numeric sorting still works.
             elif column == n + 0 + 1 + 1:
-                column_data = getattr(self, column_name)
+                # Keep original order from table
+                column_data = getattr(self, column_name)[j]
             self.reacs_model.set_column(column, column_data)
 
         # Widths and heights, re-enable sorting
@@ -1053,12 +1092,6 @@ class UiGroupBox(QtGui.QWidget):
         gammaeq_ii = np.ones_like(meq)
         gammaeq_iii = np.ones_like(meq)
         aeq = np.multiply(gammaeq_iii, meq) * np.nan
-        a0 = np.multiply(gammaeq_iii, m0)
-        mlog10xw0 = -np.log10(xw0)
-        mlog10x0 = -np.log10(x0)
-        mlog10c0 = -np.log10(c0)
-        mlog10m0 = -np.log10(m0)
-        mlog10a0 = -np.log10(a0)
         mlog10gammaeq_ii = -np.log10(np.ones_like(meq))
         mlog10gammaeq_iii = -np.log10(np.ones_like(meq))
         mlog10xweq = -np.log10(xweq)
@@ -1066,22 +1099,20 @@ class UiGroupBox(QtGui.QWidget):
         mlog10ceq = -np.log10(ceq)
         mlog10meq = -np.log10(meq)
         mlog10aeq = -np.log10(aeq)
-        variables_to_pass = [
-            'xieq',
-            'weq', 'xweq', 'neq', 'xeq',
-            'ceq', 'meq',
-            'rhoeq',
-            'gammaeq_ii', 'gammaeq_iii',
-            'aeq',
-            'mlog10xw0', 'mlog10x0', 'mlog10c0',
-            'mlog10m0', 'mlog10a0',
-            'mlog10gammaeq_ii',
-            'mlog10gammaeq_iii',
-            'mlog10xweq', 'mlog10xeq', 'mlog10ceq',
-            'mlog10meq', 'mlog10aeq',
-        ]
-        for var in variables_to_pass:
-            setattr(self, var, locals()[var])
+        # Join passing variables to self with comp matrix
+        for col, name in enumerate(comp_variable_output_names):
+            column_in_comps_matrix = \
+                len(comp_variable_input_names) + col
+            comps[:, column_in_comps_matrix] = \
+                locals()[name].reshape(1, -1)
+            setattr(self, name, locals()[name])
+        for col, name in enumerate(['xieq']):
+            column_in_reacs_matrix = \
+                reacs.shape[1] - 1 + col
+            reacs[:, column_in_reacs_matrix] = \
+                locals()[name].reshape(1, -1)
+            setattr(self, name, locals()[name])
+        self.comps = comps
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
 
@@ -2298,6 +2329,7 @@ class MatrixModel(QtCore.QAbstractTableModel):
                    reverse=reverse)
         )
         self.reset()
+        # print 'sorted by col: ' + str(column)
 
     def flags(self, index):
         if index.column() in self._editable_columns:
