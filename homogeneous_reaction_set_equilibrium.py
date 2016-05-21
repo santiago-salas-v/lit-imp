@@ -872,49 +872,63 @@ class UiGroupBox(QtGui.QWidget):
         for var in variables_to_check:
             if hasattr(self, var):
                 delattr(self, var)
+        n_points = 20
+        index_of_variable = self.comboBox.currentIndex()
         comps = self.comps
-        reacs = self.reacs
         c0 = self.c0
         n = self.n
         nr = self.nr
-        index_of_variable = self.comboBox.currentIndex()
+        c0_variable_comp = c0[index_of_variable]
+        rho_solvent = self.rho_solvent
+        xieq = self.xieq
+        ceq = self.ceq
+        ceq_series = np.matrix(np.zeros([n_points + 1, n]))
+        xieq_series = np.matrix(np.zeros([n_points + 1, nr]))
+        # Keep current solution intact for after plotting range
+        self.stored_solution_ceq = self.ceq
+        self.stored_solution_xieq = self.xieq
         # TODO: Get plotting to work with format QTableView model (comps matrix)
         indep_var_label = 'c0_{' + str(comps[index_of_variable, 0]) + ', ' + \
                           comps[index_of_variable, 1] + '}/(mol/L)'
         dep_var_labels = \
-            ['Ceq_' + '{' + str(item[0]) + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
+            ['ceq_' + '{' + str(item[0]) + ', ' + item[1] + '}/(mol/L)' for item in comps[:, 0:2]] + \
             ['\\xi eq_' +
                 '{' + str(item) + '}/(mol/L)' for item in range(1, nr + 1, 1)]
         min_value = self.doubleSpinBox.value()
         max_value = self.doubleSpinBox_2.value()
-        n_points = 20
         indep_var_series_single = \
             [min_value + x
              for x in np.arange(n_points + 1) * (max_value - min_value) / n_points]
-        c0_variable_comp = c0[index_of_variable]
         mid_index = bisect.bisect(
             indep_var_series_single,
             c0_variable_comp) - 1
-        xieq = self.xieq
-        ceq = self.ceq
-        ceq_series = np.matrix(np.zeros([n_points + 1, len(ceq)]))
-        xieq_series = np.matrix(np.zeros([n_points + 1, len(xieq)]))
         dep_var_series = dict(
             zip(dep_var_labels, np.empty(n + nr, dtype=np.ndarray)))
         indep_var_series = dict.fromkeys(
             dep_var_labels, indep_var_series_single)
-        # Keep current solution intact for after plotting range
-        self.stored_solution_ceq = self.ceq
-        self.stored_solution_xieq = self.xieq
         for j in range(mid_index, -1, -1):
+            # input is in molar conc. Get molal, n, x
             self.c0[index_of_variable] = indep_var_series_single[j]
+            self.m0[index_of_variable] = \
+                self.c0[index_of_variable]/rho_solvent
+            self.x0 = self.c0 / sum(self.c0)
+            tot_n0_const = sum(self.n0)
+            self.n0[index_of_variable] = \
+                tot_n0_const *  self.x0[index_of_variable]
             self.equilibrate()
             ceq_series[j, :] = self.ceq.T
             xieq_series[j, :] = self.xieq.T
         self.ceq = self.stored_solution_ceq
         self.xieq = self.stored_solution_xieq
         for j in range(mid_index + 1, n_points + 1, +1):
+            # input is in molar conc. Get molal, n, x
             self.c0[index_of_variable] = indep_var_series_single[j]
+            self.m0[index_of_variable] = \
+                self.c0[index_of_variable]/rho_solvent
+            self.x0 = self.c0 / sum(self.c0)
+            tot_n0_const = sum(self.n0)
+            self.n0[index_of_variable] = \
+                tot_n0_const *  self.x0[index_of_variable]
             self.equilibrate()
             ceq_series[j, :] = self.ceq.T
             xieq_series[j, :] = self.xieq.T
@@ -924,8 +938,8 @@ class UiGroupBox(QtGui.QWidget):
             dep_var_series[dep_var_labels[n + j]] = xieq_series[:, j]
         self.ceq = self.stored_solution_ceq
         self.xieq = self.stored_solution_xieq
-        self.Ceq_series = ceq_series
-        self.Xieq_series = xieq_series
+        self.ceq_series = ceq_series
+        self.xieq_series = xieq_series
         self.indep_var_series = indep_var_series
         self.dep_var_series = dep_var_series
         self.dep_var_labels = dep_var_labels
@@ -937,7 +951,7 @@ class UiGroupBox(QtGui.QWidget):
         n = self.n
         nr = self.nr
         dep_var_labels = self.dep_var_labels
-        labels_to_plot = [x for x in self.dep_var_labels if x.find('Ceq') >= 0]
+        labels_to_plot = [x for x in self.dep_var_labels if x.find('ceq') >= 0]
         # dict, keys:ceq_labels; bindings: plottedseries
         plotted_series = dict(
             zip(dep_var_labels, np.empty(n + nr, dtype=object)))
@@ -1011,7 +1025,7 @@ class UiGroupBox(QtGui.QWidget):
             level=logging.DEBUG,
             format='%(asctime)s;%(message)s')
 
-        # First estimates for eq. Composition Ceq and Reaction extent Xieq
+        # First estimates for eq. Composition ceq and Reaction extent xieq
         if not hasattr(self, 'acceptable_solution'):
             neq_0 = n0
             # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
@@ -1024,7 +1038,7 @@ class UiGroupBox(QtGui.QWidget):
             xieq_0 = self.xieq_0
 
         # Pass variables to self before loop start
-        variables_to_pass = ['n0', 'z', 'nu_ij', 'pka',
+        variables_to_pass = ['nu_ij', 'pka',
                              'max_it', 'tol',
                              'neq_0', 'xieq_0']
         for var in variables_to_pass:
@@ -1071,7 +1085,7 @@ class UiGroupBox(QtGui.QWidget):
             self.xieq_0 = xieq
             self.label_9.setText(self.label_9.text() +
                                  '\nsum(n0*z) = ' + str((z.T * n0).item()) +
-                                 ' \t\t\t sum(Ceq*z) = ' + str((z.T * neq).item()) +
+                                 ' \t\t\t sum(ceq*z) = ' + str((z.T * neq).item()) +
                                  '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * n0).item()) +
                                  '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * neq).item()))
 
