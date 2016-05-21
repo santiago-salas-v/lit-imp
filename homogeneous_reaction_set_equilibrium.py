@@ -1953,7 +1953,7 @@ class LogWidget(QtGui.QWidget):
         # TODO: supported_filters = ['CSV file (*.csv)', 'XLSX (2010) (*.xlsx)',
         # 'XLS (2007) (*.xls)']
         (file_name, selected_filter) = QtGui.QFileDialog.getSaveFileName(
-            parent=self.group_2,
+            parent=self,
             caption='enter file name to save...',
             filter=';;'.join(supported_filters))
         if selected_filter == supported_filters[0]:
@@ -2490,7 +2490,7 @@ def main():
     # ended lines for setting app icon correctly
     main_form = QtGui.QGroupBox()
     icon = QtGui.QIcon(
-        os.path.join(sys.path[0], *['utils', 'icon_batch_32X32.png']))
+        os.path.join(sys.path[0], *['utils', 'icon_batch_chp_32X32.png']))
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
