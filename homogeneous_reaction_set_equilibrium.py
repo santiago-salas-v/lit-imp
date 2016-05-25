@@ -598,8 +598,15 @@ class UiGroupBox(QtGui.QWidget):
         )
         self.tableComps.setSortingEnabled(False)
         self.tableReacs.setSortingEnabled(False)
+        # Set modelsfor tables and connect datachanged signals
         self.tableComps.setModel(self.comps_model)
         self.tableReacs.setModel(self.reacs_model)
+        self.tableComps.model().connect(
+            QtCore.SIGNAL('dataChanged(QModelIndex,QModelIndex)'),
+            self.recalculate_after_cell_edit)
+        self.tableReacs.model().connect(
+            QtCore.SIGNAL('dataChanged(QModelIndex,QModelIndex)'),
+            self.recalculate_after_cell_edit)
         # Pass variables to self before loop start
         variables_to_pass = ['header_comps', 'comps',
                              'header_comps_complete',
