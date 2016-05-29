@@ -649,6 +649,7 @@ class UiGroupBox(QtGui.QWidget):
                              'reaction_order_in_table']
         for var in variables_to_pass:
             setattr(self, var, locals()[var])
+        self.gui_setup_and_variables()
 
     def gui_setup_and_variables(self):
         # Collect variables
@@ -675,14 +676,16 @@ class UiGroupBox(QtGui.QWidget):
                     np.matrix(comps[:, col].reshape(-1, 1),
                               dtype=data_type)
             except ValueError as detail:
+                print detail
                 unset_variables.append(name)
                 column_vector = np.empty([n, 1])
                 column_vector[:] = np.nan
                 if name in ['index', 'comp_id', 'z']:
-                    print detail
                     raise Exception('Input field missing: '
                                     + name)
-            # Put values of each column name into self by name
+            # Put / Reset values of each column name into self by name
+            if hasattr(self, name):
+                delattr(self, name)
             setattr(self, name, column_vector)
         index = self.index
         comp_id = self.comp_id
@@ -2184,7 +2187,7 @@ def calc_xieq(form):
 
 def f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index):
     neq = x[0:n, 0]
-    n0_mm0 = n0[s_index] * mm[s_index]
+    n0_mm0 = neq[s_index] * mm[s_index]
     meq = neq / n0_mm0
     xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
@@ -2195,13 +2198,14 @@ def f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index):
 
 def jac(x, n0, nu_ij, n, nr, kc, mm, s_index):
     neq = x[0:n, 0]
-    n0_mm0 = n0[s_index] * mm[s_index]
+    n0_mm0 = neq[s_index] * mm[s_index]
     meq = neq / n0_mm0
     eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
     quotient = np.diag(np.prod(np.power(meq, nu_ij), 0).A1)
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
     result[0:n, 0:n] = -1 * np.eye(n).astype(float)
     result[0:n, n:n + nr] = nu_ij
+    # Return Jacobian terms as n calculated from molality (m)
     result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_m * 1 / n0_mm0
     return result
 

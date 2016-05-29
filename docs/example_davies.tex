@@ -1,0 +1,363 @@
+\documentclass[onecolumn]{article}
+\usepackage{amsmath}
+\usepackage{lscape}
+% wide page for side by side figures, tables, etc
+\usepackage{changepage}
+\newlength{\offsetpage}
+\setlength{\offsetpage}{2.5cm}
+\newenvironment{widepage}{\begin{adjustwidth}{-\offsetpage}{-\offsetpage}%
+    \addtolength{\textwidth}{2\offsetpage}}%
+{\end{adjustwidth}}
+\begin{document}
+\title{05 - Example 03 - Davies model}
+\author{}
+\date{}
+\maketitle
+Example, 5 components (4 + solvent), 3 reactions: \\
+\section{Variables}
+5 (components + solvent) compositions $n_0$, $n_1$, ..., $n_4$. \\
+5 (components + solvent) activity coefficients
+$\gamma_0$, $\gamma_1$, ..., $\gamma_4$. \\
+3 reaction extents $\xi_1$, $\xi_2$, ..., $\xi_{3}$. \\
+1 Ionic strength $I$. \\
+Tot. $2(5) + 3 + 1 = 14$ \\
+\\
+$x =[$
+\begin{tabular}{cccccccccccccc}
+$n_0$ & $m_1$ & $m_2$ & $m_3$ & $m_4$ & $\xi_1$ & $\xi_2$ & $\xi_3$ &
+$\gamma_0$ & $\gamma_1$ & $\gamma_2$ & $\gamma_3$ & $\gamma_4$ & $I$
+$]^T$
+\end{tabular}
+\section{Objective function}
+5 mole balances. \\
+5 activity coefficient expressions. \\
+3 equilibrium expresisons. \\
+1 Ionic strength expression. \\
+Tot. $2(5) + 3 + 1 = 14$\\
+\\
+\[
+f(x) = 0 = \left(
+\begin{tabular}{l}
+$-n_0 + n_{0,0} + \nu_{01}\xi_1 + \nu_{02}\xi_2 + \nu_{03}\xi_3  $\\
+$-m_1 n_0 M_0 + n_{1,0} + \nu_{11}\xi_1 + \nu_{12}\xi_2 + \nu_{13}\xi_3  $\\
+$-m_2 n_0 M_0 + n_{2,0} + \nu_{21}\xi_1 + \nu_{22}\xi_2 + \nu_{23}\xi_3  $\\
+$-m_3 n_0 M_0 + n_{3,0} + \nu_{31}\xi_1 + \nu_{32}\xi_2 + \nu_{33}\xi_3  $\\
+$-m_4 n_0 M_0 + n_{4,0} + \nu_{41}\xi_1 + \nu_{42}\xi_2 + \nu_{43}\xi_3  $\\
+$-K_1 + (\frac{1}{m^{\circ}})^{\sum_j{\nu_{j1}}}\times
+\gamma_0^{\nu_{01}}\gamma_1^{\nu_{11}}\gamma_2^{\nu_{21}}
+\gamma_3^{\nu_{31}}\gamma_4^{\nu_{41}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{01}}m_1^{\nu_{11}}m_2^{\nu_{21}}
+m_3^{\nu_{31}}m_4^{\nu_{41}}$\\
+$-K_1 + (\frac{1}{m^{\circ}})^{\sum_j{\nu_{j2}}}\times
+\gamma_0^{\nu_{02}}\gamma_1^{\nu_{12}}\gamma_2^{\nu_{22}}
+\gamma_3^{\nu_{32}}\gamma_4^{\nu_{42}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{02}}m_1^{\nu_{12}}m_2^{\nu_{22}}
+m_3^{\nu_{32}}m_4^{\nu_{42}}$\\
+$-K_1 + (\frac{1}{m^{\circ}})^{\sum_j{\nu_{j3}}}\times
+\gamma_0^{\nu_{03}}\gamma_1^{\nu_{13}}\gamma_2^{\nu_{23}}
+\gamma_3^{\nu_{33}}\gamma_4^{\nu_{43}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{03}}m_1^{\nu_{13}}m_2^{\nu_{23}}
+m_3^{\nu_{33}}m_4^{\nu_{43}}$\\
+$-\gamma_0 - 0.510z_0^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
++ (1-sign(z_0)^2)b_0 I$ \\
+$-\gamma_1 - 0.510z_1^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
++ (1-sign(z_1)^2)b_1 I$ \\
+$-\gamma_2 - 0.510z_2^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
++ (1-sign(z_2)^2)b_2 I$ \\
+$-\gamma_3 - 0.510z_3^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
++ (1-sign(z_3)^2)b_3 I$ \\
+$-\gamma_4 - 0.510z_4^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
++ (1-sign(z_4)^2)b_4 I$ \\
+$-I + \frac{1}{2}(m_0 z_0^2 +  m_1 z_1^2 + m_2 z_2^2 + m_3 z_3^2 + m_4 z_4^2)$
+\end{tabular}
+\right)
+\]
+For convenience, define the reaction quotient:\\
+\begin{equation}
+\label{eq:reaction_quotient}
+Q_j \equiv \left(\frac{1}{m^{\circ}}\right)^{\sum_i{\nu_{ij}}}\times
+\gamma_0^{\nu_{0j}}\gamma_1^{\nu_{1j}}\gamma_2^{\nu_{2j}}
+\gamma_3^{\nu_{3j}}\gamma_4^{\nu_{4j}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{0j}}m_1^{\nu_{1j}}m_2^{\nu_{2j}}
+m_3^{\nu_{3j}}m_4^{\nu_{4j}}
+\end{equation}
+Consider non-electrolyte solvent: $z_0 = 0$
+\section{Jacobian}
+\[
+J(x) = \left(
+\begin{tabular}{llll}
+$\frac{\partial{f_1}}{\partial{x_1}}$ &
+$\frac{\partial{f_1}}{\partial{x_2}}$ & ... &
+$\frac{\partial{f_1}}{\partial{x_{14}}}$\\
+$\frac{\partial{f_2}}{\partial{x_1}}$ &
+$\frac{\partial{f_2}}{\partial{x_2}}$ & ... &
+$\frac{\partial{f_2}}{\partial{x_{14}}}$\\
+$...$ & $...$ & $...$ & $...$\\
+$\frac{\partial{f_{14}}}{\partial{x_1}}$ &
+$\frac{\partial{f_{14}}}{\partial{x_2}}$ & ... &
+$\frac{\partial{f_{14}}}{\partial{x_{14}}}$\\
+\end{tabular}
+\right)
+\]\\
+\[
+J_{1,1}(x) = \frac{\partial{f_{1}}}{\partial{x_1}} =  -1
+\]
+\[
+J_{1,2}(x) = \frac{\partial{f_{1}}}{\partial{x_2}} =  0
+\]
+\[
+J_{1,3}(x) = \frac{\partial{f_{1}}}{\partial{x_2}} =  0
+\]
+(...)
+\[
+J_{1,6}(x) = \frac{\partial{f_{1}}}{\partial{x_6}} =  \nu_{01}
+\]
+(...)
+\[
+J_{2,1}(x) =  -m_1 M_0;
+J_{2,2}(x) =  -n_0 M_0;
+J_{2,3}(x) =  0;
+J_{2,6}(x) = \nu_{12}
+\]
+(...)
+\[
+\begin{aligned}
+J_{6,1}(x) = & 0 \\
+J_{6,2}(x) = &
+\left(\frac{1}{m^{\circ}}\right)^{\sum_i{\nu_{i1}}}\times
+\gamma_0^{\nu_{01}}\gamma_1^{\nu_{11}}\gamma_2^{\nu_{21}}
+\gamma_3^{\nu_{31}}\gamma_4^{\nu_{41}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{01}}
+\nu_{11}m_1^{\nu_{11}-1}m_2^{\nu_{21}}
+m_3^{\nu_{31}}m_4^{\nu_{41}}\\
+= & \frac{\nu_{11}}{m_{1}} \times Q_1\\
+J_{6,3}(x) =& \frac{\nu_{21}}{m_2} \times Q_1\\
+\text{(...)}\\
+J_{6,6}(x) =& 0\\
+J_{6,7}(x) =& 0\\
+J_{6,8}(x) =& 0\\
+J_{6,9}(x) =&
+\left(\frac{1}{m^{\circ}}\right)^{\sum_i{\nu_{i1}}}\times
+\nu_{01}\gamma_0^{\nu_{01}-1}\gamma_1^{\nu_{11}}\gamma_2^{\nu_{21}}
+\gamma_3^{\nu_{31}}\gamma_4^{\nu_{41}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{01}}m_1^{\nu_{11}}m_2^{\nu_{21}}
+m_3^{\nu_{31}}m_4^{\nu_{41}}\\
+= & \frac{\nu_{01}}{\gamma_{0}} \times Q_1\\
+J_{6,10}(x) =&
+\left(\frac{1}{m^{\circ}}\right)^{\sum_i{\nu_{i1}}}\times
+\gamma_0^{\nu_{01}}\nu_{11}\gamma_1^{\nu_{11}-1}\gamma_2^{\nu_{21}}
+\gamma_3^{\nu_{31}}\gamma_4^{\nu_{41}}\times
+\left(\frac{1}{M_0}\right)^{\nu_{01}}m_1^{\nu_{11}}m_2^{\nu_{21}}
+m_3^{\nu_{31}}m_4^{\nu_{41}}\\
+= & \frac{\nu_{11}}{\gamma_{1}} \times Q_1\\
+\text{(...)}\\
+J_{6,14}(x) =&  0\\
+\end{aligned}
+\]
+Using the reaction quotients $Q_i$ for convenience as defined above (eq.
+\ref{eq:reaction_quotient}), the Jacobian matrix results as follows,
+considering non-electrolyte solvent (charge $z_0=0$):
+\begin{landscape}
+\[
+J(x) = \left(
+\begin{tabular}{llllllllllllll}
+$-1$ & 0 & 0 & 0 & 0 &
+$\nu_{01}$ & $\nu_{02}$ & $\nu_{03}$ &
+0 & 0 & 0 & 0 & 0 &
+0\\
+0 & $-1$ & 0 & 0 & 0 &
+$\nu_{11}$ & $\nu_{12}$ & $\nu_{13}$ &
+0 & 0 & 0 & 0 & 0 &
+0\\
+0 & 0 & $-1$  & 0 & 0 &
+$\nu_{21}$ & $\nu_{22}$ & $\nu_{23}$ &
+0 & 0 & 0 & 0 & 0 &
+0\\
+0 & 0 & 0 & $-1$ & 0 &
+$\nu_{31}$ & $\nu_{32}$ & $\nu_{33}$ &
+0 & 0 & 0 & 0 & 0 &
+0\\
+0 & 0 & 0 & 0 & $-1$ &
+$\nu_{41}$ & $\nu_{42}$ & $\nu_{43}$ &
+0 & 0 & 0 & 0 & 0 &
+0\\
+0 &
+$\frac{\nu_{11}}{m_1}Q_1$ & $\frac{\nu_{21}}{m_2}Q_1$ &
+$\frac{\nu_{31}}{m_3}Q_1$ & $\frac{\nu_{41}}{m_4}Q_1$ &
+0 & 0 & 0 &
+$\frac{\nu_{01}}{\gamma_0}Q_1$ & $\frac{\nu_{11}}{\gamma_1}Q_1$ &
+$\frac{\nu_{21}}{\gamma_2}Q_1$ & $\frac{\nu_{31}}{\gamma_3}Q_1$ &
+$\frac{\nu_{41}}{\gamma_4}Q_1$ &
+0\\
+0 &
+$\frac{\nu_{12}}{m_1}Q_2$ & $\frac{\nu_{22}}{m_2}Q_2$ &
+$\frac{\nu_{32}}{m_3}Q_2$ & $\frac{\nu_{42}}{m_4}Q_2$ &
+0 & 0 & 0 &
+$\frac{\nu_{02}}{\gamma_0}Q_2$ & $\frac{\nu_{12}}{\gamma_1}Q_2$ &
+$\frac{\nu_{22}}{\gamma_2}Q_2$ & $\frac{\nu_{32}}{\gamma_3}Q_2$ &
+$\frac{\nu_{42}}{\gamma_4}Q_2$ &
+0\\
+0 &
+$\frac{\nu_{13}}{m_1}Q_3$ & $\frac{\nu_{23}}{m_2}Q_3$ &
+$\frac{\nu_{33}}{m_3}Q_3$ & $\frac{\nu_{43}}{m_4}Q_3$ &
+0 & 0 & 0 &
+$\frac{\nu_{03}}{\gamma_0}Q_3$ & $\frac{\nu_{13}}{\gamma_1}Q_3$ &
+$\frac{\nu_{23}}{\gamma_2}Q_3$ & $\frac{\nu_{33}}{\gamma_3}Q_3$ &
+$\frac{\nu_{43}}{\gamma_4}Q_3$ &
+0\\
+0 & 0 & 0 & 0 & 0 &
+0 & 0 & 0 &
+-1 & 0 & 0 & 0 & 0 &
+$b_0$\\
+0 & 0 & 0 & 0 & 0 &
+0 & 0 & 0 &
+0 & -1 & 0 & 0 & 0 &
+$-0.510 z_1^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+0 & 0 & 0 & 0 & 0 &
+0 & 0 & 0 &
+0 & 0 & -1 & 0 & 0 &
+$-0.510 z_2^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+0 & 0 & 0 & 0 & 0 &
+0 & 0 & 0 &
+0 & 0 & 0 & -1 & 0 &
+$-0.510 z_3^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+0 & 0 & 0 & 0 & 0 &
+0 & 0 & 0 &
+0 & 0 & 0 & 0 & -1 &
+$-0.510 z_4^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+0 &
+$\frac{1}{2}z_1^2$ & $\frac{1}{2}z_2^2$ &
+$\frac{1}{2}z_3^2$ & $\frac{1}{2}z_4^2$ &
+0 & 0 & 0 &
+0 & 0 & 0 & 0 & 0 &
+-1\\
+\end{tabular}
+\right)
+\]
+\end{landscape}
+For calculation, submatrixes of the Jacobian matrix are identified:
+\begin{itemize}
+\item $J_{1,1}(x)$ to $J_{n+1,n+1}(x)$, and
+$J_{n+2+nr,n+2+nr}(x)$ to $J_{n+2+nr+n+1,n+2+nr+n+1}(x)$,
+are the negative of an identity matrix, size $(n+1) \times (n+1)$
+\[
+J_{1,1}(x) \text{ to } J_{n+1,n+1}(x) = -I_{n+1} = -1\times \left(
+\begin{tabular}{ccccc}
+1 & 0 & 0 & 0 & 0\\
+0 & 1 & 0 & 0 & 0\\
+0 & 0 & 1 & 0 & 0\\
+0 & 0 & 0 & 1 & 0\\
+0 & 0 & 0 & 0 & 1\\
+\end{tabular}
+\right)
+\]
+\item $J_{1,n+2}(x)$ to $J_{n+1,n+2+nr}(x)$ is the stoichiometric coefficients
+matrix
+\[
+J_{1,n+2}(x) \text{ to } J_{n+1,n+2+nr}(x) = \nu_{ij} =\left(
+\begin{tabular}{ccc}
+$\nu_{01}$ & $\nu_{02}$ & $\nu_{03}$\\
+$\nu_{11}$ & $\nu_{12}$ & $\nu_{13}$\\
+$\nu_{21}$ & $\nu_{22}$ & $\nu_{23}$\\
+$\nu_{31}$ & $\nu_{32}$ & $\nu_{33}$\\
+$\nu_{41}$ & $\nu_{42}$ & $\nu_{43}$\\
+\end{tabular}
+\right)
+\]
+\item $J_{n+2,1}(x)$ to $J_{n+2+nr,n+1}(x)$ is expressed as a product of the
+diagonalized quotients matrix, the transposed coefficients matrix,
+and a diagonalized inverse molality matrix, with no variation resulting from
+solvent:
+\[
+\begin{aligned}
+J_{n+2,1}(x) & \text{ to } J_{n+2+nr,n+1}(x) \\
+= & diag([Q_1 Q_2 Q_3])\times \nu_{ij}^T \times
+diag([0 \frac{1}{m_1} \frac{1}{m_2} \frac{1}{m_3} \frac{1}{m_4}]) \\
+= & \left(
+\begin{tabular}{ccc}
+$Q_1$ & 0 & 0\\
+0 & $Q_2$ & 0\\
+0 & 0 & $Q_3$\\
+\end{tabular}
+\right) \times \left(
+\begin{tabular}{ccccc}
+$\nu_{01}$ & $\nu_{11}$ & $\nu_{21}$ & $\nu_{31}$ & $\nu_{41}$\\
+$\nu_{02}$ & $\nu_{12}$ & $\nu_{22}$ & $\nu_{32}$ & $\nu_{42}$\\
+$\nu_{03}$ & $\nu_{13}$ & $\nu_{23}$ & $\nu_{33}$ & $\nu_{43}$\\
+\end{tabular}
+\right) \times \left(
+\begin{tabular}{ccccc}
+0 & 0 & 0 & 0 & 0\\
+0 & $\frac{1}{m_1}$ & 0 & 0 & 0\\
+0 & 0 & $\frac{1}{m_2}$ & 0 & 0\\
+0 & 0 & 0 & $\frac{1}{m_3}$ & 0\\
+0 & 0 & 0 & 0 & $\frac{1}{m_4}$\\
+\end{tabular}
+\right)\\
+= & \left(
+\begin{tabular}{ccccc}
+0 &
+$\frac{\nu_{11}}{m_1}Q_1$ & $\frac{\nu_{21}}{m_2}Q_1$ &
+$\frac{\nu_{31}}{m_3}Q_1$ & $\frac{\nu_{41}}{m_4}Q_1$\\
+0 &
+$\frac{\nu_{12}}{m_1}Q_2$ & $\frac{\nu_{22}}{m_2}Q_2$ &
+$\frac{\nu_{32}}{m_3}Q_2$ & $\frac{\nu_{42}}{m_4}Q_2$\\
+0 &
+$\frac{\nu_{13}}{m_1}Q_3$ & $\frac{\nu_{23}}{m_2}Q_3$ &
+$\frac{\nu_{33}}{m_3}Q_3$ & $\frac{\nu_{43}}{m_4}Q_3$\\
+\end{tabular}
+\right)
+\end{aligned}
+\]
+\item $J_{n+2,n+2+nr}(x)$ to $J_{n+2+nr,n+2+nr+n+1}(x)$ is analogous for
+activity coefficient partial variations:
+\[
+\begin{aligned}
+J_{n+2,n+2+nr}(x) & \text{ to } J_{n+2+nr,n+2+nr+n+1}(x) \\
+= & diag([Q_1 Q_2 Q_3])\times \nu_{ij}^T \times
+diag([\frac{1}{\gamma_0} \frac{1}{\gamma_1} \frac{1}{m_2}
+\frac{1}{m_3} \frac{1}{m_4}]) \\
+= & \left(
+\begin{tabular}{ccc}
+$Q_1$ & 0 & 0\\
+0 & $Q_2$ & 0\\
+0 & 0 & $Q_3$\\
+\end{tabular}
+\right) \times  \\
+& \left(
+\begin{tabular}{ccccc}
+$\nu_{01}$ & $\nu_{11}$ & $\nu_{21}$ & $\nu_{31}$ & $\nu_{41}$\\
+$\nu_{02}$ & $\nu_{12}$ & $\nu_{22}$ & $\nu_{32}$ & $\nu_{42}$\\
+$\nu_{03}$ & $\nu_{13}$ & $\nu_{23}$ & $\nu_{33}$ & $\nu_{43}$\\
+\end{tabular}
+\right) \times
+\left(
+\begin{tabular}{ccccc}
+$\frac{1}{\gamma_0}$ & 0 & 0 & 0 & 0\\
+0 & $\frac{1}{\gamma_1}$ & 0 & 0 & 0\\
+0 & 0 & $\frac{1}{\gamma_2}$ & 0 & 0\\
+0 & 0 & 0 & $\frac{1}{\gamma_3}$ & 0\\
+0 & 0 & 0 & 0 & $\frac{1}{\gamma_4}$\\
+\end{tabular}
+\right)\\
+= & \left(
+\begin{tabular}{ccccc}
+$\frac{\nu_{01}}{\gamma_0}Q_1$ & $\frac{\nu_{11}}{\gamma_1}Q_1$ &
+$\frac{\nu_{21}}{\gamma_2}Q_1$ & $\frac{\nu_{31}}{\gamma_3}Q_1$ &
+$\frac{\nu_{41}}{\gamma_4}Q_1$\\
+$\frac{\nu_{02}}{\gamma_0}Q_2$ & $\frac{\nu_{12}}{\gamma_1}Q_2$ &
+$\frac{\nu_{22}}{\gamma_2}Q_2$ & $\frac{\nu_{32}}{\gamma_3}Q_2$ &
+$\frac{\nu_{42}}{\gamma_4}Q_2$\\
+$\frac{\nu_{03}}{\gamma_0}Q_3$ & $\frac{\nu_{13}}{\gamma_1}Q_3$ &
+$\frac{\nu_{23}}{\gamma_2}Q_3$ & $\frac{\nu_{33}}{\gamma_3}Q_3$ &
+$\frac{\nu_{43}}{\gamma_4}Q_3$\\
+\end{tabular}
+\right)
+\end{aligned}
+\]
+\end{itemize}
+\section{Solution}
+Use Newton-Rhapson method with objective function $f(x)=0$, Jacobian $J(x)$,
+with LR=PDA factorization for optimal jacobian condition and line search
+(batcracking) to remain on valid steps fulfilling all $m_i>0$
+\end{document}
