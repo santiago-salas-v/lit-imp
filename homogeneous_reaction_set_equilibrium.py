@@ -237,7 +237,6 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_group.addWidget(self.radio_b_3)
         self.radio_b_1.setChecked(True)
         self.radio_b_2.setEnabled(False)
-        self.radio_b_3.setEnabled(False)
         self.radio_b_1.setToolTip('<b>%s</b><br><img src="%s">' %
                                   ('Ideal solution',
                                    'utils/Ideal_solution.png'))
@@ -897,7 +896,8 @@ class UiGroupBox(QtGui.QWidget):
         # Keep current solution intact for after plotting range
         self.stored_solution_ceq = self.ceq
         self.stored_solution_xieq = self.xieq
-        # TODO: Get plotting to work with format QTableView model (comps matrix)
+        # TODO: Get plotting to work with format QTableView model (comps
+        # matrix)
         indep_var_label = 'c0_{' + str(comps[index_of_variable, 0]) + ', ' + \
                           comps[index_of_variable, 1] + '}/(mol/L)'
         dep_var_labels = \
@@ -920,11 +920,11 @@ class UiGroupBox(QtGui.QWidget):
             # input is in molar conc. Get molal, n, x
             self.c0[index_of_variable] = indep_var_series_single[j]
             self.m0[index_of_variable] = \
-                self.c0[index_of_variable]/rho_solvent
+                self.c0[index_of_variable] / rho_solvent
             self.x0 = self.c0 / sum(self.c0)
             tot_n0_const = sum(self.n0)
             self.n0[index_of_variable] = \
-                tot_n0_const *  self.x0[index_of_variable]
+                tot_n0_const * self.x0[index_of_variable]
             self.equilibrate()
             ceq_series[j, :] = self.ceq.T
             xieq_series[j, :] = self.xieq.T
@@ -934,11 +934,11 @@ class UiGroupBox(QtGui.QWidget):
             # input is in molar conc. Get molal, n, x
             self.c0[index_of_variable] = indep_var_series_single[j]
             self.m0[index_of_variable] = \
-                self.c0[index_of_variable]/rho_solvent
+                self.c0[index_of_variable] / rho_solvent
             self.x0 = self.c0 / sum(self.c0)
             tot_n0_const = sum(self.n0)
             self.n0[index_of_variable] = \
-                tot_n0_const *  self.x0[index_of_variable]
+                tot_n0_const * self.x0[index_of_variable]
             self.equilibrate()
             ceq_series[j, :] = self.ceq.T
             xieq_series[j, :] = self.xieq.T
@@ -1021,10 +1021,16 @@ class UiGroupBox(QtGui.QWidget):
         tol = self.tol
         c_solvent_tref = self.c_solvent_tref
         index_of_solvent = self.index_of_solvent
+        self.method = 'ideal_solution'
+
+        if self.radio_b_2.isChecked():
+            self.method = 'debye-hueckel'
+        elif self.radio_b_3.isChecked():
+            self.method = 'davies'
 
         # Init. calculations
-        kc = np.multiply(
-            np.power(10, -pka), np.power(c_solvent_tref, nu_ij[index_of_solvent, :]).T)
+        kc = np.multiply(np.power(10, -pka),
+                         np.power(c_solvent_tref, nu_ij[index_of_solvent, :]).T)
         self.kc = kc
 
         # Setup logging
@@ -1067,7 +1073,7 @@ class UiGroupBox(QtGui.QWidget):
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            neq, xieq = calc_xieq(self)
+            neq, meq, xieq, gammaeq, ionic_str_eq = calc_xieq(self)
             k += 1
             # TODO: if progress_var.wasCanceled() == True then stop
             if all(neq >= 0) and not any(np.isnan(neq)):
@@ -1094,31 +1100,34 @@ class UiGroupBox(QtGui.QWidget):
             self.neq_0 = neq
             self.xieq_0 = xieq
             self.label_9.setText(self.label_9.text() +
-                                 '\nsum(n0*z) = ' + str((z.T * n0).item()) +
-                                 ' \t\t\t sum(ceq*z) = ' + str((z.T * neq).item()) +
-                                 '\nI_0 = ' + str((1 / 2.0 * np.power(z, 2).T * n0).item()) +
-                                 '\t\t\t\t I_eq = ' + str((1 / 2.0 * np.power(z, 2).T * neq).item()))
+                                 '\nsum(n0*z) = ' +
+                                 str((z.T * n0).item()) +
+                                 ' \t\t\t sum(neq*z) = ' +
+                                 str((z.T * neq).item()) +
+                                 '\nI_0 = ' +
+                                 str((1 / 2.0 * np.power(z, 2).T * m0 * 1000).item()) +
+                                 '(mol/kg_solv)' +
+                                 '\t\t\t\t I_eq = ' +
+                                 str((1 / 2.0 * np.power(z, 2).T * meq * 1000).item()) +
+                                 '(mol/kg_solv)')
 
         # Once solved, calculate conc. variables at equilibrium
-        mm0 = mm[index_of_solvent]
-        n0_mm0 = neq[index_of_solvent] * mm0
-        meq = neq / (n0_mm0)
+        xeq = neq / sum(neq)
         ceq = meq * rho_solvent * 1000
-        # \frac{x_i}{m_i} = \frac{M_0}{1 + sum_{j\neq0}{m_j M_0}}
-        mi_mm0_over_xi = \
-            1 + sum([m_j for j, m_j in enumerate(meq * mm0) if
-                     j != index_of_solvent])
-        rho = (mi_mm0_over_xi) * rho_solvent
         rhoeq = np.multiply(ceq, mm)
         weq = np.multiply(neq, mm)
         xweq = weq / sum(weq)
-        xeq = neq / sum(neq)
+        # rho_over_rho_solvent = \
+        #     1 + sum([m_j_mm_j for j, m_j_mm_j in
+        #              enumerate(np.multiply(meq, mm)) if
+        #              j != index_of_solvent])
+        # rho = (rho_over_rho_solvent) * rho_solvent
         # TODO: Implement activity coefficients
-        gammaeq_ii = np.ones_like(meq)
-        gammaeq_iii = np.ones_like(meq)
-        aeq = np.multiply(gammaeq_iii, meq) * np.nan
-        mlog10gammaeq_ii = -np.log10(np.ones_like(meq))
-        mlog10gammaeq_iii = -np.log10(np.ones_like(meq))
+        gammaeq_ii = gammaeq
+        gammaeq_iii = gammaeq
+        aeq = np.multiply(gammaeq_iii, meq * 1000)
+        mlog10gammaeq_ii = -np.log10(gammaeq_ii)
+        mlog10gammaeq_iii = -np.log10(gammaeq_iii)
         mlog10xweq = -np.log10(xweq)
         mlog10xeq = -np.log10(xeq)
         mlog10ceq = -np.log10(ceq)
@@ -2037,6 +2046,7 @@ def calc_xieq(form):
     n0 = form.n0
     mm = form.molar_mass
     s_index = form.index_of_solvent
+    mm_0 = mm[s_index]
     pka = form.pka
     nu_ij = form.nu_ij
     neq_0 = form.neq_0
@@ -2045,11 +2055,33 @@ def calc_xieq(form):
     tol = form.tol
     z = form.z
     kc = form.kc
+    method = form.method
 
-    f = lambda x: f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index)
-    j = lambda x: jac(x, n0, nu_ij, n, nr, kc, mm, s_index)
+    meq_0 = neq_0 / (mm_0 * neq_0[s_index])
+    gammaeq_0 = np.matrix(np.ones([n, 1]))
+    ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0
 
-    x0 = np.concatenate([neq_0, xieq_0])
+    if method == 'ideal_solution':
+        f = lambda x: f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index)
+        j = lambda x: jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index)
+        gammaeq = np.ones([n, 1])
+        # x is [n_0, n_1, n_2, ..., n_n, xi_1, xi_2, xi_3, ..., xi_{nr}]
+        x0 = np.concatenate([neq_0, xieq_0])
+    elif method == 'davies':
+        f = lambda x: f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index)
+        j = lambda x: jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index)
+        # x is [n_0, m_1, m_2, ..., m_n, xi_1, xi_2, ..., xi_{nr}, \gamma_1,
+        #       \gamma_2, ..., \gamma_n, I]
+        x0 = np.concatenate(
+            [
+                np.matrix(neq_0[s_index].item()),
+                np.matrix([x.item() for (index, x) in enumerate(meq_0)
+                           if index != s_index]).T,
+                xieq_0,
+                gammaeq_0,
+                ionic_str_eq_0
+            ])
+
     x = x0
     # Newton method: G(x) = J(x)^-1 * F(x)
     k = 0
@@ -2180,14 +2212,21 @@ def calc_xieq(form):
         form,
         k,
         'solved.' if stop and not divergent else 'solution not found.')
-    neq = x[0:n]
-    xieq = x[n:n + nr]
-    return neq, xieq
+    if method == 'ideal_solution':
+        neq = x[0:n]
+        xieq = x[n:n + nr]
+        meq = neq / (neq[s_index] * mm_0)
+        gammaeq = gammaeq_0
+        ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq
+    elif method == 'davies':
+        neq = x[0:n]
+        xieq = x[n:n + nr]
+    return neq, meq, xieq, gammaeq, ionic_str_eq
 
 
-def f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index):
+def f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
-    n0_mm0 = neq[s_index] * mm[s_index]
+    n0_mm0 = neq[s_index] * mm_0
     meq = neq / n0_mm0
     xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
@@ -2196,9 +2235,9 @@ def f_gl_0(x, n0, nu_ij, n, nr, kc, mm, s_index):
     return result
 
 
-def jac(x, n0, nu_ij, n, nr, kc, mm, s_index):
+def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
-    n0_mm0 = neq[s_index] * mm[s_index]
+    n0_mm0 = neq[s_index] * mm_0
     meq = neq / n0_mm0
     eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
     quotient = np.diag(np.prod(np.power(meq, nu_ij), 0).A1)
