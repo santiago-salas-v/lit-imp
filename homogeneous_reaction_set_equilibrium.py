@@ -675,7 +675,7 @@ class UiGroupBox(QtGui.QWidget):
                     np.matrix(comps[:, col].reshape(-1, 1),
                               dtype=data_type)
             except ValueError as detail:
-                print detail
+                # print detail
                 unset_variables.append(name)
                 column_vector = np.empty([n, 1])
                 column_vector[:] = np.nan
@@ -1067,7 +1067,7 @@ class UiGroupBox(QtGui.QWidget):
         self.remove_canceled_status()
         self.acceptable_solution = False
         self.initialEstimateAttempts = 1
-        self.methodLoops = [0, 0]  # loop numbers: [Line search, Newton]
+        self.method_loops = [0, 0]  # loop numbers: [Line search, Newton]
         # Unique identifier for plotting logged solutions
         series_id = str(uuid.uuid1())
         # Calculate equilibrium composition: Newton method
@@ -1075,13 +1075,15 @@ class UiGroupBox(QtGui.QWidget):
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            neq, meq, xieq, gammaeq, ionic_str_eq = calc_xieq(
-                n0, mm, z, s_index, kc, nu_ij,
-                neq_0, xieq_0, method, max_it, tol,
-                self.methodLoops,
-                partial(update_status_label, self, 'Newton'),
-                series_id, lambda: QtGui.QApplication.processEvents()
-            )
+            neq, meq, xieq, gammaeq, ionic_str_eq, method_loops = \
+                calc_xieq(
+                    n0, mm, z, s_index, kc, nu_ij,
+                    neq_0, xieq_0, method, max_it, tol,
+                    self.method_loops,
+                    partial(update_status_label, self, 'Newton'),
+                    series_id, lambda: QtGui.QApplication.processEvents()
+                )
+            self.method_loops = method_loops
             k += 1
             # TODO: if progress_var.wasCanceled() == True then stop
             if all(neq >= 0) and not any(np.isnan(neq)):
@@ -1099,7 +1101,7 @@ class UiGroupBox(QtGui.QWidget):
                 self.neq_0[self.neq_0 == 0] = min(
                     n0[n0 != 0].A1) * np.finfo(float).eps
                 self.initialEstimateAttempts += 1
-                self.methodLoops = [0, 0]
+                self.method_loops = [0, 0]
 
         if not self.acceptable_solution:
             delattr(self, 'acceptable_solution')
@@ -2043,7 +2045,7 @@ def update_status_label(form, nle_method,
                         progress, stop_value, k,
                         j_it_backtrack, lambda_ls, accum_step,
                         x, diff, f_val, lambda_ls_y,
-                        methodLoops, series_id):
+                        method_loops, series_id):
     status = 'solving...'
     if stop_value and progress == 100.0:
         status = 'solved.'
@@ -2054,9 +2056,9 @@ def update_status_label(form, nle_method,
     # Add progress bar & variable
     form.progress_var.setValue(progress)
     form.label_9.setText('Loops: Newton \t' +
-                         str(methodLoops[1]) +
+                         str(method_loops[1]) +
                          ' \t Line search (backtrack) \t' +
-                         str(methodLoops[0]) +
+                         str(method_loops[0]) +
                          ' \t Initial estimate attempts \t' +
                          str(form.initialEstimateAttempts) +
                          '\n' +

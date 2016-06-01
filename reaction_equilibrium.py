@@ -17,7 +17,7 @@ def calc_xieq(
         method,
         max_it,
         tol,
-        methodloops,
+        method_loops,
         notify_status_func,
         series_id,
         process_func_handle):
@@ -34,7 +34,7 @@ def calc_xieq(
     :param method: str - método en uso: 'ideal_solution', 'davies', 'debye-hueckel'
     :param max_it: int - máximo de iteraciones
     :param tol: float - error, tolerancia máxima
-    :param methodloops: list (1 x 2): ciclos completados [backtrack, totales]
+    :param method_loops: list (1 x 2): ciclos completados [backtrack, totales]
     :param notify_status_func: función a llamar cada avance de iteración
     :param series_id: identificador único de la solución en curso
     :param process_func_handle: función a llamar para cancelación
@@ -130,11 +130,11 @@ def calc_xieq(
     notify_status_func(progress_k, stop, k,
                        0, 1.0, 0.0,
                        x, diff, f_val, 0.0 * y,
-                       methodloops, series_id)
+                       method_loops, series_id)
     # End non-functional notification
     while k <= max_it and not stop:
         k += 1
-        methodloops[1] += 1
+        method_loops[1] += 1
         j_it = 0
         lambda_ls = 1.0
         accum_step += lambda_ls
@@ -151,7 +151,7 @@ def calc_xieq(
         notify_status_func(progress_k, stop, k,
                            j_it, lambda_ls, accum_step,
                            x, diff, f_val, lambda_ls * y,
-                           methodloops, series_id)
+                           method_loops, series_id)
         # End non-functional notification
         if magnitude_f < tol and all([var >= 0 for var in x[0:n]]):
             stop = True  # Procedure successful
@@ -169,7 +169,7 @@ def calc_xieq(
                 notify_status_func(progress_k, stop, k,
                                    j_it, lambda_ls, accum_step,
                                    x, diff, f_val, lambda_ls * y,
-                                   methodloops, series_id)
+                                   method_loops, series_id)
                 # End non-functional notification
             if round(progress_k) == round(progress_k_m_1):
                 # Non-functional gui processing
@@ -193,16 +193,16 @@ def calc_xieq(
             notify_status_func(progress_k, stop, k,
                                j_it, lambda_ls, accum_step,
                                x, diff, f_val, lambda_ls * y,
-                               methodloops, series_id)
+                               method_loops, series_id)
             # End non-functional notification
-            methodloops[0] += 1
+            method_loops[0] += 1
     if stop and not divergent:
         progress_k = 100.0
     # Non-functional status notification
     notify_status_func(progress_k, stop, k,
                        j_it, lambda_ls, accum_step,
                        x, diff, f_val, lambda_ls * y,
-                       methodloops, series_id)
+                       method_loops, series_id)
     # End non-functional notification
     if method == 'ideal_solution':
         neq = x[0:n]
@@ -213,7 +213,7 @@ def calc_xieq(
     elif method == 'davies':
         neq = x[0:n]
         xieq = x[n:n + nr]
-    return neq, meq, xieq, gammaeq, ionic_str_eq
+    return neq, meq, xieq, gammaeq, ionic_str_eq, method_loops
 
 
 def f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
