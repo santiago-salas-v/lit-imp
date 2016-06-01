@@ -1020,17 +1020,17 @@ class UiGroupBox(QtGui.QWidget):
         max_it = self.max_it
         tol = self.tol
         c_solvent_tref = self.c_solvent_tref
-        index_of_solvent = self.index_of_solvent
-        self.method = 'ideal_solution'
+        s_index = self.index_of_solvent
+        method = 'ideal_solution'
 
         if self.radio_b_2.isChecked():
-            self.method = 'debye-hueckel'
+            method = 'debye-hueckel'
         elif self.radio_b_3.isChecked():
-            self.method = 'davies'
+            method = 'davies'
 
         # Init. calculations
         kc = np.multiply(np.power(10, -pka),
-                         np.power(c_solvent_tref, nu_ij[index_of_solvent, :]).T)
+                         np.power(c_solvent_tref, nu_ij[s_index, :]).T)
         self.kc = kc
 
         # Setup logging
@@ -1068,12 +1068,20 @@ class UiGroupBox(QtGui.QWidget):
         self.acceptable_solution = False
         self.initialEstimateAttempts = 1
         self.methodLoops = [0, 0]  # loop numbers: [Line search, Newton]
+        # Unique identifier for plotting logged solutions
+        series_id = str(uuid.uuid1())
         # Calculate equilibrium composition: Newton method
         # TODO: Implement global homotopy-continuation method
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            neq, meq, xieq, gammaeq, ionic_str_eq = calc_xieq(self)
+            neq, meq, xieq, gammaeq, ionic_str_eq = calc_xieq(
+                n0, mm, z, s_index, kc, nu_ij,
+                neq_0, xieq_0, method, max_it, tol,
+                self.methodLoops,
+                partial(update_status_label, self, 'Newton'),
+                series_id, lambda: QtGui.QApplication.processEvents()
+            )
             k += 1
             # TODO: if progress_var.wasCanceled() == True then stop
             if all(neq >= 0) and not any(np.isnan(neq)):
@@ -1120,7 +1128,7 @@ class UiGroupBox(QtGui.QWidget):
         # rho_over_rho_solvent = \
         #     1 + sum([m_j_mm_j for j, m_j_mm_j in
         #              enumerate(np.multiply(meq, mm)) if
-        #              j != index_of_solvent])
+        #              j != s_index])
         # rho = (rho_over_rho_solvent) * rho_solvent
         # TODO: Implement activity coefficients
         gammaeq_ii = gammaeq
@@ -2030,8 +2038,8 @@ class LogWidget(QtGui.QWidget):
         self.group_3.show()
         self.plotBox.ax.set_ylabel('||f(X)||')
 
-
-def calc_xieq(form):
+def calc_xieq(n0, mm, z, s_index, kc, nu_ij, neq_0, xieq_0, method, max_it, tol,
+              methodLoops, notify_status_func, series_id, process_func_handle):
     """Newton method for non-linear algebraic system, with line-search
     :return: tuple with neq, xieq, f_0
     :param n0: np.matrix (n x 1) - Mol(i, alimentación)
@@ -2041,21 +2049,10 @@ def calc_xieq(form):
     :param xieq_0: np.matrix (n x 1) - avance de reacción j - estimado inicial
     :param neq_0: np.matrix (n x 1) - Mol(i, equilibrio)
     """
-    n = form.n
-    nr = form.nr
-    n0 = form.n0
-    mm = form.molar_mass
-    s_index = form.index_of_solvent
+
+    n = len(n0)
+    nr = nu_ij.shape[1]
     mm_0 = mm[s_index]
-    pka = form.pka
-    nu_ij = form.nu_ij
-    neq_0 = form.neq_0
-    xieq_0 = form.xieq_0
-    max_it = form.max_it
-    tol = form.tol
-    z = form.z
-    kc = form.kc
-    method = form.method
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
     gammaeq_0 = np.matrix(np.ones([n, 1]))
@@ -2100,28 +2097,15 @@ def calc_xieq(form):
     diff.fill(np.nan)
     stop = False
     divergent = False
-    # Add progress bar & variable
-    form.progress_var.setValue(0)
-    update_status_label(form, k, 'solving...' if not stop else 'solved.')
-    # Unique identifier for plotting logged solutions
-    series_id = str(uuid.uuid1())
-    new_log_entry(
-        'Newton',
-        k,
-        0,
-        0,
-        accum_step,
-        x,
-        diff,
-        f_val,
-        0 * y,
-        np.nan,
-        np.nan,
-        stop,
-        series_id)
+    # Non-functional status notification
+    notify_status_func(progress_k, stop, k,
+                       0, 1.0, 0.0,
+                       x, diff, f_val, 0.0 * y,
+                       methodLoops, series_id)
+    # End non-functional notification
     while k <= max_it and not stop:
         k += 1
-        form.methodLoops[1] += 1
+        methodLoops[1] += 1
         j_it = 0
         lambda_ls = 1.0
         accum_step += lambda_ls
@@ -2129,54 +2113,39 @@ def calc_xieq(form):
         progress_k_m_1 = progress_k
         y = gausselimination(j_val, -f_val)
         # First attempt without backtracking
-        x = x + lambda_ls * y  # FIXME: Autoassignment throws 1001 iterations
+        x = x + lambda_ls * y
         diff = x - x_k_m_1
         j_val = j(x)
         f_val = f(x)
         magnitude_f = np.sqrt((f_val.T * f_val).item())
-        new_log_entry(
-            'Newton',
-            k,
-            j_it,
-            lambda_ls,
-            accum_step,
-            x,
-            diff,
-            f_val,
-            lambda_ls * y,
-            np.nan,
-            np.nan,
-            stop,
-            series_id)
+        # Non-functional status notification
+        notify_status_func(progress_k, stop, k,
+                           j_it, lambda_ls, accum_step,
+                           x, diff, f_val, lambda_ls * y,
+                           methodLoops, series_id)
+        # End non-functional notification
         if magnitude_f < tol and all(x[0:n] >= 0):
             stop = True  # Procedure successful
-            form.progress_var.setValue(100.0)
         else:
-            # For progress bar, use log scale to compensate for quadratic
+            # For progress use log scale to compensate for quadratic
             # convergence
-            update_status_label(
-                form, k, 'solving...' if not stop else 'solved.')
             progress_k = (1.0 - np.log10(tol / magnitude_f) /
                           log10_to_o_max_magnitude_f) * 100.0
             if np.isnan(magnitude_f) or np.isinf(magnitude_f):
                 stop = True  # Divergent method
                 divergent = True
-                form.progress_var.setValue(
-                    (1.0 -
-                     np.log10(
-                         np.finfo(float).eps) /
-                     log10_to_o_max_magnitude_f) *
-                    100.0)
+                progress_k = 0.0
             else:
-                form.progress_var.setValue(
-                    (1.0 -
-                     np.log10(
-                         tol /
-                         magnitude_f) /
-                     log10_to_o_max_magnitude_f) *
-                    100.0)
+                # Non-functional status notification
+                notify_status_func(progress_k, stop, k,
+                                   j_it, lambda_ls, accum_step,
+                                   x, diff, f_val, lambda_ls * y,
+                                   methodLoops, series_id)
+                # End non-functional notification
             if round(progress_k) == round(progress_k_m_1):
-                QtGui.QApplication.processEvents()
+                # Non-functional gui processing
+                process_func_handle()
+                # End non-functional processing
                 # if form.progress_var.wasCanceled():
                 # stop = True
         while j_it <= max_it and not all(x[0:n] >= 0):
@@ -2191,27 +2160,21 @@ def calc_xieq(form):
             diff = x - x_k_m_1
             j_val = j(x)
             f_val = f(x)
-            new_log_entry(
-                'Newton',
-                k,
-                j_it,
-                lambda_ls,
-                accum_step,
-                x,
-                diff,
-                f_val,
-                lambda_ls * y,
-                np.nan,
-                np.nan,
-                stop,
-                series_id)
-            form.methodLoops[0] += 1
-            update_status_label(
-                form, k, 'solving...' if not stop else 'solved.')
-    update_status_label(
-        form,
-        k,
-        'solved.' if stop and not divergent else 'solution not found.')
+            # Non-functional status notification
+            notify_status_func(progress_k, stop, k,
+                               j_it, lambda_ls, accum_step,
+                               x, diff, f_val, lambda_ls * y,
+                               methodLoops, series_id)
+            # End non-functional notification
+            methodLoops[0] += 1
+    if stop and not divergent:
+        progress_k = 100.0
+    # Non-functional status notification
+    notify_status_func(progress_k, stop, k,
+                       j_it, lambda_ls, accum_step,
+                       x, diff, f_val, lambda_ls * y,
+                       methodLoops, series_id)
+    # End non-functional notification
     if method == 'ideal_solution':
         neq = x[0:n]
         xieq = x[n:n + nr]
@@ -2249,37 +2212,35 @@ def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     return result
 
 
-def update_status_label(form, k, solved):
+def update_status_label(form, nle_method,
+                        progress, stop_value, k,
+                        j_it_backtrack, lambda_ls, accum_step,
+                        x, diff, f_val, lambda_ls_y,
+                        methodLoops, series_id):
+    status = 'solving...'
+    if stop_value and progress == 100.0:
+        status = 'solved.'
+    # Steepest descent method deprecated.
+    g_min = np.nan
+    g1 = np.nan
+    y = lambda_ls_y
+    # Add progress bar & variable
+    form.progress_var.setValue(progress)
     form.label_9.setText('Loops: Newton \t' +
-                         str(form.methodLoops[1]) +
+                         str(methodLoops[1]) +
                          ' \t Line search (backtrack) \t' +
-                         str(form.methodLoops[0]) +
+                         str(methodLoops[0]) +
                          ' \t Initial estimate attempts \t' +
                          str(form.initialEstimateAttempts) +
                          '\n' +
                          'Iteration (k) \t' +
                          str(k) +
                          '\n' +
-                         str(solved))
-
-
-def new_log_entry(
-        method,
-        k,
-        backtrack,
-        lambda_ls,
-        accum_step,
-        x,
-        diff,
-        f_val,
-        y,
-        g_min,
-        g1,
-        stop,
-        series_id):
-    logging.debug(method + ' ' +
+                         str('solving...' if not stop_value
+                             else 'solved.'))
+    logging.debug(nle_method + ' ' +
                   ';k=' + str(k) +
-                  ';backtrack=' + str(backtrack) +
+                  ';backtrack=' + str(j_it_backtrack) +
                   ';lambda_ls=' + str(lambda_ls) +
                   ';accum_step=' + str(accum_step) +
                   ';X=' + '[' + ','.join(map(str, x.T.A1)) + ']' +
@@ -2290,7 +2251,7 @@ def new_log_entry(
                   ';||Y||=' + str(np.sqrt((y.T * y).item())) +
                   ';g=' + str(g_min) +
                   ';|g-g1|=' + str(abs(g_min - g1)) +
-                  ';stop=' + str(stop) +
+                  ';stop=' + str(stop_value) +
                   ';' + series_id)
 
 
