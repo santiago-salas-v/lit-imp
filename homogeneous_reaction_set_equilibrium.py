@@ -1080,8 +1080,12 @@ class UiGroupBox(QtGui.QWidget):
                     n0, mm, z, s_index, kc, nu_ij,
                     neq_0, xieq_0, method, max_it, tol,
                     self.method_loops,
-                    partial(update_status_label, self, 'Newton'),
-                    series_id, lambda: QtGui.QApplication.processEvents()
+                    partial(update_status_label,
+                            series_id,
+                            self,
+                            'Newton'
+                            ),
+                    lambda: QtGui.QApplication.processEvents()
                 )
             self.method_loops = method_loops
             k += 1
@@ -2041,11 +2045,21 @@ class LogWidget(QtGui.QWidget):
         self.plotBox.ax.set_ylabel('||f(X)||')
 
 
-def update_status_label(form, nle_method,
-                        progress, stop_value, k,
-                        j_it_backtrack, lambda_ls, accum_step,
-                        x, diff, f_val, lambda_ls_y,
-                        method_loops, series_id):
+def update_status_label(
+        series_id,
+        form,
+        nle_method,
+        progress,
+        stop_value,
+        k,
+        j_it_backtrack,
+        lambda_ls,
+        accum_step,
+        x,
+        diff,
+        f_val,
+        lambda_ls_y,
+        method_loops):
     status = 'solving...'
     if stop_value and progress == 100.0:
         status = 'solved.'

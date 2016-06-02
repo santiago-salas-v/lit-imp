@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from _functools import partial
-from mat_Zerlegungen import gausselimination
+from numerik import nr_ls
 import numpy as np
 
 
@@ -19,7 +19,6 @@ def calc_xieq(
         tol,
         method_loops,
         notify_status_func,
-        series_id,
         process_func_handle):
     """Newton method for non-linear algebraic system, with line-search
     :return: tuple with neq, xieq, f_0
@@ -36,7 +35,6 @@ def calc_xieq(
     :param tol: float - error, tolerancia máxima
     :param method_loops: list (1 x 2): ciclos completados [backtrack, totales]
     :param notify_status_func: función a llamar cada avance de iteración
-    :param series_id: identificador único de la solución en curso
     :param process_func_handle: función a llamar para cancelación
     """
 
@@ -107,103 +105,21 @@ def calc_xieq(
                 ionic_str_eq_0
             ])
 
-    x = x0
-    # Newton method: G(x) = J(x)^-1 * F(x)
-    k = 0
-    j_it = 0
-    j_val = j(x)
-    f_val = f(x)
-    y = np.matrix(np.ones(len(x))).T * tol / (np.sqrt(len(x)) * tol)
-    magnitude_f = np.sqrt((f_val.T * f_val).item())
-    # Line search variable lambda
-    lambda_ls = 0.0
-    accum_step = 0.0
-    # For progress bar, use log scale to compensate for quadratic convergence
-    log10_to_o_max_magnitude_f = np.log10(tol / magnitude_f)
-    progress_k = (1.0 - np.log10(tol / magnitude_f) /
-                  log10_to_o_max_magnitude_f) * 100.0
-    diff = np.matrix(np.empty([len(x), 1]))
-    diff.fill(np.nan)
-    stop = False
-    divergent = False
-    # Non-functional status notification
-    notify_status_func(progress_k, stop, k,
-                       0, 1.0, 0.0,
-                       x, diff, f_val, 0.0 * y,
-                       method_loops, series_id)
-    # End non-functional notification
-    while k <= max_it and not stop:
-        k += 1
-        method_loops[1] += 1
-        j_it = 0
-        lambda_ls = 1.0
-        accum_step += lambda_ls
-        x_k_m_1 = x
-        progress_k_m_1 = progress_k
-        y = gausselimination(j_val, -f_val)
-        # First attempt without backtracking
-        x = x + lambda_ls * y
-        diff = x - x_k_m_1
-        j_val = j(x)
-        f_val = f(x)
-        magnitude_f = np.sqrt((f_val.T * f_val).item())
-        # Non-functional status notification
-        notify_status_func(progress_k, stop, k,
-                           j_it, lambda_ls, accum_step,
-                           x, diff, f_val, lambda_ls * y,
-                           method_loops, series_id)
-        # End non-functional notification
-        if magnitude_f < tol and all([var >= 0 for var in x[0:n]]):
-            stop = True  # Procedure successful
-        else:
-            # For progress use log scale to compensate for quadratic
-            # convergence
-            progress_k = (1.0 - np.log10(tol / magnitude_f) /
-                          log10_to_o_max_magnitude_f) * 100.0
-            if np.isnan(magnitude_f) or np.isinf(magnitude_f):
-                stop = True  # Divergent method
-                divergent = True
-                progress_k = 0.0
-            else:
-                # Non-functional status notification
-                notify_status_func(progress_k, stop, k,
-                                   j_it, lambda_ls, accum_step,
-                                   x, diff, f_val, lambda_ls * y,
-                                   method_loops, series_id)
-                # End non-functional notification
-            if round(progress_k) == round(progress_k_m_1):
-                # Non-functional gui processing
-                process_func_handle()
-                # End non-functional processing
-                # if form.progress_var.wasCanceled():
-                # stop = True
-        while j_it <= max_it and not all([var >= 0 for var in x[0:n]]):
-            # Backtrack if any conc < 0. Line search method.
-            # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
-            j_it += 1
-            lambda_ls = lambda_ls / 2.0
-            accum_step += -lambda_ls
-            x = x_k_m_1
-            progress_k = progress_k_m_1
-            x = x + lambda_ls * y
-            diff = x - x_k_m_1
-            j_val = j(x)
-            f_val = f(x)
-            # Non-functional status notification
-            notify_status_func(progress_k, stop, k,
-                               j_it, lambda_ls, accum_step,
-                               x, diff, f_val, lambda_ls * y,
-                               method_loops, series_id)
-            # End non-functional notification
-            method_loops[0] += 1
-    if stop and not divergent:
-        progress_k = 100.0
-    # Non-functional status notification
-    notify_status_func(progress_k, stop, k,
-                       j_it, lambda_ls, accum_step,
-                       x, diff, f_val, lambda_ls * y,
-                       method_loops, series_id)
-    # End non-functional notification
+    progress_k, stop, outer_it_k, outer_it_j, \
+        lambda_ls, accum_step, x, \
+        diff, f_val, lambda_ls_y, \
+        method_loops =    \
+        nr_ls(x0=x0,
+              f=f,
+              j=j,
+              tol=tol,
+              max_it=max_it,
+              inner_loop_condition=
+              lambda x_vec: all([item >= 0 for item in x_vec[0:n]]),
+              notify_status_func=notify_status_func,
+              method_loops=method_loops,
+              process_func_handle=process_func_handle)
+
     if method == 'ideal_solution':
         neq = x[0:n]
         xieq = x[n:n + nr]
