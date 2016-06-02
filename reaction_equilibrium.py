@@ -114,8 +114,8 @@ def calc_xieq(
               j=j,
               tol=tol,
               max_it=max_it,
-              inner_loop_condition=
-              lambda x_vec: all([item >= 0 for item in x_vec[0:n]]),
+              inner_loop_condition=lambda x_vec:
+              all([item >= 0 for item in x_vec[0:n]]),
               notify_status_func=notify_status_func,
               method_loops=method_loops,
               process_func_handle=process_func_handle)
