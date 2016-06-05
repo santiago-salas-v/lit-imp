@@ -58,16 +58,15 @@ $-K_1 + (\frac{1}{m^{\circ}})^{\sum_j{\nu_{j3}}}\times
 \gamma_3^{\nu_{33}}\gamma_4^{\nu_{43}}\times
 \left(\frac{1}{M_0}\right)^{\nu_{03}}m_1^{\nu_{13}}m_2^{\nu_{23}}
 m_3^{\nu_{33}}m_4^{\nu_{43}}$\\
-$-\gamma_0 - 0.510z_0^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
-+ (1-sign(z_0)^2)b_0 I$ \\
-$-\gamma_1 - 0.510z_1^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
-+ (1-sign(z_1)^2)b_1 I$ \\
-$-\gamma_2 - 0.510z_2^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
-+ (1-sign(z_2)^2)b_2 I$ \\
-$-\gamma_3 - 0.510z_3^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
-+ (1-sign(z_3)^2)b_3 I$ \\
-$-\gamma_4 - 0.510z_4^2 \times \left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right)
-+ (1-sign(z_4)^2)b_4 I$ \\
+$-\gamma_0 + e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}$ \\
+$-\gamma_1 +10^{- 0.510z_1^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_1)^2)b_1 I}$ \\
+$-\gamma_2 +10^{- 0.510z_2^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_2)^2)b_2 I}$ \\
+$-\gamma_3 +10^{- 0.510z_3^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_3)^2)b_3 I}$ \\
+$-\gamma_4 +10^{- 0.510z_4^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_4)^2)b_4 I}$ \\
 $-I + \frac{1}{2}(m_0 z_0^2 +  m_1 z_1^2 + m_2 z_2^2 + m_3 z_3^2 + m_4 z_4^2)$
 \end{tabular}
 \right)
@@ -81,7 +80,8 @@ Q_j \equiv \left(\frac{1}{m^{\circ}}\right)^{\sum_i{\nu_{ij}}}\times
 \left(\frac{1}{M_0}\right)^{\nu_{0j}}m_1^{\nu_{1j}}m_2^{\nu_{2j}}
 m_3^{\nu_{3j}}m_4^{\nu_{4j}}
 \end{equation}
-Consider non-electrolyte solvent: $z_0 = 0$
+Consider non-electrolyte solvent: $z_0 = 0$ \\
+Reference: $m^{\circ} = 1\frac{mol}{kg_{solvent}}$
 \section{Jacobian}
 \[
 J(x) = \left(
@@ -152,6 +152,49 @@ m_3^{\nu_{31}}m_4^{\nu_{41}}\\
 = & \frac{\nu_{11}}{\gamma_{1}} \times Q_1\\
 \text{(...)}\\
 J_{6,14}(x) =&  0\\
+\text{(...)}\\
+\end{aligned}
+\]
+\[
+\begin{aligned}
+J_{9,1}(x) =&  0\\
+J_{9,2}(x) =& -1.0 M_0 m_1 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{9,3}(x) =& -1.0 M_0 m_2 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+\text{(...)}\\
+J_{9,5}(x) =& -1.0 M_0 m_4 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{9,6}(x) =& 0\\
+\text{(...)}\\
+J_{9,9}(x) =& -1\\
+J_{9,10}(x) =& 0\\
+J_{9,11}(x) =& 0\\
+\text{(...)}\\
+J_{9,14}(x) =& 0\\
+J_{10,1}(x) =& 0\\
+J_{10,2}(x) =& 0\\
+\text{(...)}\\
+J_{10,9}(x) =& 0\\
+J_{10,10}(x) =& -1\\
+J_{10,11}(x) =& 0\\
+\text{(...)}\\
+J_{10,14}(x) =&
+-0.510 z_1^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times ln(10) \times 10^{- 0.510z_1^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_1)^2)b_1 I}\\
+=& -0.510 z_1^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+ \times ln(10) \times (\gamma_1+f_{10}(x)) \\
+\text{(...)}\\
+J_{11,1}(x) =& 0\\
+\text{(...)}\\
+J_{11,11}(x) =& -1\\
+J_{11,12}(x) =& 0\\
+\text{(...)}\\
+J_{11,14}(x) =&
+-0.510 z_2^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times ln(10) \times 10^{- 0.510z_2^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_2)^2)b_2 I}\\
+=& -0.510 z_2^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+ \times ln(10) \times (\gamma_2+f_{11}(x)) \\
+\text{(...)}\\
 \end{aligned}
 \]
 Using the reaction quotients $Q_i$ for convenience as defined above (eq.
@@ -205,26 +248,26 @@ $\frac{\nu_{03}}{\gamma_0}Q_3$ & $\frac{\nu_{13}}{\gamma_1}Q_3$ &
 $\frac{\nu_{23}}{\gamma_2}Q_3$ & $\frac{\nu_{33}}{\gamma_3}Q_3$ &
 $\frac{\nu_{43}}{\gamma_4}Q_3$ &
 0\\
-0 & 0 & 0 & 0 & 0 &
+0 & $J_{9,2}(x)$ & $J_{9,3}(x)$ & $J_{9,4}(x)$ & $J_{9,5}(x)$ &
 0 & 0 & 0 &
 -1 & 0 & 0 & 0 & 0 &
-$b_0$\\
+0\\
 0 & 0 & 0 & 0 & 0 &
 0 & 0 & 0 &
 0 & -1 & 0 & 0 & 0 &
-$-0.510 z_1^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+$J_{10,14}(x)$\\
 0 & 0 & 0 & 0 & 0 &
 0 & 0 & 0 &
 0 & 0 & -1 & 0 & 0 &
-$-0.510 z_2^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+$J_{11,14}(x)$\\
 0 & 0 & 0 & 0 & 0 &
 0 & 0 & 0 &
 0 & 0 & 0 & -1 & 0 &
-$-0.510 z_3^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+$J_{12,14}(x)$\\
 0 & 0 & 0 & 0 & 0 &
 0 & 0 & 0 &
 0 & 0 & 0 & 0 & -1 &
-$-0.510 z_4^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)$\\
+$J_{13,14}$\\
 0 &
 $\frac{1}{2}z_1^2$ & $\frac{1}{2}z_2^2$ &
 $\frac{1}{2}z_3^2$ & $\frac{1}{2}z_4^2$ &
@@ -233,6 +276,30 @@ $\frac{1}{2}z_3^2$ & $\frac{1}{2}z_4^2$ &
 -1\\
 \end{tabular}
 \right)
+\]
+\[
+\begin{aligned}
+J_{9,2}(x) =& -1.0 M_0 m_1 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{9,3}(x) =& -1.0 M_0 m_2 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{9,4}(x) =& -1.0 M_0 m_3 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{9,5}(x) =& -1.0 M_0 m_4 e^{-1.0\times M_0 \sum_{j\neq0}{m_j}}\\
+J_{10,14}(x) =&
+-0.510 ln(10)\times z_1^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times 10^{- 0.510z_1^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_1)^2)b_1 I}\\
+J_{11,14}(x) =&
+-0.510 ln(10)\times z_2^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times 10^{- 0.510z_2^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_2)^2)b_2 I}\\
+J_{12,14}(x) =&
+-0.510 ln(10)\times z_3^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times 10^{- 0.510z_3^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_3)^2)b_3 I}\\
+J_{13,14}(x) =&
+-0.510 ln(10)\times z_4^2\times\left(\frac{1}{2\sqrt{I}(1+\sqrt{I})} -0.3\right)
+\times 10^{- 0.510z_4^2 \times
+\left(\frac{\sqrt{I}}{1+\sqrt{I}}-0.3I\right) + (1-sign(z_4)^2)b_4 I}\\
+\end{aligned}
 \]
 \end{landscape}
 For calculation, submatrixes of the Jacobian matrix are identified:

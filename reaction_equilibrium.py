@@ -76,21 +76,23 @@ def calc_xieq(
         pass
     elif method == 'davies':
         f = partial(
-            f_gl_0_ideal,
+            f_gl_0_davies,
             n0=n0,
             nu_ij=nu_ij,
             n=n,
             nr=nr,
             kc=kc,
+            z=z,
             mm_0=mm_0,
             s_index=s_index)
         j = partial(
-            jac_ideal,
+            jac_davies,
             n0=n0,
             nu_ij=nu_ij,
             n=n,
             nr=nr,
             kc=kc,
+            z=z,
             mm_0=mm_0,
             s_index=s_index)
         # x is [n_0, m_1, m_2, ..., m_n, xi_1, xi_2, ..., xi_{nr}, \gamma_1,
@@ -144,6 +146,49 @@ def f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
 
 
 def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
+    neq = x[0:n, 0]
+    n0_mm0 = neq[s_index] * mm_0
+    meq = neq / n0_mm0
+    eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
+    quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
+    result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
+    result[0:n, 0:n] = -1 * np.eye(n).astype(float)
+    result[0:n, n:n + nr] = nu_ij
+    # Return Jacobian terms as n calculated from molality (m)
+    result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_m * 1 / n0_mm0
+    return result
+
+
+def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, s_index):
+    neq = np.zeros([n, 1])
+    meq = np.zeros([n, 1])
+    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n I]
+    neq[0] = x[0]
+    meq[1:n, 0] = x[1:n, 0]
+    xieq = x[n:n + nr, 0]
+    gammaeq = x[n + nr:n + nr + n, 0]
+    I = x[n + nr + n + 1, 0]
+    sqrt_I = np.sqrt(I)
+
+    # calculate neq for all components
+    n0_mm0 = neq[0] * mm_0
+    meq[0] = 1 / mm_0
+    neq = meq * n0_mm0
+
+    result = np.matrix(np.empty([n + nr + n + 1, 1], dtype=float))
+    result[0:n] = -neq + n0 + nu_ij * xieq
+    result[n:n + nr] = \
+        -kc + np.prod(np.power(meq, nu_ij), 0).T \
+              * np.prod(np.power(gammaeq, nu_ij), 0).T
+    result[n + nr:n + nr + n] = \
+        -gammaeq \
+        - 0.510*np.power(z, 2)*(sqrt_I/(1 + sqrt_I) - 0.3*I) \
+        + (1-np.sign(z))*0.1*I
+    result[n + nr]
+    return result
+
+
+def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, s_index):
     neq = x[0:n, 0]
     n0_mm0 = neq[s_index] * mm_0
     meq = neq / n0_mm0
