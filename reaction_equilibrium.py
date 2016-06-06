@@ -71,46 +71,67 @@ def calc_xieq(
     # x is [n_0, n_1, n_2, ..., n_n, xi_1, xi_2, xi_3, ..., xi_{nr}]
     x0 = np.concatenate([neq_0, xieq_0])
 
+    component_order = [s_index]
+    component_order.extend(
+        [index for (index, x) in enumerate(meq_0) if index != s_index]
+    )
+
     if method == 'ideal_solution':
         # case already contemplated above
         pass
     elif method == 'davies':
-        f = partial(
-            f_gl_0_davies,
-            n0=n0,
-            nu_ij=nu_ij,
-            n=n,
-            nr=nr,
-            kc=kc,
-            z=z,
-            mm_0=mm_0,
-            s_index=s_index)
-        j = partial(
-            jac_davies,
-            n0=n0,
-            nu_ij=nu_ij,
-            n=n,
-            nr=nr,
-            kc=kc,
-            z=z,
-            mm_0=mm_0,
-            s_index=s_index)
         # x is [n_0, m_1, m_2, ..., m_n, xi_1, xi_2, ..., xi_{nr}, \gamma_1,
         #       \gamma_2, ..., \gamma_n, I]
+        ordered_meq_0 = np.matrix(
+            [meq_0[index].item() for index in component_order]
+        ).T
+        ordered_gammaeq_0 = np.matrix(
+            [gammaeq_0[index].item() for index in component_order]
+        ).T
+        ordered_nu_ij = np.concatenate(
+            [nu_ij[index] for index in component_order]
+        )
+        ordered_n0 = np.matrix(
+            [n0[index].item() for index in component_order]
+        ).T
+        ordered_z = np.matrix(
+            [z[index].item() for index in component_order]
+        ).T
+        ordered_neq_0 = np.matrix(
+            [neq_0[index].item() for index in component_order]
+        ).T
+        f = partial(
+            f_gl_0_davies,
+            n0=ordered_n0,
+            nu_ij=ordered_nu_ij,
+            n=n,
+            nr=nr,
+            kc=kc,
+            z=z,
+            mm_0=mm_0,
+            s_index=0)
+        j = partial(
+            jac_davies,
+            n0=ordered_n0,
+            nu_ij=ordered_nu_ij,
+            n=n,
+            nr=nr,
+            kc=kc,
+            z=z,
+            mm_0=mm_0,
+            s_index=0)
         x0 = np.concatenate(
             [
-                np.matrix(neq_0[s_index].item()),
-                np.matrix([x.item() for (index, x) in enumerate(meq_0)
-                           if index != s_index]).T,
+                ordered_neq_0[0],
+                ordered_meq_0[1:],
                 xieq_0,
-                gammaeq_0,
+                ordered_gammaeq_0,
                 ionic_str_eq_0
             ])
-
     progress_k, stop, outer_it_k, outer_it_j, \
         lambda_ls, accum_step, x, \
         diff, f_val, lambda_ls_y, \
-        method_loops =    \
+        method_loops = \
         nr_ls(x0=x0,
               f=f,
               j=j,
@@ -159,16 +180,17 @@ def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     return result
 
 
-def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, s_index):
+def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     neq = np.zeros([n, 1])
     meq = np.zeros([n, 1])
-    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n I]
+    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
+    # ionic_str]
     neq[0] = x[0]
-    meq[1:n, 0] = x[1:n, 0]
-    xieq = x[n:n + nr, 0]
-    gammaeq = x[n + nr:n + nr + n, 0]
-    I = x[n + nr + n + 1, 0]
-    sqrt_I = np.sqrt(I)
+    meq[1:n] = x[1:n]
+    xieq = x[n:n + nr]
+    gammaeq = x[n + nr:n + nr + n]
+    ionic_str = x[n + nr + n]
+    sqrt_ionic_str = np.sqrt(ionic_str)
 
     # calculate neq for all components
     n0_mm0 = neq[0] * mm_0
@@ -177,21 +199,43 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, s_index):
 
     result = np.matrix(np.empty([n + nr + n + 1, 1], dtype=float))
     result[0:n] = -neq + n0 + nu_ij * xieq
-    result[n:n + nr] = \
-        -kc + np.prod(np.power(meq, nu_ij), 0).T \
-              * np.prod(np.power(gammaeq, nu_ij), 0).T
-    result[n + nr:n + nr + n] = \
-        -gammaeq \
-        - 0.510*np.power(z, 2)*(sqrt_I/(1 + sqrt_I) - 0.3*I) \
-        + (1-np.sign(z))*0.1*I
-    result[n + nr]
+    result[n:n + nr] = -kc + np.multiply(
+        np.prod(np.power(meq, nu_ij), 0).T,
+        np.prod(np.power(gammaeq, nu_ij), 0).T
+    )
+    result[n + nr] = \
+        -gammaeq[0] + np.exp(-1.0 * mm_0 * sum(meq[1:n]))
+    result[n + nr + 1:n + nr + n] = \
+        -gammaeq[1:n] + \
+        np.power(10,
+                 (- 0.510 * np.power(z[1:n], 2)
+                  * (sqrt_ionic_str / (1 + sqrt_ionic_str)
+                     - 0.3 * ionic_str)
+                  + (1 - np.sign(z[1:n])) * 0.1 * ionic_str)
+                 )
+    result[n + nr + n] = \
+        -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
     return result
 
 
-def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, s_index):
-    neq = x[0:n, 0]
-    n0_mm0 = neq[s_index] * mm_0
-    meq = neq / n0_mm0
+def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
+    neq = np.zeros([n, 1])
+    meq = np.zeros([n, 1])
+    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
+    # ionic_str]
+    neq[0] = x[0]
+    meq[1:n] = x[1:n]
+    xieq = x[n:n + nr]
+    gammaeq = x[n + nr:n + nr + n]
+    ionic_str = x[n + nr + n]
+    sqrt_ionic_str = np.sqrt(ionic_str)
+
+    # calculate neq for all components
+    n0_mm0 = neq[0] * mm_0
+    meq[0] = 1 / mm_0
+    neq = meq * n0_mm0
+
+    # TODO: Complete Jac.
     eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
     quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
