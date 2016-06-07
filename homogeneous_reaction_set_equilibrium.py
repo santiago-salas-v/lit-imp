@@ -1131,11 +1131,6 @@ class UiGroupBox(QtGui.QWidget):
         rhoeq = np.multiply(ceq, mm)
         weq = np.multiply(neq, mm)
         xweq = weq / sum(weq)
-        # rho_over_rho_solvent = \
-        #     1 + sum([m_j_mm_j for j, m_j_mm_j in
-        #              enumerate(np.multiply(meq, mm)) if
-        #              j != s_index])
-        # rho = (rho_over_rho_solvent) * rho_solvent
         # TODO: Implement activity coefficients
         gammaeq_ii = gammaeq
         gammaeq_iii = gammaeq

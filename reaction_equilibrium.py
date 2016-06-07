@@ -108,8 +108,7 @@ def calc_xieq(
             nr=nr,
             kc=kc,
             z=z,
-            mm_0=mm_0,
-            s_index=0)
+            mm_0=mm_0)
         j = partial(
             jac_davies,
             n0=ordered_n0,
@@ -118,8 +117,7 @@ def calc_xieq(
             nr=nr,
             kc=kc,
             z=z,
-            mm_0=mm_0,
-            s_index=0)
+            mm_0=mm_0)
         x0 = np.concatenate(
             [
                 ordered_neq_0[0],
@@ -170,13 +168,14 @@ def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
     n0_mm0 = neq[s_index] * mm_0
     meq = neq / n0_mm0
-    eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
-    quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
+    diag_1_ov_meq = np.diagflat(np.power(meq, -1), 0)
+    diag_quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
     result[0:n, 0:n] = -1 * np.eye(n).astype(float)
     result[0:n, n:n + nr] = nu_ij
     # Return Jacobian terms as n calculated from molality (m)
-    result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_m * 1 / n0_mm0
+    result[n:n + nr, 0:n] = \
+        diag_quotient * nu_ij.T * diag_1_ov_meq * 1 / n0_mm0
     return result
 
 
@@ -236,11 +235,32 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     neq = meq * n0_mm0
 
     # TODO: Complete Jac.
-    eins_durch_m = np.diag(np.power(meq, -1).A1, 0)
-    quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
-    result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
-    result[0:n, 0:n] = -1 * np.eye(n).astype(float)
+    diag_quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
+    result = np.matrix(
+        np.zeros([n + nr + n + 1, n + nr + n + 1], dtype=float)
+    )
+    result[0:n, 0:n] = \
+        -np.diagflat(
+            np.concatenate(
+                [np.matrix([1]), meq[1:] * mm_0]
+            )
+        )
     result[0:n, n:n + nr] = nu_ij
-    # Return Jacobian terms as n calculated from molality (m)
-    result[n:n + nr, 0:n] = quotient * nu_ij.T * eins_durch_m * 1 / n0_mm0
+    result[n + nr:n + nr + n + 1, n + nr: n + nr + n + 1] = \
+        -1.0 * np.eye(n + 1)
+    result[n:n + nr, 0:n] = \
+        diag_quotient * nu_ij.T * np.diagflat(
+            np.concatenate(
+                [np.matrix(0.0), 1/meq[1:]]
+            )
+        )
+    result[n:n + nr, n + nr:n + nr + n] = \
+        diag_quotient * nu_ij.T * np.diagflat(
+            1 / gammaeq
+        )
+    ln_gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
+    result[n + nr, 1:n] = -1.0 * meq[1:].T * ln_gamma0_ov_phi
+    result[n + nr + n, 1:n] = 1 / 2.0 * z[1:].T
+    result[n + nr + 2 , n + nr + n] = 0 #ok?
+
     return result
