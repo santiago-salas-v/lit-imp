@@ -107,7 +107,7 @@ def calc_xieq(
             n=n,
             nr=nr,
             kc=kc,
-            z=z,
+            z=ordered_z,
             mm_0=mm_0)
         j = partial(
             jac_davies,
@@ -116,7 +116,7 @@ def calc_xieq(
             n=n,
             nr=nr,
             kc=kc,
-            z=z,
+            z=ordered_z,
             mm_0=mm_0)
         x0 = np.concatenate(
             [
@@ -226,7 +226,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     meq[1:n] = x[1:n]
     xieq = x[n:n + nr]
     gammaeq = x[n + nr:n + nr + n]
-    ionic_str = x[n + nr + n]
+    ionic_str = x[n + nr + n].item()
     sqrt_ionic_str = np.sqrt(ionic_str)
 
     # calculate neq for all components
@@ -244,23 +244,30 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
             np.concatenate(
                 [np.matrix([1]), meq[1:] * mm_0]
             )
-        )
+    )
     result[0:n, n:n + nr] = nu_ij
     result[n + nr:n + nr + n + 1, n + nr: n + nr + n + 1] = \
         -1.0 * np.eye(n + 1)
     result[n:n + nr, 0:n] = \
         diag_quotient * nu_ij.T * np.diagflat(
             np.concatenate(
-                [np.matrix(0.0), 1/meq[1:]]
+                [np.matrix(0.0), 1 / meq[1:]]
             )
-        )
+    )
     result[n:n + nr, n + nr:n + nr + n] = \
         diag_quotient * nu_ij.T * np.diagflat(
             1 / gammaeq
-        )
+    )
     ln_gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
     result[n + nr, 1:n] = -1.0 * meq[1:].T * ln_gamma0_ov_phi
+    factor_1 = \
+        sqrt_ionic_str / (1 + sqrt_ionic_str) - 0.3 * ionic_str
+    dfactor_1_di = \
+        -0.3 + 1 / (2 * sqrt_ionic_str * (1 + sqrt_ionic_str)**2)
+    factor_2 = np.multiply(
+        np.power(z[1:], 2),
+        np.power(10, -0.510 * np.power(z[1:], 2) * factor_1))
+    result[n + nr + 1:n + nr + n, n + nr + n] = \
+        dfactor_1_di * factor_2
     result[n + nr + n, 1:n] = 1 / 2.0 * z[1:].T
-    result[n + nr + 2 , n + nr + n] = 0 #ok?
-
     return result

@@ -148,7 +148,9 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
                 # End non-functional processing
                 # if form.progress_var.wasCanceled():
                 # stop = True
-        while inner_it_j <= max_it and not inner_loop_condition(x):
+        while inner_it_j <= max_it and \
+                not inner_loop_condition(x) and \
+                not stop:
             # Backtrack if any conc < 0. Line search method.
             # Ref. http://dx.doi.org/10.1016/j.compchemeng.2013.06.013
             inner_it_j += 1
@@ -169,6 +171,8 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
             method_loops[0] += 1
     if stop and not divergent:
         progress_k = 100.0
+    elif divergent:
+        progress_k = 0.0
     # Non-functional status notification
     notify_status_func(progress_k, stop, outer_it_k,
                        inner_it_j, lambda_ls, accum_step,
