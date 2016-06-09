@@ -40,7 +40,7 @@ def calc_xieq(
 
     n = len(n0)
     nr = nu_ij.shape[1]
-    mm_0 = mm[s_index]
+    mm_0 = mm[s_index].item()
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
     gammaeq_0 = np.matrix(np.ones([n, 1]))
@@ -222,7 +222,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     meq = np.zeros([n, 1])
     # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
     # ionic_str]
-    neq[0] = x[0]
+    neq[0] = x[0].item()
     meq[1:n] = x[1:n]
     xieq = x[n:n + nr]
     gammaeq = x[n + nr:n + nr + n]
@@ -230,7 +230,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     sqrt_ionic_str = np.sqrt(ionic_str)
 
     # calculate neq for all components
-    n0_mm0 = neq[0] * mm_0
+    n0_mm0 = (neq[0] * mm_0).item()
     meq[0] = 1 / mm_0
     neq = meq * n0_mm0
 
@@ -240,11 +240,13 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         np.zeros([n + nr + n + 1, n + nr + n + 1], dtype=float)
     )
     result[0:n, 0:n] = \
-        -np.diagflat(
+        np.diagflat(
             np.concatenate(
-                [np.matrix([1]), meq[1:] * mm_0]
+                [-1.0*np.matrix([1]),
+                 -n0_mm0*np.matrix(np.ones([n - 1, 1]))]
             )
     )
+    result[1:n, 0] = -meq[1:] * mm_0
     result[0:n, n:n + nr] = nu_ij
     result[n + nr:n + nr + n + 1, n + nr: n + nr + n + 1] = \
         -1.0 * np.eye(n + 1)
@@ -259,7 +261,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
             1 / gammaeq
     )
     ln_gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
-    result[n + nr, 1:n] = -1.0 * meq[1:].T * ln_gamma0_ov_phi
+    result[n + nr, 1:n] = -1.0 * mm_0 * ln_gamma0_ov_phi
     factor_1 = \
         sqrt_ionic_str / (1 + sqrt_ionic_str) - 0.3 * ionic_str
     dfactor_1_di = \
