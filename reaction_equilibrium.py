@@ -150,6 +150,8 @@ def calc_xieq(
     elif method == 'davies':
         neq = x[0:n]
         xieq = x[n:n + nr]
+        gammaeq = x[n + nr:n + nr + n]
+        ionic_str_eq = x[n + nr + n]
     return neq, meq, xieq, gammaeq, ionic_str_eq, method_loops
 
 
@@ -242,8 +244,8 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     result[0:n, 0:n] = \
         np.diagflat(
             np.concatenate(
-                [-1.0*np.matrix([1]),
-                 -n0_mm0*np.matrix(np.ones([n - 1, 1]))]
+                [-1.0 * np.matrix([1]),
+                 -n0_mm0 * np.matrix(np.ones([n - 1, 1]))]
             )
     )
     result[1:n, 0] = -meq[1:] * mm_0
