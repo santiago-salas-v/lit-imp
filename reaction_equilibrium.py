@@ -270,6 +270,6 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         np.power(z[1:], 2),
         np.power(10, -0.510 * np.power(z[1:], 2) * factor_1))
     result[n + nr + 1:n + nr + n, n + nr + n] = \
-        dfactor_1_di * factor_2
+        -0.510 * np.log(10.0) * dfactor_1_di * factor_2
     result[n + nr + n, 1:n] = 1 / 2.0 * z[1:].T
     return result
