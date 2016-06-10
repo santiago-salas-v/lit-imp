@@ -13,21 +13,37 @@ Following are applicable to calculate the chemical potential of a solution, and 
 \subsection{Composition}
 \label{subsec:composition}
 \begin{table}[h]
-\begin{tabular}{|lll|}
+\begin{tabular}{|lll|l|}
 \hline
-		      & expression                                                                                    & [=] units                     \\
+		      & expression
+					& [=] units
+					& total\\
 \hline
-mole number   & $n_i = \frac{w_i}{M_i}$                                                                                   & mol i                         \\
-mole fraction & $x_i = \frac{n_i}{\sum_j{n_j}} =  \frac{n_i}{n_0 + \sum_{j \neq 0}{n_j}}$                         & [adim.]                       \\
-molal  conc.  & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 / \left(1000 \frac{g}{kg} \right)}$               & $\frac{mol_i} {kg_{solvent}}$ \\
-molar  conc.  & $c_i = \frac{n_i}{V_r} = \frac{n_i}{w/\rho} = \frac{n_i \rho}{n_0 M_0 + \sum_{j\neq 0}{n_j M_j}}$ & $\frac{mol_i}{L}$\\
-              & $= \frac{m_i \rho}{1 + \sum_{j\neq 0}{m_j M_j}}$     &       \\
-density 	  & $\rho_i = w_i/V_r = n_i M_i/V_r = c_i M_i$			 &	$\frac{g_i}{mL}$ \\
-mass fraction & $x_{w,i} = \frac{w_i}{\sum_j{w_j}} =  \frac{n_i M_i}{n_0 M_0 + \sum_{j \neq 0}{n_j M_j}}$                         & [adim.]                       \\
-			  & $\frac{m_i M_i}{1+\sum_{j\neq0}{m_j M_j}} = \frac{c_i M_i}{\rho} = \frac{\rho_i}{\rho}$  &  \\
+mole number   & $n_i$ & mol i
+							& $n = \sum_i{n_i} = {n_0 + \sum_{j \neq 0}{n_j}}$ \\
+mass 					& $w_i$	 & g i
+							& $w = \sum_i{w_i} = {n_0 M_0 + \sum_{j \neq 0}{n_j M_j}}$ \\
+molar mass		& $M_i = \frac{w_i}{n_i}$ & $\frac{g_i}{mol_i}$
+ 							& $M = \frac{\sum_i{w_i}}{\sum_i{w_i/M_i}} =
+							\frac{1}{\sum_i{x_{w, i}/M_i}}$ \\
+molal  conc.  & $m_i = \frac{n_i}{n_0 M_0} = \frac{n_i}{n_0 M_0 /
+\left(1000 \frac{g}{kg} \right)}$ & $\frac{mol_i} {kg_{solvent}}$
+							& $\sum_i{m_i} = \frac{\sum_i{n_i}}{n_0 M_0} =
+							\frac{1}{x_0 M_0} $ \\
+density 	    & $\rho_i = w_i/V_r = n_i M_i/V_r = c_i M_i$ &
+							$\frac{g_i}{mL}$
+							& $\rho = \sum_i{\rho_i} = \frac{\sum_i{w_i}}{V_r} = w/V_r$ \\
+molar  conc.  & $c_i = n_i/V_r = n_i \rho_i /w_i = \rho_i / M_i$
+							& $\frac{mol_i}{L}$
+							& $c_T = \sum_i{c_i} = \frac{\sum_i{n_i}}{V_r} = n/V_r$ \\
+mole fraction & $x_i = \frac{n_i}{\sum_j{n_j}}$ & [adim.]
+							& $\sum_i{x_i}=1$ \\
+mass fraction & $x_{w,i} = \frac{w_i}{\sum_j{w_j}}$ & [adim.]
+			        & $\sum_i{x_{w, i}} = 1$\\
 \hline
 \end{tabular}
-\caption{Expressions of composition. Subscript 0 applied to the solvent, other subscripts applied to solutes.}
+\caption{Conventional expressions of composition. Subscript 0 applied to the
+solvent, other subscripts applied to solutes.}
 \label{table:composition_expr}
 \end{table}
 Relationships are obtained for conversion, such as density of solution $\rho$ to density of
@@ -35,7 +51,7 @@ solvent $\rho_0 = c_0 M_0$, molal concentration to mole fraction and molar conce
 mole fraction: \\
 \[
 \begin{aligned}
-\frac{\rho}{c_0 M_0} & = \frac{\sum_{i}{\rho_i}}{c_0 M_0} = \frac{c_0 M_0 + \sum_{j \neq 0}{c_j M_j}}{c_0 M_0} = 1 + \frac{\sum_{j\neq0}{n_j M_j/V_r}}{n_0 M_0/V_r} = 1+\sum_{j\neq0}{m_j M_j}\\
+\frac{\rho}{\rho_0} & = \frac{\sum_{i}{\rho_i}}{c_0 M_0} = \frac{c_0 M_0 + \sum_{j \neq 0}{c_j M_j}}{c_0 M_0} = 1 + \frac{\sum_{j\neq0}{n_j M_j/V_r}}{n_0 M_0/V_r} = 1+\sum_{j\neq0}{m_j M_j}\\
 \frac{m_i}{x_i} & = \frac{n_i/(n_0 M_0) \times (n_0 + \sum_{j\neq0}{n_j}) }{n_i} = \frac{1}{M_0} + \sum_{j\neq0}{m_j} = \frac{1}{M_0} \times (1 + \sum_{j\neq0}{m_jM_0}) \\
 \frac{c_i}{x_i} & = \frac{n_i \rho \times (n_0 + \sum_{j\neq0}{n_j}) }{n_i \times (n_0 M_0 + \sum_{j\neq0}{n_j M_j})} = \frac{ n_0 + \sum_{j\neq0}{n_j} }{ n_0 M_0 + \sum_{j\neq0}{n_j M_j}} \rho = \frac{ \frac{1}{M_0} + \sum_{j\neq0}{m_j} }{ 1 + \sum_{j\neq0}{m_j M_j}} \rho \\
  & = \frac{\rho_0}{M_0} \times (1 + \sum_{j\neq0}{m_j M_0})

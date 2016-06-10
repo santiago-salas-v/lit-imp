@@ -1133,9 +1133,11 @@ class UiGroupBox(QtGui.QWidget):
         weq = np.multiply(neq, mm)
         xweq = weq / sum(weq)
         # TODO: Implement activity coefficients
-        gammaeq_ii = gammaeq
         gammaeq_iii = gammaeq
         aeq = np.multiply(gammaeq_iii, meq * 1000)
+        gammaeq_ii = mm[s_index].item() * np.multiply(
+            gammaeq_iii, np.multiply(
+                meq, np.power(xeq, -1)))
         mlog10gammaeq_ii = -np.log10(gammaeq_ii)
         mlog10gammaeq_iii = -np.log10(gammaeq_iii)
         mlog10xweq = -np.log10(xweq)

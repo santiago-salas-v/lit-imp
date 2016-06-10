@@ -75,6 +75,10 @@ def calc_xieq(
     component_order.extend(
         [index for (index, x) in enumerate(meq_0) if index != s_index]
     )
+    component_order_map = \
+        sorted([(origindex, orderedindex) for (orderedindex, origindex)
+                in enumerate(component_order)], key=lambda x: x[0])
+    return_to_original_indexes = [x[1] for x in component_order_map]
 
     if method == 'ideal_solution':
         # case already contemplated above
@@ -148,9 +152,9 @@ def calc_xieq(
         gammaeq = gammaeq_0
         ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq
     elif method == 'davies':
-        neq = x[0:n]
+        neq = x[0:n][return_to_original_indexes]
         xieq = x[n:n + nr]
-        gammaeq = x[n + nr:n + nr + n]
+        gammaeq = x[n + nr:n + nr + n][return_to_original_indexes]
         ionic_str_eq = x[n + nr + n]
     return neq, meq, xieq, gammaeq, ionic_str_eq, method_loops
 
@@ -267,11 +271,16 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     factor_1 = \
         sqrt_ionic_str / (1 + sqrt_ionic_str) - 0.3 * ionic_str
     dfactor_1_di = \
-        -0.3 + 1 / (2 * sqrt_ionic_str * (1 + sqrt_ionic_str)**2)
+        -0.510 * np.log(10.0) * \
+            (-0.3 + 1 / (2 * sqrt_ionic_str *
+                         (1 + sqrt_ionic_str)**2))
     factor_2 = np.multiply(
         np.power(z[1:], 2),
         np.power(10, -0.510 * np.power(z[1:], 2) * factor_1))
     result[n + nr + 1:n + nr + n, n + nr + n] = \
-        -0.510 * np.log(10.0) * dfactor_1_di * factor_2
+         np.multiply(
+             dfactor_1_di \
+             + (1 - np.power(np.sign(z[1:]), 2))*0.1,
+             factor_2)
     result[n + nr + n, 1:n] = 1 / 2.0 * z[1:].T
     return result
