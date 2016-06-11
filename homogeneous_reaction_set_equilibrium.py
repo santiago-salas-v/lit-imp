@@ -1123,7 +1123,7 @@ class UiGroupBox(QtGui.QWidget):
                                  str((1 / 2.0 * np.power(z, 2).T * m0 * 1000).item()) +
                                  '(mol/kg_solv)' +
                                  '\t\t\t\t I_eq = ' +
-                                 str((1 / 2.0 * np.power(z, 2).T * meq * 1000).item()) +
+                                 str(ionic_str_eq.item()) +
                                  '(mol/kg_solv)')
 
         # Once solved, calculate conc. variables at equilibrium

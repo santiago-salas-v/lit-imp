@@ -44,7 +44,7 @@ def calc_xieq(
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
     gammaeq_0 = np.matrix(np.ones([n, 1]))
-    ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0
+    ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0 * 1000
     gammaeq = np.ones([n, 1])
     neq = neq_0
     meq = meq_0
@@ -150,7 +150,7 @@ def calc_xieq(
         xieq = x[n:n + nr]
         meq = neq / (neq[s_index] * mm_0)
         gammaeq = gammaeq_0
-        ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq
+        ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq * 1000
     elif method == 'davies':
         neq0 = x[0:n][0]
         meq[1:n] = x[0:n][1:n]
@@ -225,7 +225,7 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
                   + (1 - np.sign(z[1:n])) * 0.1 * ionic_str)
                  )
     result[n + nr + n] = \
-        -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
+        -ionic_str + 1 / 2.0 * np.power(z, 2).T * (meq * 1000)
     return result
 
 
@@ -288,5 +288,6 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         dfactor_1_di
         + (1 - np.power(np.sign(z[1:]), 2)) * 0.1,
         factor_2)
-    result[n + nr + n, 1:n] = 1 / 2.0 * z[1:].T
+    result[n + nr + n, 1:n] = \
+        1 / 2.0 * np.power(z[1:].T, 2) * 1000
     return result
