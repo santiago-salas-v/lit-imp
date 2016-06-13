@@ -278,23 +278,23 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         diag_quotient * nu_ij.T * np.diagflat(
             1 / gammaeq
     )
-    ln_gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
-    result[n + nr, 1:n] = -1.0 * mm_0 * ln_gamma0_ov_phi
+    gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
+    result[n + nr, 1:n] = -1.0 * mm_0 * gamma0_ov_phi
     factor_1 = \
         sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim) \
         - 0.3 * ionic_str_adim
     dfactor_1_di = \
-        -0.510 * np.log(10.0) * \
-        (-0.3 + 1 / (2 * sqrt_ionic_str_adim *
+        (-0.3 / m0_ref + 1 / (2 * sqrt_ionic_str_adim *
                      (1 + sqrt_ionic_str_adim)**2))
-    factor_2 = np.multiply(
-        np.power(z[1:], 2),
-        np.power(10, -0.510 * np.power(z[1:], 2) * factor_1))
+    factor_2 = np.power(10, -0.510 * np.power(z[1:], 2) * factor_1 \
+                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 * ionic_str_adim)
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
-        dfactor_1_di
-        + (1 - np.power(np.sign(z[1:]), 2)) * 0.1,
-        factor_2)
+            np.log(10.0) * (
+                dfactor_1_di \
+                * (-0.510) * np.power(np.sign(z[1:]), 2) \
+                + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
+            factor_2)
     result[n + nr + n, 1:n] = \
         1 / 2.0 * np.power(z[1:].T, 2.0)
     return result
