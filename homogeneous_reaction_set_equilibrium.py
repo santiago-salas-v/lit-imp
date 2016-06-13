@@ -1021,6 +1021,7 @@ class UiGroupBox(QtGui.QWidget):
         tol = self.tol
         c_solvent_tref = self.c_solvent_tref
         s_index = self.index_of_solvent
+        m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
         method = 'ideal_solution'
 
         if self.radio_b_2.isChecked():
@@ -1123,7 +1124,7 @@ class UiGroupBox(QtGui.QWidget):
                                  str((1 / 2.0 * np.power(z, 2).T * m0 * 1000).item()) +
                                  '(mol/kg_solv)' +
                                  '\t\t\t\t I_eq = ' +
-                                 str(ionic_str_eq.item()) +
+                                 str(ionic_str_eq.item() / m0_ref) +
                                  '(mol/kg_solv)')
 
         # Once solved, calculate conc. variables at equilibrium

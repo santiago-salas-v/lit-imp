@@ -136,12 +136,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
                 divergent = True
                 progress_k = 0.0
             else:
-                # Non-functional status notification
-                notify_status_func(progress_k, stop, outer_it_k,
-                                   inner_it_j, lambda_ls, accum_step,
-                                   x, diff, f_val, lambda_ls * y,
-                                   method_loops)
-                # End non-functional notification
+                pass
             if round(progress_k) == round(progress_k_m_1):
                 # Non-functional gui processing
                 process_func_handle()

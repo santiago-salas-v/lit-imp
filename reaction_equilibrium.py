@@ -44,7 +44,7 @@ def calc_xieq(
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
     gammaeq_0 = np.matrix(np.ones([n, 1]))
-    ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0 * 1000
+    ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0
     gammaeq = np.ones([n, 1])
     neq = neq_0
     meq = meq_0
@@ -150,7 +150,7 @@ def calc_xieq(
         xieq = x[n:n + nr]
         meq = neq / (neq[s_index] * mm_0)
         gammaeq = gammaeq_0
-        ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq * 1000
+        ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq
     elif method == 'davies':
         neq0 = x[0:n][0]
         meq[1:n] = x[0:n][1:n]
@@ -168,20 +168,22 @@ def calc_xieq(
 def f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
     n0_mm0 = neq[s_index] * mm_0
-    meq = neq / n0_mm0
+    m0_ref = 1 / 1000.0 # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    meq = neq / n0_mm0  # mol/gsolvent
     xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
     result[0:n] = -neq + n0 + nu_ij * xieq
-    result[n:n + nr] = -kc + np.prod(np.power(meq, nu_ij), 0).T
+    result[n:n + nr] = -kc + np.prod(np.power(meq / m0_ref, nu_ij), 0).T
     return result
 
 
 def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
     n0_mm0 = neq[s_index] * mm_0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
     meq = neq / n0_mm0
     diag_1_ov_meq = np.diagflat(np.power(meq, -1), 0)
-    diag_quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
+    diag_quotient = np.diagflat(np.prod(np.power(meq / m0_ref, nu_ij), 0))
     result = np.matrix(np.zeros([n + nr, n + nr], dtype=float))
     result[0:n, 0:n] = -1 * np.eye(n).astype(float)
     result[0:n, n:n + nr] = nu_ij
@@ -201,17 +203,19 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     xieq = x[n:n + nr]
     gammaeq = x[n + nr:n + nr + n]
     ionic_str = x[n + nr + n]
-    sqrt_ionic_str = np.sqrt(ionic_str)
 
     # calculate neq for all components
     n0_mm0 = neq[0] * mm_0
     meq[0] = 1 / mm_0
     neq = meq * n0_mm0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    ionic_str_adim = ionic_str / m0_ref
+    sqrt_ionic_str_adim = np.sqrt(ionic_str_adim)
 
     result = np.matrix(np.empty([n + nr + n + 1, 1], dtype=float))
     result[0:n] = -neq + n0 + nu_ij * xieq
     result[n:n + nr] = -kc + np.multiply(
-        np.prod(np.power(meq, nu_ij), 0).T,
+        np.prod(np.power(meq / m0_ref, nu_ij), 0).T,
         np.prod(np.power(gammaeq, nu_ij), 0).T
     )
     result[n + nr] = \
@@ -220,12 +224,13 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         -gammaeq[1:n] + \
         np.power(10,
                  (- 0.510 * np.power(z[1:n], 2)
-                  * (sqrt_ionic_str / (1 + sqrt_ionic_str)
-                     - 0.3 * ionic_str)
-                  + (1 - np.sign(z[1:n])) * 0.1 * ionic_str)
+                  * (sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim)
+                     - 0.3 * ionic_str_adim)
+                  + (1 - np.power(np.sign(z[1:n]), 2))
+                    * 0.1 * ionic_str_adim)
                  )
     result[n + nr + n] = \
-        -ionic_str + 1 / 2.0 * np.power(z, 2).T * (meq * 1000)
+        -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
     return result
 
 
@@ -239,15 +244,16 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     xieq = x[n:n + nr]
     gammaeq = x[n + nr:n + nr + n]
     ionic_str = x[n + nr + n].item()
-    sqrt_ionic_str = np.sqrt(ionic_str)
 
     # calculate neq for all components
     n0_mm0 = (neq[0] * mm_0).item()
     meq[0] = 1 / mm_0
     neq = meq * n0_mm0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    ionic_str_adim = ionic_str / m0_ref
+    sqrt_ionic_str_adim = np.sqrt(ionic_str_adim)
 
-    # TODO: Complete Jac.
-    diag_quotient = np.diagflat(np.prod(np.power(meq, nu_ij), 0))
+    diag_quotient = np.diagflat(np.prod(np.power(meq / m0_ref, nu_ij), 0))
     result = np.matrix(
         np.zeros([n + nr + n + 1, n + nr + n + 1], dtype=float)
     )
@@ -275,11 +281,12 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     ln_gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
     result[n + nr, 1:n] = -1.0 * mm_0 * ln_gamma0_ov_phi
     factor_1 = \
-        sqrt_ionic_str / (1 + sqrt_ionic_str) - 0.3 * ionic_str
+        sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim) \
+        - 0.3 * ionic_str_adim
     dfactor_1_di = \
         -0.510 * np.log(10.0) * \
-        (-0.3 + 1 / (2 * sqrt_ionic_str *
-                     (1 + sqrt_ionic_str)**2))
+        (-0.3 + 1 / (2 * sqrt_ionic_str_adim *
+                     (1 + sqrt_ionic_str_adim)**2))
     factor_2 = np.multiply(
         np.power(z[1:], 2),
         np.power(10, -0.510 * np.power(z[1:], 2) * factor_1))
@@ -289,5 +296,5 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         + (1 - np.power(np.sign(z[1:]), 2)) * 0.1,
         factor_2)
     result[n + nr + n, 1:n] = \
-        1 / 2.0 * np.power(z[1:].T, 2) * 1000
+        1 / 2.0 * np.power(z[1:].T, 2.0)
     return result
