@@ -284,15 +284,15 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim) \
         - 0.3 * ionic_str_adim
     dfactor_1_di = \
-        (-0.3 / m0_ref + 1 / (2 * sqrt_ionic_str_adim *
+        (1 / m0_ref)*(-0.3 + 1 / (2 * sqrt_ionic_str_adim *
                      (1 + sqrt_ionic_str_adim)**2))
     factor_2 = np.power(10, -0.510 * np.power(z[1:], 2) * factor_1 \
                  + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 * ionic_str_adim)
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
             np.log(10.0) * (
+                (-0.510) * np.power(np.sign(z[1:]), 2) * \
                 dfactor_1_di \
-                * (-0.510) * np.power(np.sign(z[1:]), 2) \
                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
     result[n + nr + n, 1:n] = \
