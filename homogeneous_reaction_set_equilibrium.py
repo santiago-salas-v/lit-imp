@@ -1096,17 +1096,17 @@ class UiGroupBox(QtGui.QWidget):
             else:
                 # Set reactions to random extent and recalculate
                 # TODO: scale to concentration sizes
-                # self.xieq_0 = np.matrix(
-                #     np.random.normal(0.0, 1.0 / 3.0, nr)).T
-                # # Set aequilibrium composition to initial value + estimated
-                # # conversion
-                # self.neq_0 = n0  # + nu_ij * self.xieq_0
-                # # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
-                # # 10.1002/cjce.5450660409
-                # self.neq_0[self.neq_0 == 0] = min(
-                #     n0[n0 != 0].A1) * np.finfo(float).eps
-                # self.initialEstimateAttempts += 1
-                # self.method_loops = [0, 0]
+                self.xieq_0 = np.matrix(
+                    np.random.normal(0.0, 1.0 / 3.0, nr)).T
+                # Set aequilibrium composition to initial value + estimated
+                # conversion
+                self.neq_0 = n0  # + nu_ij * self.xieq_0
+                # replace 0 by 10^-6*smallest value: Smith, Missen 1988 DOI:
+                # 10.1002/cjce.5450660409
+                self.neq_0[self.neq_0 == 0] = min(
+                    n0[n0 != 0].A1) * np.finfo(float).eps
+                self.initialEstimateAttempts += 1
+                self.method_loops = [0, 0]
                 stop = True
 
         if not self.acceptable_solution:

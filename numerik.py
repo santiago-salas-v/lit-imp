@@ -115,7 +115,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
         # First attempt without backtracking
         x = x + lambda_ls * y
         diff = x - x_k_m_1
-        j_val = j(x)
+        j_val =     j(x)
         f_val = f(x)
         magnitude_f = np.sqrt((f_val.T * f_val).item())
         # Non-functional status notification

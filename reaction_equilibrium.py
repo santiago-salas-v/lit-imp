@@ -140,7 +140,8 @@ def calc_xieq(
               tol=tol,
               max_it=max_it,
               inner_loop_condition=lambda x_vec:
-              all([item >= 0 for item in x_vec[0:n]]),
+              all([item >= 0 for item in
+                   np.concatenate([x_vec[0:n], x_vec[n + nr:n + nr + n]])]),
               notify_status_func=notify_status_func,
               method_loops=method_loops,
               process_func_handle=process_func_handle)
@@ -168,7 +169,7 @@ def calc_xieq(
 def f_gl_0_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     neq = x[0:n, 0]
     n0_mm0 = neq[s_index] * mm_0
-    m0_ref = 1 / 1000.0 # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
     meq = neq / n0_mm0  # mol/gsolvent
     xieq = x[n:n + nr, 0]
     result = np.matrix(np.empty([n + nr, 1], dtype=float))
@@ -227,7 +228,7 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
                   * (sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim)
                      - 0.3 * ionic_str_adim)
                   + (1 - np.power(np.sign(z[1:n]), 2))
-                    * 0.1 * ionic_str_adim)
+                  * 0.1 * ionic_str_adim)
                  )
     result[n + nr + n] = \
         -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
@@ -284,15 +285,21 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim) \
         - 0.3 * ionic_str_adim
     dfactor_1_di = \
-        (1 / m0_ref)*(-0.3 + 1 / (2 * sqrt_ionic_str_adim *
-                     (1 + sqrt_ionic_str_adim)**2))
-    factor_2 = np.power(10, -0.510 * np.power(z[1:], 2) * factor_1 \
-                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 * ionic_str_adim)
+        (1 / m0_ref) * (-0.3 + 1 / (2 * sqrt_ionic_str_adim *
+                                    (1 + sqrt_ionic_str_adim)**2))
+    factor_2 = np.power(10, -
+                        0.510 *
+                        np.power(z[1:], 2) *
+                        factor_1 +
+                        (1 -
+                         np.power(np.sign(z[1:]), 2)) *
+                        0.1 *
+                        ionic_str_adim)
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
             np.log(10.0) * (
-                (-0.510) * np.power(np.sign(z[1:]), 2) * \
-                dfactor_1_di \
+                (-0.510) * np.power(np.sign(z[1:]), 2) *
+                dfactor_1_di
                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
     result[n + nr + n, 1:n] = \
