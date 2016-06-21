@@ -430,6 +430,8 @@ class UiGroupBox(QtGui.QWidget):
                 delattr(self, 'acceptable_solution')
             if hasattr(self, 'component_order_in_table'):
                 delattr(self, 'component_order_in_table')
+            if hasattr(self, 'reaction_order_in_table'):
+                delattr(self, 'reaction_order_in_table')
             # Load csv data into form variables
             self.load_csv(filename)
 
