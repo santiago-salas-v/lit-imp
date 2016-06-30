@@ -104,6 +104,10 @@ def calc_xieq(
         ordered_neq_0 = np.matrix(
             [neq_0[index].item() for index in component_order]
         ).T
+        ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, meq_0[1:])
+        ordered_gammaeq_0[1:] = np.multiply(
+            gamma_davies(z[1:], ionic_str_eq_0),
+            gamma_setchenow(z[1:], ionic_str_eq_0, 0.1))
         f = partial(
             f_gl_0_davies,
             n0=ordered_n0,
@@ -220,16 +224,12 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         np.prod(np.power(gammaeq, nu_ij), 0).T
     )
     result[n + nr] = \
-        -gammaeq[0] + np.exp(-1.0 * mm_0 * sum(meq[1:n]))
+        -gammaeq[0] + gamma_solvent_id(mm_0, meq[1:n])
     result[n + nr + 1:n + nr + n] = \
-        -gammaeq[1:n] + \
-        np.power(10,
-                 (- 0.510 * np.power(z[1:n], 2)
-                  * (sqrt_ionic_str_adim / (1 + sqrt_ionic_str_adim)
-                     - 0.3 * ionic_str_adim)
-                  + (1 - np.power(np.sign(z[1:n]), 2))
-                  * 0.1 * ionic_str_adim)
-                 )
+        - gammaeq[1:] + \
+        + np.multiply(
+            gamma_davies(z[1:], ionic_str_adim),
+            gamma_setchenow(z[1:], ionic_str_adim, 0.1))
     result[n + nr + n] = \
         -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
     return result
@@ -305,3 +305,17 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     result[n + nr + n, 1:n] = \
         1 / 2.0 * np.power(z[1:].T, 2.0)
     return result
+
+def gamma_davies(z, i):
+    sqrt_i = np.sqrt(i)
+    log_gamma = -0.510 * np.power(z, 2) * (sqrt_i/(1 + sqrt_i) - 0.3 * i)
+    return np.power(10, log_gamma)
+
+def gamma_solvent_id(mm_0, m):
+    phi = 1.0 # ideal
+    ln_gamma = - phi * mm_0 * sum(m)
+    return np.exp(ln_gamma)
+
+def gamma_setchenow(z, i, b):
+    uncharged_ones = 1 - np.power(np.sign(z), 2)
+    return np.power(10, uncharged_ones * b * i)
