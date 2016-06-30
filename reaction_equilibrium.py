@@ -104,10 +104,10 @@ def calc_xieq(
         ordered_neq_0 = np.matrix(
             [neq_0[index].item() for index in component_order]
         ).T
-        ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, meq_0[1:])
+        ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
         ordered_gammaeq_0[1:] = np.multiply(
-            gamma_davies(z[1:], ionic_str_eq_0),
-            gamma_setchenow(z[1:], ionic_str_eq_0, 0.1))
+            gamma_davies(ordered_z[1:], ionic_str_eq_0),
+            gamma_setchenow(ordered_z[1:], ionic_str_eq_0, 0.1))
         f = partial(
             f_gl_0_davies,
             n0=ordered_n0,
