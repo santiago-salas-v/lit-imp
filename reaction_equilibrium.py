@@ -254,7 +254,13 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     ionic_str_adim = ionic_str / m0_ref
     sqrt_ionic_str_adim = np.sqrt(ionic_str_adim)
 
-    diag_quotient = np.diagflat(np.prod(np.power(meq / m0_ref, nu_ij), 0))
+    diag_quotient = np.diagflat(
+        np.prod(
+            np.power(
+                np.multiply(gammaeq, meq / m0_ref),
+                nu_ij),
+            0)
+    )
     result = np.matrix(
         np.zeros([n + nr + n + 1, n + nr + n + 1], dtype=float)
     )
