@@ -145,7 +145,7 @@ def calc_xieq(
               max_it=max_it,
               inner_loop_condition=lambda x_vec:
               all([item >= 0 for item in
-                   np.concatenate([x_vec[0:n], x_vec[n + nr:n + nr + n]])]),
+                   x_vec[0:n]]),
               notify_status_func=notify_status_func,
               method_loops=method_loops,
               process_func_handle=process_func_handle)

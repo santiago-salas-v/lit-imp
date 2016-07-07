@@ -118,15 +118,16 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
         j_val = j(x)
         f_val = f(x)
         magnitude_f = np.sqrt((f_val.T * f_val).item())
-        # Non-functional status notification
-        notify_status_func(progress_k, stop, outer_it_k,
-                           inner_it_j, lambda_ls, accum_step,
-                           x, diff, f_val, lambda_ls * y,
-                           method_loops)
-        # End non-functional notification
         if magnitude_f < tol and inner_loop_condition(x):
             stop = True  # Procedure successful
         else:
+            # Non-functional status notification
+            notify_status_func(progress_k, stop, outer_it_k,
+                               inner_it_j, lambda_ls, accum_step,
+                               x, diff, f_val, lambda_ls * y,
+                               method_loops)
+            # End non-functional notification
+
             # For progress use log scale to compensate for quadratic
             # convergence
             progress_k = (1.0 - np.log10(tol / magnitude_f) /

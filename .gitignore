@@ -13,6 +13,7 @@ codegen/
 bufferSolution/
 bufferSolution_LINUX/
 log/
+.ipynb_checkpoints/
 docs/*
 !docs/*.tex
 !docs/*.cfg
