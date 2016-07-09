@@ -100,7 +100,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
     # Non-functional status notification
     notify_status_func(progress_k, stop, outer_it_k,
                        inner_it_j, lambda_ls, accum_step,
-                       x, diff, f_val, lambda_ls * y,
+                       x, diff, f_val, j_val, lambda_ls * y,
                        method_loops)
     # End non-functional notification
     while outer_it_k <= max_it and not stop:
@@ -124,7 +124,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
             # Non-functional status notification
             notify_status_func(progress_k, stop, outer_it_k,
                                inner_it_j, lambda_ls, accum_step,
-                               x, diff, f_val, lambda_ls * y,
+                               x, diff, f_val, j_val, lambda_ls * y,
                                method_loops)
             # End non-functional notification
 
@@ -161,7 +161,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
             # Non-functional status notification
             notify_status_func(progress_k, stop, outer_it_k,
                                inner_it_j, lambda_ls, accum_step,
-                               x, diff, f_val, lambda_ls * y,
+                               x, diff, f_val, j_val, lambda_ls * y,
                                method_loops)
             # End non-functional notification
             method_loops[0] += 1
@@ -172,7 +172,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
     # Non-functional status notification
     notify_status_func(progress_k, stop, outer_it_k,
                        inner_it_j, lambda_ls, accum_step,
-                       x, diff, f_val, lambda_ls * y,
+                       x, diff, f_val, j_val, lambda_ls * y,
                        method_loops)
     # End non-functional notification
     return progress_k, stop, outer_it_k,\

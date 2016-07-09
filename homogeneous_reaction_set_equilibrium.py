@@ -51,9 +51,7 @@ def take_float(x):
 
 
 def take_list(x):
-    return np.fromstring(x.rpartition('=')[-1]
-                         .replace('[', '').replace(']', ''),
-                         sep=',')
+    return np.array(eval(x.rpartition('=')[-1]))
 
 
 def take_int(x):
@@ -1314,15 +1312,16 @@ class UiGroupBox(QtGui.QWidget):
              ('backtrack', int),
              ('lambda_ls', float),
              ('accum_step', float),
+             ('stop', bool),
              ('X', list),
              ('||X(k)-X(k-1)||', float),
              ('f(X)', list),
              ('||f(X)||', float),
+             ('j(X)', list),
              ('Y', list),
              ('||Y||', float),
              ('g', float),
              ('|g-g1|', float),
-             ('stop', bool),
              ('series_id', str)))
 
         headers_and_types_dict = dict(headers_and_types)
@@ -1336,6 +1335,8 @@ class UiGroupBox(QtGui.QWidget):
             np.argwhere(map(lambda x: x == str, headers_and_types[:, 1]))
         col_numbers_with_bool = \
             np.argwhere(map(lambda x: x == bool, headers_and_types[:, 1]))
+        col_numbers_with_ndarray = np.argwhere(
+            map(lambda x: x == np.ndarray, headers_and_types[:, 1]))
 
         cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
 
@@ -2059,6 +2060,7 @@ def update_status_label(
         x,
         diff,
         f_val,
+        j_val,
         lambda_ls_y,
         method_loops):
     status = 'solving...'
@@ -2089,15 +2091,16 @@ def update_status_label(
                   ';backtrack=' + str(j_it_backtrack) +
                   ';lambda_ls=' + str(lambda_ls) +
                   ';accum_step=' + str(accum_step) +
+                  ';stop=' + str(stop_value) +
                   ';X=' + '[' + ','.join(map(str, x.T.A1)) + ']' +
                   ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
                   ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
                   ';||f(X)||=' + str(np.sqrt((f_val.T * f_val).item())) +
+                  ';j(X)=' + str(j_val.tolist()) +
                   ';Y=' + '[' + ','.join(map(str, y.T.A1)) + ']' +
                   ';||Y||=' + str(np.sqrt((y.T * y).item())) +
                   ';g=' + str(g_min) +
                   ';|g-g1|=' + str(abs(g_min - g1)) +
-                  ';stop=' + str(stop_value) +
                   ';' + series_id)
 
 
