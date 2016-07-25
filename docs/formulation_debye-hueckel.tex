@@ -1,11 +1,36 @@
 \documentclass[onecolumn]{article}
 \usepackage{amsmath}
 \begin{document}
-\title{03 - Debye-Hückel model}
+\title{03 - Debye-Hueckel limiting law model}
 \author{}
 \date{}
 \maketitle
-Debye-Hückel model:\\
+Activity coefficient expressions - Convention III, Debye-Hueckel
+limiting law on electrolytes,
+Setschenow non-electrolytes, ideal osmotic coefficient $\phi=1$ in solvent:
+\begin{equation}
+\label{eq:activity_coeff}
+\begin{aligned}
+\textnormal{electrolytes: } & log_{10}(\gamma_{i}) =
+-A_m \cdot z_i^2 \times \sqrt{I} \\
+& A_m = A \rho_0^{1/2}/ln(10) \\
+& A = (2 \pi N_{Av})^{1/2}
+\left({e^2}\over{4 \pi \varepsilon_0 \varepsilon_r  k T} \right)^{3/2}\\
+& H_2O, 298.15K, \varepsilon_r=78.54, \rho_0=0.99714kg/L: \\
+& A/ln(10)=0.5099 (mol/L)^{-1/2}, A_m=0.5092 (mol/kg)^{-1/2} \\
+\textnormal{non-electrolytes: } & log_{10}(\gamma_{i}) = b_i \times I \\
+\textnormal{solvent: } & log_{10}(\gamma_{0}) =
+-\phi \times M_0 \sum_{j\neq0}{m_j} \times log_{10}(e)\\
+ & \phi_{id.} =   1.0 \\
+\end{aligned}
+\end{equation}
+Ionic strength:
+\begin{equation}
+\label{eq:ionic_strength}
+\begin{aligned}
+& I = \frac{1}{2} \sum_{i=1}^n m_i z_i^2 \\
+\end{aligned}
+\end{equation}
 Material balances:
 \begin{equation}
 \begin{aligned}
@@ -20,15 +45,6 @@ Equilibrium constant expressions:
 \label{eq:eq_expr}
 K_j(T) = \left[ \prod_i(\gamma^{II}_i x_i)^{\nu_{ij}} \right]_{\textnormal{eq.}} =
 \left[ \prod_i(\gamma^{III}_i \times m_i/m^{\circ}_i )^{\nu_{ij}} \right]_{\textnormal{eq.}}
-\end{equation}
-Activity coefficient expressions:
-\begin{equation}
-\label{eq:activity_coeff}
-\begin{aligned}
-\textnormal{electrolytes: } & log_{10}(\gamma_{i}) = -0.5108 z_i^2 \times \sqrt{I} \\
-& I = \frac{1}{2} \sum_{i=1}^n m_i z_i^2 \\
-\textnormal{non-electrolytes: } & log_{10}(\gamma_{i}) = b_i \times I
-\end{aligned}
 \end{equation}
 Charge balance:
 \begin{equation}
