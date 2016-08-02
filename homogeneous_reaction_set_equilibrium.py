@@ -1335,8 +1335,6 @@ class UiGroupBox(QtGui.QWidget):
             np.argwhere(map(lambda x: x == str, headers_and_types[:, 1]))
         col_numbers_with_bool = \
             np.argwhere(map(lambda x: x == bool, headers_and_types[:, 1]))
-        col_numbers_with_ndarray = np.argwhere(
-            map(lambda x: x == np.ndarray, headers_and_types[:, 1]))
 
         cell_conversions = dict.fromkeys(headers_and_types_dict.keys())
 

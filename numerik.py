@@ -2,8 +2,8 @@ import numpy as np
 
 
 def lrpd(a):
-    """L,R,P,D,DA aus der LR = PDA Zerlegung
-    Methode aus Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer S. 79
+    """L,R,P,D,DA from LR = PDA factorization
+    Method: Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer S. 79
     :param a: numpy.matrix NxN
     """
     n = a.shape[0]
