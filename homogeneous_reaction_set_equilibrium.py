@@ -143,8 +143,6 @@ class UiGroupBox(QtGui.QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        # Default size
-        parent.resize(500, 357)
         # Assignments
         self.verticalLayout_2 = QtGui.QVBoxLayout(parent)
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
@@ -1375,8 +1373,6 @@ class UiGroupBoxPlot(QtGui.QWidget):
 
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        # Default size
-        parent.resize(741, 421)
         # Assignments
         log_scale_func_list = [
             ('-log10', lambda x: -1.0 * np.log10(x)), ('', lambda x: 10.0 ** (-1.0 * x))]
@@ -1392,7 +1388,13 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.eraseAnnotationsB = QtGui.QPushButton()
         self.navigation_frame = QtGui.QFrame()
         self.horizontalLayout = QtGui.QHBoxLayout()
-        self.figure = Figure(dpi=72, facecolor=(1, 1, 1),
+        # Handle fixed 96 dpi for Webkit bugreport
+        # https://bugreports.qt-project.org/browse/QTBUG-29571
+        window = QtGui.QApplication.desktop().screen()
+        horizontalDpi = window.logicalDpiX()
+        canvas_factor = 72.0/96.0
+        self.figure = Figure(dpi=horizontalDpi*canvas_factor,
+                             facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(self.figure)
@@ -1739,9 +1741,9 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 indep_var_values, dep_var_values.A1.tolist(), 'go-', label=series_label,
                 color=colormap_colors[
                     np.random.randint(
-                        0, len(colormap_colors), 1)],
+                        0, len(colormap_colors), 1).item()],
                 markerfacecolor=colormap_colors[
-                    np.random.randint(0, len(colormap_colors), 1)],
+                    np.random.randint(0, len(colormap_colors), 1).item()],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
             dc[label] = datacursor(
@@ -1869,7 +1871,6 @@ class LogWidget(QtGui.QWidget):
         # Default size
         self.minLogHeight = 400
         self.minLogWidth = self.minLogHeight * 16 / 9
-        parent.resize(self.minLogWidth, self.minLogHeight)
         # Assignments
         self.verticalLayout = QtGui.QVBoxLayout(parent)
         self.horizontalLayout = QtGui.QHBoxLayout()
