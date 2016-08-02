@@ -1168,9 +1168,16 @@ class UiGroupBox(QtGui.QWidget):
         self.browser_window = QtGui.QWidget()
         self.browser_window.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
+        self.browser_window.setMinimumWidth(1000)
         self.browser_window.setWindowTitle('About')
         verticalLayout = QtGui.QVBoxLayout(self.browser_window)
+        # Handle fixed 96 dpi for Webkit bugreport
+        # https://bugreports.qt-project.org/browse/QTBUG-29571
+        QtWebKit.QWebSettings.ZoomTextOnly = True
+        window = QtGui.QApplication.desktop().screen()
+        horizontalDpi =window.logicalDpiX()
         aboutBox_1 = QtWebKit.QWebView()
+        aboutBox_1.setZoomFactor(horizontalDpi/96.0)
         toolbar_1 = QtGui.QToolBar()
         back_icon = QtGui.QIcon(
             os.path.join(
@@ -1291,8 +1298,6 @@ class UiGroupBox(QtGui.QWidget):
         html_file.write(html_stream.encode('utf-8'))
         html_file.close()
         aboutBox_1.load(html_file_path)
-        aboutBox_1.setMinimumWidth(500)
-        aboutBox_1.setMinimumHeight(400)
         aboutBox_1.show()
         self.browser_window.show()
         # Make connections at the end
@@ -2220,18 +2225,6 @@ class MatrixModel(QtCore.QAbstractTableModel):
 
     def return_headers(self):
         return self._column_names
-
-
-class AboutBox(QtGui.QMessageBox):
-
-    def __init__(self, parent=None):
-        QtGui.QMessageBox.__init__(self, parent)
-
-    def about(self, title_text, contained_text):
-        QtGui.QMessageBox.__init__(self, None)
-        self.setText(title_text)
-        self.setDetailedText(contained_text)
-        self.show()
 
 
 class ScientificDoubleSpinBox(QtGui.QDoubleSpinBox):
