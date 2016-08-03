@@ -51,7 +51,9 @@ def take_float(x):
 
 
 def take_list(x):
-    return np.array(eval(x.rpartition('=')[-1]))
+    separator = ','
+    raw_list = x.rpartition('=')[-1].replace('[','').replace(']','')
+    return np.fromstring(raw_list, dtype=float, sep=separator)
 
 
 def take_int(x):
