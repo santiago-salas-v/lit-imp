@@ -1,6 +1,12 @@
 \documentclass[onecolumn]{article}
 \usepackage{amsmath}
 \begin{document}
+<<<<<<< HEAD
+\title{03 - Debye-Hueckel model}
+\author{}
+\date{}
+\maketitle
+=======
 \title{03 - Debye-Hueckel limiting law model}
 \author{}
 \date{}
@@ -31,6 +37,7 @@ Ionic strength:
 & I = \frac{1}{2} \sum_{i=1}^n m_i z_i^2 \\
 \end{aligned}
 \end{equation}
+>>>>>>> 9964cf7cb06fc792e83bb72c7abfe77f7c9440d4
 Material balances:
 \begin{equation}
 \begin{aligned}
@@ -46,19 +53,44 @@ Equilibrium constant expressions:
 K_j(T) = \left[ \prod_i(\gamma^{II}_i x_i)^{\nu_{ij}} \right]_{\textnormal{eq.}} =
 \left[ \prod_i(\gamma^{III}_i \times m_i/m^{\circ}_i )^{\nu_{ij}} \right]_{\textnormal{eq.}}
 \end{equation}
+<<<<<<< HEAD
+Activity coefficient expressions - Convention III, Debye-Hueckel electrolytes,
+Setschenow non-electrolytes, ideal osmotic coefficient $\phi=1$ in solvent:
+\begin{equation}
+\label{eq:activity_coeff}
+\begin{aligned}
+\textnormal{electrolytes: } & log_{10}(\gamma_{i}) = -(A_c \rho_0) z^2  \times \sqrt{I} \\
+\textnormal{non-electrolytes: } & log_{10}(\gamma_{i}) = b_i \times I \\
+\textnormal{solvent: } & log_{10}(\gamma_{0}) =
+-\phi \times M_0 \sum_{j\neq0}{m_j} \times log_{10}(e)\\
+ & \phi_{id.} =   1.0 \\
+\end{aligned}
+\end{equation}
+Ionic strength:
+\begin{equation}
+\label{eq:ionic_strength}
+\begin{aligned}
+& I = \frac{1}{2} \sum_{i=1}^n m_i z_i^2 \\
+\end{aligned}
+\end{equation}
+=======
+>>>>>>> 9964cf7cb06fc792e83bb72c7abfe77f7c9440d4
 Charge balance:
 \begin{equation}
 0 = \sum_i(z_i \times m_i)
 \end{equation}
 \\
 Vars: \\
-n+1 components composition $n_0$, $n_1$, ..., $n_n$. \\
-n+1 components activity coefficients $\gamma_0$, $\gamma_1$, ..., $\gamma_n$. \\
+n + 1 (components + solvent) compositions $n_0$, $n_1$, ..., $n_n$. \\
+n + 1 (components + solvent) activity coefficients
+$\gamma_0$, $\gamma_1$, ..., $\gamma_n$. \\
 $n_r$ reaction extents $\xi_1$, $\xi_2$, ..., $\xi_{nr}$. \\
-Tot. $2n + 2 + n_r$ \\
+1 Ionic strength $I$. \\
+Tot. $2(n + 1) + n_r + 1$ \\
 Eqs: \\
 n+1 mole balances (eq. \ref{eq:mole_balance}). \\
 n+1 activity coefficient expressions (eq. \ref{eq:activity_coeff}). \\
 $n_r$ equilibrium expresisons (eq. \ref{eq:eq_expr}). \\
-Tot. $2n + 2 + n_r$
+1 Ionic strength expression. (eq. \ref{eq:ionic_strength})\\
+Tot. $2(n + 1) + n_r + 1$
 \end{document}
