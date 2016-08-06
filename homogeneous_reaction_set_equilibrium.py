@@ -1457,6 +1457,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.verticalLayout.addWidget(self.listWidget)
         self.verticalLayout.addWidget(self.plotButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
+        # Toolbar height adjusted once added.
+        self.toolbar.adjustSize()
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
         # Events
         self.listWidget_2.itemDoubleClicked.connect(
