@@ -133,6 +133,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
             progress_k = (1.0 - np.log10(tol / magnitude_f) /
                           log10_to_o_max_magnitude_f) * 100.0
             if np.isnan(magnitude_f) or np.isinf(magnitude_f):
+                # TODO: Re-implement steepest descent
                 stop = True  # Divergent method
                 divergent = True
                 progress_k = 0.0

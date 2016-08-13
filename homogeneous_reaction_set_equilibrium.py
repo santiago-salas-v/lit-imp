@@ -658,7 +658,6 @@ class UiGroupBox(QtGui.QWidget):
             self.comps_completed_matrix, key=lambda x: x[0]))
         reacs = np.array(sorted(
             self.reacs_completed_matrix, key=lambda x: x[0]))
-        # TODO: sort rows, avoid bad location of nu_ij
         header_comps = self.header_comps
         header_reacs = self.header_reacs
         molar_masses_valid = False
@@ -845,7 +844,6 @@ class UiGroupBox(QtGui.QWidget):
             if column != n + 0 + 1 + 1:
                 # Keep original order from table in sorted_reacs
                 column_data = reacs[j, column]
-                # TODO: Confirm numeric sorting still works.
             elif column == n + 0 + 1 + 1:
                 # Keep original order from table
                 column_data = getattr(self, column_name)[j]
@@ -1095,7 +1093,6 @@ class UiGroupBox(QtGui.QWidget):
                 self.acceptable_solution = True
             else:
                 # Set reactions to random extent and recalculate
-                # TODO: scale to concentration sizes
                 self.xieq_0 = np.matrix(
                     np.random.normal(0.0, 1.0 / 3.0, nr)).T
                 # Set aequilibrium composition to initial value + estimated
@@ -1636,7 +1633,6 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 if line_label in self.indep_var_series.keys():
                     line.set_xdata(self.log_indep_var_series[line_label])
                 else:
-                    # TODO: Check first if any data are nan due to conversion.
                     line.set_xdata(self.log_scale_func(line_xdata))
                 self.ax.set_xlabel(
                     '$' + self.log_scale_string + '(' + match.group('id2') + ')' + '$')
@@ -1679,7 +1675,6 @@ class UiGroupBoxPlot(QtGui.QWidget):
                         self.log_dep_var_series[
                             match.group('id2')].A1.tolist())
                 else:
-                    # TODO: Check first if any data are nan due to conversion.
                     line.set_ydata(self.invlog_scale_func(line_ydata))
                 line.set_label('$' + self.log_scale_string +
                                '(' + match.group('id2') + ')' + '$')
@@ -2050,7 +2045,6 @@ class LogWidget(QtGui.QWidget):
                                    log_scale_func_list=log_scale_func_list,
                                    add_path_arrows=True)
         self.plotBox.plot_intervals([dep_var_labels[-1]])
-        # FIXME: 2 Punkte, Logx ein- und ausschalten
         self.group_3.show()
         self.plotBox.ax.set_ylabel('||f(X)||')
 
@@ -2136,7 +2130,6 @@ class PandasModel(QtCore.QAbstractTableModel):
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self._data.columns[col]
-        # TODO: Implement vertical header indicating row numbers
         return None
 
 
