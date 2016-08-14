@@ -52,8 +52,12 @@ def take_float(x):
 
 def take_list(x):
     separator = ','
-    raw_list = x.rpartition('=')[-1].replace('[','').replace(']','')
-    return np.fromstring(raw_list, dtype=float, sep=separator)
+    raw_list = x.rpartition('=')[-1].replace('[', '').replace(']', '')
+    output_string = np.fromstring(raw_list, dtype=float, sep=separator)
+    if x.find('j') > -1:
+        square_dim = round(np.sqrt(len(output_string)))
+        output_string = output_string.reshape(square_dim, square_dim)
+    return output_string
 
 
 def take_int(x):
@@ -1172,9 +1176,9 @@ class UiGroupBox(QtGui.QWidget):
         # https://bugreports.qt-project.org/browse/QTBUG-29571
         QtWebKit.QWebSettings.ZoomTextOnly = True
         window = QtGui.QApplication.desktop().screen()
-        horizontalDpi =window.logicalDpiX()
+        horizontalDpi = window.logicalDpiX()
         aboutBox_1 = QtWebKit.QWebView()
-        aboutBox_1.setZoomFactor(horizontalDpi/96.0)
+        aboutBox_1.setZoomFactor(horizontalDpi / 96.0)
         toolbar_1 = QtGui.QToolBar()
         back_icon = QtGui.QIcon(
             os.path.join(
@@ -1389,8 +1393,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         # https://bugreports.qt-project.org/browse/QTBUG-29571
         window = QtGui.QApplication.desktop().screen()
         horizontalDpi = window.logicalDpiX()
-        canvas_factor = 72.0/96.0
-        self.figure = Figure(dpi=horizontalDpi*canvas_factor,
+        canvas_factor = 72.0 / 96.0
+        self.figure = Figure(dpi=horizontalDpi * canvas_factor,
                              facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)

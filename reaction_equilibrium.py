@@ -312,15 +312,18 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
         1 / 2.0 * np.power(z[1:].T, 2.0)
     return result
 
+
 def gamma_davies(z, i):
     sqrt_i = np.sqrt(i)
-    log_gamma = -0.510 * np.power(z, 2) * (sqrt_i/(1 + sqrt_i) - 0.3 * i)
+    log_gamma = -0.510 * np.power(z, 2) * (sqrt_i / (1 + sqrt_i) - 0.3 * i)
     return np.power(10, log_gamma)
 
+
 def gamma_solvent_id(mm_0, m):
-    phi = 1.0 # ideal
+    phi = 1.0  # ideal
     ln_gamma = - phi * mm_0 * sum(m)
     return np.exp(ln_gamma)
+
 
 def gamma_setchenow(z, i, b):
     uncharged_ones = 1 - np.power(np.sign(z), 2)
