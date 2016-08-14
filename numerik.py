@@ -37,8 +37,8 @@ def lrpd(a):
 
 
 def gausselimination(a, b):
-    """Loesung des Systems Ax = b (LRx=PDb) durch Vorwaertseinsetzen aus Ly = Pb, und danach
-    Rueckwaertseinsetzen aus Rx = y
+    """Solution of the system Ax = b (LRx=PDb) through forward substitution of Ly = Pb, and then
+    backward substitution of Rx = y
     :param a: numpy.matrix n X n
     :param b: numpy.matrix n X 1
     """
@@ -50,30 +50,19 @@ def gausselimination(a, b):
     sum_lik_xk = 0
     sum_lik_yk = 0
     for j in range(0, n, +1):
-        # Vorwaertseinsetzen Ly = PDb
+        # Forward substitution Ly = PDb
         for k in range(0, j, +1):
             sum_lik_yk = sum_lik_yk + l[j, k] * y[k]
         y[j] = (pdb[j, 0] - sum_lik_yk) / 1.0
         sum_lik_yk = 0
     for j in range(n - 1, -1, -1):
-        # Rueckwaertseinsetzen Rx = y
+        # Backward substitution Rx = y
         for k in range(n - 1, j, -1):
             sum_lik_xk = sum_lik_xk + r[j, k] * x[k]
         x[j] = (y[j, 0] - sum_lik_xk) / r[j, j]
         sum_lik_xk = 0
     return x
 
-
-# A = np.matrix([[1, 5, 0], [2, 2, 2], [-2, 0, 2]]).astype(dtype=float)
-# A = np.matrix([[2, -1, -3, 3], [4, 0, -3, 1], [6, 1, -1, 6], [-2, -5, 4, 1]]).astype(dtype=float)
-# l, r, p, d, da = lrpd(A)
-# for mat in [l, r, p, d, da, l * r]:
-#     mat = Matrix(mat)
-#     for i in range(mat.shape[0]):
-#         mat[i, :] = Matrix(map(nsimplify, mat[i, :])).T
-#     pprint(mat)
-#     print "\n"
-# pprint(gausselimination(A, Matrix(np.matrix([1, 2, 3, 4])).T))
 
 # noinspection PyAugmentAssignment
 def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
@@ -132,7 +121,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
             # convergence
             progress_k = (1.0 - np.log10(tol / magnitude_f) /
                           log10_to_o_max_magnitude_f) * 100.0
-            if np.isnan(magnitude_f) or np.isinf(magnitude_f):
+            if np.isnan(magnitude_f):
                 # TODO: Re-implement steepest descent
                 stop = True  # Divergent method
                 divergent = True
