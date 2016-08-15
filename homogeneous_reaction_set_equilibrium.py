@@ -1407,8 +1407,8 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.plotButton = QtGui.QPushButton(parent)
         self.toolbar = NavigationToolbar(self.canvas, self.navigation_frame)
         self.horizontalLayout_1 = QtGui.QHBoxLayout()
-        self.all_to_displayed = QtGui.QPushButton()
-        self.all_to_available = QtGui.QPushButton()
+        self.move_10_to_displayed = QtGui.QPushButton()
+        self.move_10_to_available = QtGui.QPushButton()
         # Default log_log_scale_func_list
         self.set_log_scale_func_list(log_scale_func_list)
         # Object names
@@ -1450,10 +1450,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.verticalLayout.addWidget(self.label)
         self.verticalLayout.addWidget(self.listWidget_2)
         self.verticalLayout.addLayout(self.horizontalLayout_1)
-        self.all_to_displayed.setIcon(self.icon_up)
-        self.all_to_available.setIcon(self.icon_down)
-        self.horizontalLayout_1.addWidget(self.all_to_available)
-        self.horizontalLayout_1.addWidget(self.all_to_displayed)
+        self.move_10_to_displayed.setIcon(self.icon_up)
+        self.move_10_to_available.setIcon(self.icon_down)
+        self.horizontalLayout_1.addWidget(self.move_10_to_available)
+        self.horizontalLayout_1.addWidget(self.move_10_to_displayed)
         self.verticalLayout.addWidget(self.label_2)
         self.verticalLayout.addWidget(self.listWidget)
         self.verticalLayout.addWidget(self.plotButton)
@@ -1463,15 +1463,19 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.navigation_frame.setMinimumHeight(self.toolbar.height())
         # Events
         self.listWidget_2.itemDoubleClicked.connect(
-            partial(self.move_to_available))
+            lambda: self.move_to_available(item_no=-1))
         self.listWidget.itemDoubleClicked.connect(
-            partial(self.move_to_displayed))
+            lambda: self.move_to_displayed(item_no=-1))
         self.toggleLogButtonX.toggled.connect(
             partial(self.toggled_toggle_log_button_x))
         self.toggleLogButtonY.toggled.connect(
             partial(self.toggled_toggle_log_button_y))
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
         self.plotButton.clicked.connect(partial(self.force_update_plot))
+        self.move_10_to_available.clicked.connect(
+            partial(self.move_to_available, 10))
+        self.move_10_to_displayed.clicked.connect(
+            partial(self.move_to_displayed, 10))
         # Retranslate, connect
         self.retranslate_ui(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
@@ -1604,16 +1608,16 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 "Erase annotations",
                 None,
                 QtGui.QApplication.UnicodeUTF8))
-        self.all_to_available.setText(
+        self.move_10_to_available.setText(
             QtGui.QApplication.translate(
                 "parent",
-                "All",
+                "(10)",
                 None,
                 QtGui.QApplication.UnicodeUTF8))
-        self.all_to_displayed.setText(
+        self.move_10_to_displayed.setText(
             QtGui.QApplication.translate(
                 "parent",
-                "All",
+                "(10)",
                 None,
                 QtGui.QApplication.UnicodeUTF8))
 
@@ -1787,11 +1791,23 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 del l
         self.canvas.draw()
 
-    def move_to_available(self, item):
+    def move_to_available(self, item_no=-1):
         self.delete_arrows()
-        if self.listWidget_2.count() <= 1:
-            return
         selected_items = self.listWidget_2.selectedItems()
+        if self.listWidget_2.count() <= 1:
+            return # Stop if already showing only one item
+        if item_no < 1: # Move selected
+            pass # Default -1 for selected itemd
+        else: # Move item_no items
+            no_items_to_move = self.listWidget_2.count()
+            if item_no >= no_items_to_move:
+                no_items_to_move = no_items_to_move - 1
+            elif item_no < no_items_to_move:
+                # enough available, to remove item_no
+                no_items_to_move = item_no
+            selected_items = \
+                [self.listWidget_2.item(x) \
+                 for x in range(no_items_to_move)]
         for selected_item in selected_items:
             name = selected_item.text()
             new_item = self.listWidget_2.takeItem(
@@ -1819,12 +1835,25 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.listWidget_2.sortItems(QtCore.Qt.AscendingOrder)
         self.listWidget.sortItems(QtCore.Qt.DescendingOrder)
 
-    def move_to_displayed(self, item):
+    def move_to_displayed(self, item_no=-1):
         self.delete_arrows()
         selected_items = self.listWidget.selectedItems()
+        if item_no < 1:  # Move selected
+            pass # Default -1 for selected items
+        else:  # Move item_no items
+            no_items_to_move = self.listWidget.count()
+            if item_no >= no_items_to_move:
+                # Possible to move all to displayef
+                no_items_to_move = no_items_to_move
+            elif item_no < no_items_to_move:
+                # enough available, to move item_no
+                no_items_to_move = item_no
+            selected_items = \
+                [self.listWidget.item(x) \
+                 for x in range(no_items_to_move)]
         selected_items_names = [x.text() for x in selected_items]
         for selected_item in selected_items:
-            name = item.text()
+            name = selected_item.text()
             new_item = self.listWidget.takeItem(
                 self.listWidget.indexFromItem(selected_item).row())
             new_item.setIcon(QtGui.QIcon(os.path.join(
