@@ -1473,9 +1473,9 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.eraseAnnotationsB.clicked.connect(partial(self.erase_annotations))
         self.plotButton.clicked.connect(partial(self.force_update_plot))
         self.move_10_to_available.clicked.connect(
-            partial(self.move_to_available, 10))
+            lambda: self.move_to_available(item_no=10))
         self.move_10_to_displayed.clicked.connect(
-            partial(self.move_to_displayed, 10))
+            lambda: self.move_to_displayed(item_no=10))
         # Retranslate, connect
         self.retranslate_ui(parent)
         QtCore.QMetaObject.connectSlotsByName(parent)
