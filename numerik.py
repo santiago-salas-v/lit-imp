@@ -13,22 +13,20 @@ def lrpd(a):
     l = np.matrix(np.eye(n))
     r = np.matrix(np.zeros_like(p))
     indexes_r = range(n)
-    # max_aij = 0.0
     for i in range(n):
         d[i, i] = 1 / abs(a[i]).sum()
-        # Skalierung
+        # scaling
         da[i] = d[i, i] * a[i]
     for j in range(n):
-        # max_aij = max(abs(da[j:, j]))
         indexes_r[j] = j + abs(da[j:, j]).argmax()
-        # Spaltenpivotisierung
+        # columns pivoting
         da[[j, indexes_r[j]]] = da[[indexes_r[j], j]]
         p[[j, indexes_r[j]]] = p[[indexes_r[j], j]]
         for i in range(j + 1, n):
-            # neue Eintraege in L
+            # new entries in L
             da[i, j] = da[i, j] / da[j, j]
             for k in range(j + 1, n):
-                # neue Eintraege in R
+                # new entries in R
                 da[i, k] = da[i, k] - da[i, j] * da[j, k]
     for i in range(n):
         l[i + 1:n, i] = da[i + 1:n, i]
@@ -36,7 +34,7 @@ def lrpd(a):
     return l, r, p, d, da
 
 
-def gausselimination(a, b):
+def gauss_elimination(a, b):
     """Solution of the system Ax = b (LRx=PDb) through forward substitution of Ly = Pb, and then
     backward substitution of Rx = y
     :param a: numpy.matrix n X n
@@ -100,7 +98,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
         accum_step += lambda_ls
         x_k_m_1 = x
         progress_k_m_1 = progress_k
-        y = gausselimination(j_val, -f_val)
+        y = gauss_elimination(j_val, -f_val)
         # First attempt without backtracking
         x = x + lambda_ls * y
         diff = x - x_k_m_1
