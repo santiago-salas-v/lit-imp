@@ -238,7 +238,6 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_group.addWidget(self.radio_b_2)
         self.radio_group.addWidget(self.radio_b_3)
         self.radio_b_1.setChecked(True)
-        self.radio_b_2.setEnabled(False)
         self.radio_b_1.setToolTip('<b>%s</b><br><img src="%s">' %
                                   ('Ideal solution',
                                    'utils/Ideal_solution.png'))

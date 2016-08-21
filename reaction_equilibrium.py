@@ -86,7 +86,7 @@ def calc_xieq(
     if method == 'ideal_solution':
         # case already contemplated above
         pass
-    elif method == 'davies':
+    elif method == 'davies' or method == 'debye-hueckel':
         # x is [n_0, m_1, m_2, ..., m_n, xi_1, xi_2, ..., xi_{nr}, \gamma_1,
         #       \gamma_2, ..., \gamma_n, I]
         ordered_meq_0 = np.matrix(
@@ -111,26 +111,48 @@ def calc_xieq(
         ordered_gammaeq_0[1:] = np.multiply(
             gamma_davies(ordered_z[1:], ionic_str_eq_0, a_m),
             gamma_setchenow(ordered_z[1:], ionic_str_eq_0, 0.1))
-        f = partial(
-            f_gl_0_davies,
-            n0=ordered_n0,
-            nu_ij=ordered_nu_ij,
-            n=n,
-            nr=nr,
-            kc=kc,
-            z=ordered_z,
-            mm_0=mm_0,
-            a_m=a_m)
-        j = partial(
-            jac_davies,
-            n0=ordered_n0,
-            nu_ij=ordered_nu_ij,
-            n=n,
-            nr=nr,
-            kc=kc,
-            z=ordered_z,
-            mm_0=mm_0,
-            a_m=a_m)
+        if method == 'davies':
+            f = partial(
+                f_gl_0_davies,
+                n0=ordered_n0,
+                nu_ij=ordered_nu_ij,
+                n=n,
+                nr=nr,
+                kc=kc,
+                z=ordered_z,
+                mm_0=mm_0,
+                a_m=a_m)
+            j = partial(
+                jac_davies,
+                n0=ordered_n0,
+                nu_ij=ordered_nu_ij,
+                n=n,
+                nr=nr,
+                kc=kc,
+                z=ordered_z,
+                mm_0=mm_0,
+                a_m=a_m)
+        elif method == 'debye-hueckel':
+            f = partial(
+                f_gl_0_d_h,
+                n0=ordered_n0,
+                nu_ij=ordered_nu_ij,
+                n=n,
+                nr=nr,
+                kc=kc,
+                z=ordered_z,
+                mm_0=mm_0,
+                a_m=a_m)
+            j = partial(
+                jac_d_h,
+                n0=ordered_n0,
+                nu_ij=ordered_nu_ij,
+                n=n,
+                nr=nr,
+                kc=kc,
+                z=ordered_z,
+                mm_0=mm_0,
+                a_m=a_m)
         x0 = np.concatenate(
             [
                 ordered_neq_0[0],
@@ -161,7 +183,7 @@ def calc_xieq(
         meq = neq / (neq[s_index] * mm_0)
         gammaeq = gammaeq_0
         ionic_str_eq = 1 / 2.0 * np.power(z, 2).T * meq
-    elif method == 'davies':
+    elif method == 'davies' or method == 'debye-hueckel':
         neq0 = x[0:n][0]
         meq[1:n] = x[0:n][1:n]
         meq[0] = 1 / mm_0
@@ -204,6 +226,7 @@ def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
 
 
 def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
+    # f(x) = 0, objective function set for Davies model.
     neq = np.zeros([n, 1])
     meq = np.zeros([n, 1])
     # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
@@ -220,7 +243,6 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     neq = meq * n0_mm0
     m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
     ionic_str_adim = ionic_str / m0_ref
-    sqrt_ionic_str_adim = np.sqrt(ionic_str_adim)
 
     result = np.matrix(np.empty([n + nr + n + 1, 1], dtype=float))
     result[0:n] = -neq + n0 + nu_ij * xieq
@@ -241,6 +263,7 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
 
 
 def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
+    # j(x), Jacobian matrix for Davies model.
     neq = np.zeros([n, 1])
     meq = np.zeros([n, 1])
     # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
@@ -318,9 +341,131 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     return result
 
 
+def f_gl_0_d_h(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
+    # f(x) = 0, objective function set for Debye-Hueckel model.
+    neq = np.zeros([n, 1])
+    meq = np.zeros([n, 1])
+    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
+    # ionic_str]
+    neq[0] = x[0]
+    meq[1:n] = x[1:n]
+    xieq = x[n:n + nr]
+    gammaeq = x[n + nr:n + nr + n]
+    ionic_str = x[n + nr + n]
+
+    # calculate neq for all components
+    n0_mm0 = neq[0] * mm_0
+    meq[0] = 1 / mm_0
+    neq = meq * n0_mm0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    ionic_str_adim = ionic_str / m0_ref
+
+    result = np.matrix(np.empty([n + nr + n + 1, 1], dtype=float))
+    result[0:n] = -neq + n0 + nu_ij * xieq
+    result[n:n + nr] = -kc + np.multiply(
+        np.prod(np.power(meq / m0_ref, nu_ij), 0).T,
+        np.prod(np.power(gammaeq, nu_ij), 0).T
+    )
+    result[n + nr] = \
+        -gammaeq[0] + gamma_solvent_id(mm_0, meq[1:n])
+    result[n + nr + 1:n + nr + n] = \
+        - gammaeq[1:] + \
+        + np.multiply(
+            gamma_d_h(z[1:], ionic_str_adim, a_m),
+            gamma_setchenow(z[1:], ionic_str_adim, 0.1))
+    result[n + nr + n] = \
+        -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
+    return result
+
+
+def jac_d_h(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
+    # j(x), Jacobian matrix for Debye-Hueckel model.
+    neq = np.zeros([n, 1])
+    meq = np.zeros([n, 1])
+    # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
+    # ionic_str]
+    neq[0] = x[0].item()
+    meq[1:n] = x[1:n]
+    xieq = x[n:n + nr]
+    gammaeq = x[n + nr:n + nr + n]
+    ionic_str = x[n + nr + n].item()
+
+    # calculate neq for all components
+    n0_mm0 = (neq[0] * mm_0).item()
+    meq[0] = 1 / mm_0
+    neq = meq * n0_mm0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    ionic_str_adim = ionic_str / m0_ref
+    sqrt_ionic_str_adim = np.sqrt(ionic_str_adim)
+
+    diag_quotient = np.diagflat(
+        np.prod(
+            np.power(
+                np.multiply(gammaeq, meq / m0_ref),
+                nu_ij),
+            0)
+    )
+    result = np.matrix(
+        np.zeros([n + nr + n + 1, n + nr + n + 1], dtype=float)
+    )
+    result[0:n, 0:n] = \
+        np.diagflat(
+            np.concatenate(
+                [-1.0 * np.matrix([1]),
+                 -n0_mm0 * np.matrix(np.ones([n - 1, 1]))]
+            )
+    )
+    result[1:n, 0] = -meq[1:] * mm_0
+    result[0:n, n:n + nr] = nu_ij
+    result[n + nr:n + nr + n + 1, n + nr: n + nr + n + 1] = \
+        -1.0 * np.eye(n + 1)
+    result[n:n + nr, 0:n] = \
+        diag_quotient * nu_ij.T * np.diagflat(
+            np.concatenate(
+                [np.matrix(0.0), 1 / meq[1:]]
+            )
+    )
+    result[n:n + nr, n + nr:n + nr + n] = \
+        diag_quotient * nu_ij.T * np.diagflat(
+            1 / gammaeq
+    )
+    gamma0_ov_phi = np.exp(-1.0 * mm_0 * sum(meq[1:])).item()
+    result[n + nr, 1:n] = -1.0 * mm_0 * gamma0_ov_phi
+    factor_1 = \
+        sqrt_ionic_str_adim
+    dfactor_1_di = \
+        (1 / m0_ref) * (1 / (2 * sqrt_ionic_str_adim))
+    factor_2 = np.power(10,
+                        -a_m *
+                        np.power(z[1:], 2) *
+                        factor_1 +
+                        (1 -
+                         np.power(np.sign(z[1:]), 2)) *
+                        0.1 *
+                        ionic_str_adim)
+    result[n + nr + 1:n + nr + n, n + nr + n] = \
+        np.multiply(
+            np.log(10.0) * (
+                (-a_m) * np.power(np.sign(z[1:]), 2) *
+                dfactor_1_di
+                + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
+            factor_2)
+    result[n + nr + n, 1:n] = \
+        1 / 2.0 * np.power(z[1:].T, 2.0)
+    return result
+
+
 def gamma_davies(z, i, a_m):
+    # Activity coefficient, Davies model
     sqrt_i = np.sqrt(i)
     log_gamma = -a_m * np.power(z, 2) * (sqrt_i / (1 + sqrt_i) - 0.3 * i)
+    return np.power(10, log_gamma)
+
+
+def gamma_d_h(z, i, a_m):
+    # Activity coefficient, Debye-Hueckel model
+    sqrt_i = np.sqrt(i)
+    log_gamma = -a_m * np.power(z, 2) * sqrt_i
     return np.power(10, log_gamma)
 
 
