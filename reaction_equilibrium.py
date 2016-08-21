@@ -46,13 +46,15 @@ def calc_xieq(
     a_m = a_m_d_h(t_abs)
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
-    gammaeq_0 = np.matrix(np.ones([n, 1]))
     ionic_str_eq_0 = 1 / 2.0 * np.power(z, 2).T * meq_0
     gammaeq = np.ones([n, 1])
+    gammaeq_0 = gammaeq
     neq = neq_0
     meq = meq_0
     xieq = xieq_0
     ionic_str_eq = ionic_str_eq_0
+    m0_ref = 1 / 1000.0  # ref. 1mol/kgsolvent conv. to mol/gsolvent
+    ionic_str_eq_adim = ionic_str_eq / m0_ref
     f = partial(
         f_gl_0_ideal,
         n0=n0,
@@ -107,11 +109,11 @@ def calc_xieq(
         ordered_neq_0 = np.matrix(
             [neq_0[index].item() for index in component_order]
         ).T
-        ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
-        ordered_gammaeq_0[1:] = np.multiply(
-            gamma_davies(ordered_z[1:], ionic_str_eq_0, a_m),
-            gamma_setchenow(ordered_z[1:], ionic_str_eq_0, 0.1))
         if method == 'davies':
+            ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
+            ordered_gammaeq_0[1:] = np.multiply(
+                gamma_davies(ordered_z[1:], ionic_str_eq_adim, a_m),
+                    gamma_setchenow(ordered_z[1:], ionic_str_eq_adim, 0.1))
             f = partial(
                 f_gl_0_davies,
                 n0=ordered_n0,
@@ -133,6 +135,10 @@ def calc_xieq(
                 mm_0=mm_0,
                 a_m=a_m)
         elif method == 'debye-hueckel':
+            ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
+            ordered_gammaeq_0[1:] = np.multiply(
+                gamma_d_h(ordered_z[1:], ionic_str_eq_adim, a_m),
+                gamma_setchenow(ordered_z[1:], ionic_str_eq_adim, 0.1))
             f = partial(
                 f_gl_0_d_h,
                 n0=ordered_n0,

@@ -1077,7 +1077,7 @@ class UiGroupBox(QtGui.QWidget):
         while not self.acceptable_solution \
                 and k < max_it and stop is False \
                 and not self.was_canceled():
-            neq, meq, xieq, gammaeq, ionic_str_eq, method_loops = \
+            neq, meq, xieq, gammaeq_iii, ionic_str_eq, method_loops = \
                 calc_xieq(
                     n0, mm, z, s_index, kc, nu_ij,
                     neq_0, xieq_0, 298.15, method, max_it, tol,
@@ -1133,7 +1133,6 @@ class UiGroupBox(QtGui.QWidget):
         rhoeq = np.multiply(ceq, mm)
         weq = np.multiply(neq, mm)
         xweq = weq / sum(weq)
-        gammaeq_iii = gammaeq
         aeq = np.multiply(gammaeq_iii, meq * 1000)
         gammaeq_ii = mm[s_index].item() * np.multiply(
             gammaeq_iii, np.multiply(
