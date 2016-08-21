@@ -332,7 +332,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
             np.log(10.0) * (
-                (-a_m) * np.power(np.sign(z[1:]), 2) *
+                -a_m * np.power(z[1:], 2) *
                 dfactor_1_di
                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
@@ -446,7 +446,7 @@ def jac_d_h(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
             np.log(10.0) * (
-                (-a_m) * np.power(np.sign(z[1:]), 2) *
+                -a_m * np.power(z[1:], 2) *
                 dfactor_1_di
                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
