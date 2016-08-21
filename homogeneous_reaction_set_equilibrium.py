@@ -2383,7 +2383,7 @@ def main():
     # ended lines for setting app icon correctly
     main_form = QtGui.QGroupBox()
     icon = QtGui.QIcon(
-        os.path.join(sys.path[0], *['utils', 'icon_batch_chp_32X32.png']))
+        os.path.join(sys.path[0], *['utils', 'icon_batch_chp_96X96.png']))
     main_form.setWindowIcon(icon)
     main_form.ui = UiGroupBox(main_form)
     main_form.show()
