@@ -14,6 +14,7 @@ def calc_xieq(
         nu_ij,
         neq_0,
         xieq_0,
+        t_abs,
         method,
         max_it,
         tol,
@@ -28,6 +29,7 @@ def calc_xieq(
     :param s_index: int - índice de solvente
     :param kc: np.matrix (nr x 1) - "Cte." de equilibrio en reacción j @ T
     :param nu_ij: np.matrix (n x nr) - Coefs. esteq. componente i en reacción j
+    :param t_abs: float - temperatura T en Kelvin
     :param neq_0: np.matrix (n x 1) - mol - estimado inicial, equilibrio
     :param xieq_0: np.matrix (nr x 1) - avance de reacción j - estimado inicial, equilibrio
     :param method: str - método en uso: 'ideal_solution', 'davies', 'debye-hueckel'
@@ -41,6 +43,7 @@ def calc_xieq(
     n = len(n0)
     nr = nu_ij.shape[1]
     mm_0 = mm[s_index].item()
+    a_m = a_m_d_h(t_abs)
 
     meq_0 = neq_0 / (mm_0 * neq_0[s_index])
     gammaeq_0 = np.matrix(np.ones([n, 1]))
@@ -106,7 +109,7 @@ def calc_xieq(
         ).T
         ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
         ordered_gammaeq_0[1:] = np.multiply(
-            gamma_davies(ordered_z[1:], ionic_str_eq_0),
+            gamma_davies(ordered_z[1:], ionic_str_eq_0, a_m),
             gamma_setchenow(ordered_z[1:], ionic_str_eq_0, 0.1))
         f = partial(
             f_gl_0_davies,
@@ -116,7 +119,8 @@ def calc_xieq(
             nr=nr,
             kc=kc,
             z=ordered_z,
-            mm_0=mm_0)
+            mm_0=mm_0,
+            a_m=a_m)
         j = partial(
             jac_davies,
             n0=ordered_n0,
@@ -125,7 +129,8 @@ def calc_xieq(
             nr=nr,
             kc=kc,
             z=ordered_z,
-            mm_0=mm_0)
+            mm_0=mm_0,
+            a_m=a_m)
         x0 = np.concatenate(
             [
                 ordered_neq_0[0],
@@ -198,7 +203,7 @@ def jac_ideal(x, n0, nu_ij, n, nr, kc, mm_0, s_index):
     return result
 
 
-def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
+def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     neq = np.zeros([n, 1])
     meq = np.zeros([n, 1])
     # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
@@ -228,14 +233,14 @@ def f_gl_0_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     result[n + nr + 1:n + nr + n] = \
         - gammaeq[1:] + \
         + np.multiply(
-            gamma_davies(z[1:], ionic_str_adim),
+            gamma_davies(z[1:], ionic_str_adim, a_m),
             gamma_setchenow(z[1:], ionic_str_adim, 0.1))
     result[n + nr + n] = \
         -ionic_str + 1 / 2.0 * np.power(z, 2).T * meq
     return result
 
 
-def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
+def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
     neq = np.zeros([n, 1])
     meq = np.zeros([n, 1])
     # x is [n0 m1 m2 ... m_n xi1 xi2 ... xi_nr gamma1 gamma2 ... gamma_n
@@ -293,8 +298,8 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     dfactor_1_di = \
         (1 / m0_ref) * (-0.3 + 1 / (2 * sqrt_ionic_str_adim *
                                     (1 + sqrt_ionic_str_adim)**2))
-    factor_2 = np.power(10, -
-                        0.510 *
+    factor_2 = np.power(10,
+                        -a_m *
                         np.power(z[1:], 2) *
                         factor_1 +
                         (1 -
@@ -304,7 +309,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     result[n + nr + 1:n + nr + n, n + nr + n] = \
         np.multiply(
             np.log(10.0) * (
-                (-0.510) * np.power(np.sign(z[1:]), 2) *
+                (-a_m) * np.power(np.sign(z[1:]), 2) *
                 dfactor_1_di
                 + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
@@ -313,9 +318,9 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0):
     return result
 
 
-def gamma_davies(z, i):
+def gamma_davies(z, i, a_m):
     sqrt_i = np.sqrt(i)
-    log_gamma = -0.510 * np.power(z, 2) * (sqrt_i / (1 + sqrt_i) - 0.3 * i)
+    log_gamma = -a_m * np.power(z, 2) * (sqrt_i / (1 + sqrt_i) - 0.3 * i)
     return np.power(10, log_gamma)
 
 
@@ -328,3 +333,29 @@ def gamma_solvent_id(mm_0, m):
 def gamma_setchenow(z, i, b):
     uncharged_ones = 1 - np.power(np.sign(z), 2)
     return np.power(10, uncharged_ones * b * i)
+
+
+def a_m_d_h(t_abs=298.15):
+    # Parameter a of Debye-Hueckel theory, at T
+    epsilon_0 = 8.85418781762e-12  # C^2 * N^-1 * m^-2
+    epsilon_r = epsilon_r_water(t_abs)  # C^2 * N^-1 * m^-2
+    pi = 3.14159265359
+    n_a = 6.02214129e+23  # mol^-1
+    e = 1.602176565e-19  # C
+    k_b = 1.3806488e-23  # J K^-1
+    rho_1 = 0.99714  # kg * L^-1
+    a_c = (e**2 / (4 * epsilon_r * epsilon_0 * k_b * t_abs))**(3 / 2.0) \
+        * (2 * n_a / pi**2)**(1 / 2.0) * (1000)**(1 / 2.0) \
+        / np.log(10.0)  # (mol/L)^(-1/2)
+    a_m = a_c * rho_1**(1 / 2.0)  # (mol/kg)^(-1/2)
+    return a_m
+
+
+def epsilon_r_water(t_abs=298.15):
+    # Static relative permittivity (epsilon_r) of water as func. of T
+    # CRC Handbook of Chemistry and Physics, 90th ed., CRC Press, 2009
+    a = +0.24921E+03
+    b = -0.79069E+00
+    c = +0.72997E-03
+    d = +0.00000E+00
+    return a + b * t_abs + c * t_abs ** 2 + d * t_abs ** 3

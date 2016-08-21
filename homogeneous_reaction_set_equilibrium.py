@@ -1081,7 +1081,7 @@ class UiGroupBox(QtGui.QWidget):
             neq, meq, xieq, gammaeq, ionic_str_eq, method_loops = \
                 calc_xieq(
                     n0, mm, z, s_index, kc, nu_ij,
-                    neq_0, xieq_0, method, max_it, tol,
+                    neq_0, xieq_0, 298.15, method, max_it, tol,
                     self.method_loops,
                     partial(update_status_label,
                             series_id,
@@ -1134,7 +1134,6 @@ class UiGroupBox(QtGui.QWidget):
         rhoeq = np.multiply(ceq, mm)
         weq = np.multiply(neq, mm)
         xweq = weq / sum(weq)
-        # TODO: Implement activity coefficients
         gammaeq_iii = gammaeq
         aeq = np.multiply(gammaeq_iii, meq * 1000)
         gammaeq_ii = mm[s_index].item() * np.multiply(
