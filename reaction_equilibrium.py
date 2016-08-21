@@ -82,7 +82,7 @@ def calc_xieq(
     )
     component_order_map = \
         sorted([(origindex, orderedindex) for (orderedindex, origindex)
-                in enumerate(component_order)], key=lambda x: x[0])
+                in enumerate(component_order)], key=lambda y: y[0])
     return_to_original_indexes = [x[1] for x in component_order_map]
 
     if method == 'ideal_solution':
@@ -113,7 +113,7 @@ def calc_xieq(
             ordered_gammaeq_0[0] = gamma_solvent_id(mm_0, ordered_meq_0[1:])
             ordered_gammaeq_0[1:] = np.multiply(
                 gamma_davies(ordered_z[1:], ionic_str_eq_adim, a_m),
-                    gamma_setchenow(ordered_z[1:], ionic_str_eq_adim, 0.1))
+                gamma_setchenow(ordered_z[1:], ionic_str_eq_adim, 0.1))
             f = partial(
                 f_gl_0_davies,
                 n0=ordered_n0,
@@ -326,7 +326,7 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
         - 0.3 * ionic_str_adim
     dfactor_1_di = \
         (1 / m0_ref) * (-0.3 + 1 / (2 * sqrt_ionic_str_adim *
-                                    (1 + sqrt_ionic_str_adim)**2))
+                                    (1 + sqrt_ionic_str_adim) ** 2))
     factor_2 = np.power(10,
                         -a_m *
                         np.power(z[1:], 2) *
@@ -339,8 +339,8 @@ def jac_davies(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
         np.multiply(
             np.log(10.0) * (
                 -a_m * np.power(z[1:], 2) *
-                dfactor_1_di
-                + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
+                dfactor_1_di +
+                (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
     result[n + nr + n, 1:n] = \
         1 / 2.0 * np.power(z[1:].T, 2.0)
@@ -453,8 +453,8 @@ def jac_d_h(x, n0, nu_ij, n, nr, kc, z, mm_0, a_m):
         np.multiply(
             np.log(10.0) * (
                 -a_m * np.power(z[1:], 2) *
-                dfactor_1_di
-                + (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
+                dfactor_1_di +
+                (1 - np.power(np.sign(z[1:]), 2)) * 0.1 / m0_ref),
             factor_2)
     result[n + nr + n, 1:n] = \
         1 / 2.0 * np.power(z[1:].T, 2.0)
@@ -495,10 +495,10 @@ def a_m_d_h(t_abs=298.15):
     e = 1.602176565e-19  # C
     k_b = 1.3806488e-23  # J K^-1
     rho_1 = 0.99714  # kg * L^-1
-    a_c = (e**2 / (4 * epsilon_r * epsilon_0 * k_b * t_abs))**(3 / 2.0) \
-        * (2 * n_a / pi**2)**(1 / 2.0) * (1000)**(1 / 2.0) \
+    a_c = (e ** 2 / (4 * epsilon_r * epsilon_0 * k_b * t_abs)) ** (3 / 2.0) \
+        * (2 * n_a / pi ** 2) ** (1 / 2.0) * 1000 ** (1 / 2.0) \
         / np.log(10.0)  # (mol/L)^(-1/2)
-    a_m = a_c * rho_1**(1 / 2.0)  # (mol/kg)^(-1/2)
+    a_m = a_c * rho_1 ** (1 / 2.0)  # (mol/kg)^(-1/2)
     return a_m
 
 
