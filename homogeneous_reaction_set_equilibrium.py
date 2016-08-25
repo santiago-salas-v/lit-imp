@@ -142,6 +142,7 @@ doc_hline_re = re.compile(
     r'(\s*-{3,})')
 html_title = re.compile('<title>(.*?)</title>',
                         re.IGNORECASE | re.DOTALL)
+main_window_title = 'Homogeneous EC.'
 
 
 class UiGroupBox(QtGui.QWidget):
@@ -371,8 +372,9 @@ class UiGroupBox(QtGui.QWidget):
         QtCore.QMetaObject.connectSlotsByName(parent)
 
     def retranslate_ui(self, parent):
-        parent.setWindowTitle(_translate("parent", "Homogeneous EC.", None))
-        parent.setTitle(QtGui.QApplication.translate("parent", "EC", None))
+        parent.setWindowTitle(_translate("parent", main_window_title, None))
+        parent.setTitle(QtGui.QApplication.translate(
+            "parent", main_window_title[-3:], None))
         __sortingEnabled = self.tableComps.isSortingEnabled()
         self.open_button.setText(_translate("parent", "Open", None))
         self.save_button.setText(_translate("parent", "Save", None))
@@ -542,7 +544,8 @@ class UiGroupBox(QtGui.QWidget):
                     nr += 1
                     sorted_io_column_index_map =\
                         sorted(io_column_index_map, key=lambda x: x[1])
-                    max_column_no = sorted_io_column_index_map[-1][0] + 1
+                    max_column_no = max([item[0]
+                                         for item in io_column_index_map]) + 1
                     row_to_add = [''] * max_column_no
                     # put 0 instead of blank and keep only columns to add
                     for new_index, old_index in sorted_io_column_index_map:
@@ -553,6 +556,8 @@ class UiGroupBox(QtGui.QWidget):
                             row_to_add[new_index] = float(text_with_number)
                     reacs.append(row_to_add)
         csv_file.close()
+        self.parentWidget().setWindowTitle(
+            main_window_title[:-1] + ' - ' + os.path.basename(filename))
         column_of_index_comps = comp_variable_input_names.index('index')
         column_of_index_reacs = header_reacs_model.index('j')
         # First, sort by existing order, if available
@@ -672,18 +677,33 @@ class UiGroupBox(QtGui.QWidget):
                 data_type = int
             else:
                 data_type = float
-            try:
+                # take floats, replace empty strings for 0.0
                 column_vector = \
-                    np.matrix(comps[:, col].reshape(-1, 1),
-                              dtype=data_type)
-            except ValueError as detail:
-                # print detail
-                unset_variables.append(name)
-                column_vector = np.empty([n, 1])
-                column_vector[:] = np.nan
-                if name in ['index', 'comp_id', 'z']:
-                    raise Exception('Input field missing: '
-                                    + name)
+                    np.matrix(
+                        map(
+                            lambda x: 0.0 if
+                            isinstance(x, str)
+                            and len(x) == 0
+                            else float(x),
+                            comps[:, col]
+                        )
+                    ).reshape(-1, 1)
+                if all(column_vector == 0):
+                    unset_variables.append(name)
+            if data_type != float:
+                try:
+                    column_vector = \
+                        np.matrix(
+                            comps[:, col].reshape(-1, 1),
+                            dtype=data_type)
+                except ValueError as detail:
+                    # print detail
+                    unset_variables.append(name)
+                    column_vector = np.empty([n, 1])
+                    column_vector[:] = np.nan
+                    if name in ['index', 'comp_id', 'z']:
+                        raise Exception('Input field missing: '
+                                        + name)
             # Put / Reset values of each column name into self by name
             if hasattr(self, name):
                 delattr(self, name)
@@ -698,15 +718,16 @@ class UiGroupBox(QtGui.QWidget):
         x0 = self.x0
         c0 = self.c0
         m0 = self.m0
-        rho_solvent = 0.997
+        rho_solvent = 0.997  # TODO: Adjust density with temperature
         positive_molar_masses = \
-            all(map(lambda x: x > 0, molar_mass))
+            all(molar_mass > 0)
         can_calculate_n_from_w = \
-            all(map(lambda x: x not in unset_variables,
-                    ['w0', 'molar_mass']))
+            'molar_mass' not in unset_variables and \
+            ('xw0' not in unset_variables or
+             'w0' not in unset_variables)
         mol_variables_empty = \
             all(map(lambda x: x in unset_variables,
-                    ['n0', 'c0']))
+                    ['n0', 'x0', 'c0']))
         # Gui setup with calculated values
         # First determine concentration variables from available data, and
         # determine the index of the solvent.
@@ -714,16 +735,29 @@ class UiGroupBox(QtGui.QWidget):
         index_of_solvent = []
         c_solvent_tref = []
         if mol_variables_empty:
-            # If there moles cannot be determined, reaction quotients
+            # If number of moles cannot be determined, reaction quotients
             # cannot be determined either, request molar mass inputs.
             if not can_calculate_n_from_w or \
                     not positive_molar_masses:
                 raise Exception('Need positive molar masses defined')
+            else:
+                # calculate n0 from w0 or xw0
+                if 'w0' in unset_variables:
+                    w0 = xw0
+                elif 'xw0' in unset_variables:
+                    xw0 = w0 / sum(w0)
+                n0 = np.divide(w0, molar_mass)
         elif 'n0' in unset_variables and \
                 'c0' not in unset_variables:
             # moles not given, but molarity given:
             # overwrite mole number based on 1L of molarity
             n0 = c0
+        elif 'w0' in unset_variables and \
+                'xw0' not in unset_variables and \
+                'molar_mass' not in unset_variables:
+            # only w% given, use weight in base 1.
+            w0 = xw0
+            n0 = np.divide(w0, molar_mass)
         elif 'n0' not in unset_variables:
             # moles and molar masses given:
             # use as main generators
@@ -1792,10 +1826,10 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.delete_arrows()
         selected_items = self.listWidget_2.selectedItems()
         if self.listWidget_2.count() <= 1:
-            return # Stop if already showing only one item
-        if item_no < 1: # Move selected
-            pass # Default -1 for selected itemd
-        else: # Move item_no items
+            return  # Stop if already showing only one item
+        if item_no < 1:  # Move selected
+            pass  # Default -1 for selected itemd
+        else:  # Move item_no items
             no_items_to_move = self.listWidget_2.count()
             if item_no >= no_items_to_move:
                 no_items_to_move = no_items_to_move - 1
@@ -1803,7 +1837,7 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 # enough available, to remove item_no
                 no_items_to_move = item_no
             selected_items = \
-                [self.listWidget_2.item(x) \
+                [self.listWidget_2.item(x)
                  for x in range(no_items_to_move)]
         for selected_item in selected_items:
             name = selected_item.text()
@@ -1836,7 +1870,7 @@ class UiGroupBoxPlot(QtGui.QWidget):
         self.delete_arrows()
         selected_items = self.listWidget.selectedItems()
         if item_no < 1:  # Move selected
-            pass # Default -1 for selected items
+            pass  # Default -1 for selected items
         else:  # Move item_no items
             no_items_to_move = self.listWidget.count()
             if item_no >= no_items_to_move:
@@ -1846,7 +1880,7 @@ class UiGroupBoxPlot(QtGui.QWidget):
                 # enough available, to move item_no
                 no_items_to_move = item_no
             selected_items = \
-                [self.listWidget.item(x) \
+                [self.listWidget.item(x)
                  for x in range(no_items_to_move)]
         selected_items_names = [x.text() for x in selected_items]
         for selected_item in selected_items:
