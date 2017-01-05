@@ -109,7 +109,7 @@ def notify_status_func(progress_k, stop_value, k,
     g_min = np.nan
     g1 = np.nan
     y = lambda_ls_y
-    pr_str = ';progress=' + str(progress_k) + \
+    pr_str = 'progress=' + str(progress_k) + \
              ';k=' + str(k) + \
              ';backtrack=' + str(j_it_backtrack) + \
              ';lambda_ls=' + str(lambda_ls) + \
@@ -193,9 +193,11 @@ def main():
         (1 - p0co2 / (1670.0 * 100))
 
     x0 = np.append(np.append(c0, p0co2), xi)
+    x = x0
 
     print 'x0:'
     print_variables_vector(x0)
+    print 's(c_i*z_i)=' + '%g' % (x[1] - x[2] - x[3] + x[4] - 2 * x[5])
 
     print 'Constant V'
 
@@ -221,6 +223,7 @@ def main():
     print '||f||: ' + str(np.sqrt(f_val.T.dot(f_val)))
     print 'x:'
     print_variables_vector(x)
+    print 's(c_i*z_i)=' + '%g' % (x[1] - x[2] - x[3] + x[4] - 2 * x[5])
 
     print '\n'
     print 'Constant P'
@@ -249,6 +252,9 @@ def main():
     print '||f||: ' + str(np.sqrt(f_val.T.dot(f_val)))
     print 'x:'
     print_variables_vector(x)
+    print 's(c_i*z_i)=' + '%g' % (x[1]-x[2]-x[3]+x[4]-2*x[5])
+    print 'Vl/Vg0=' + '%f' % 1.0
+    print 'Vl/Vg=' + '%f' % (1.0 * ((101.325 - x[8]) / (p0n2 + p0o2)))
 
 
 if __name__ == '__main__':
