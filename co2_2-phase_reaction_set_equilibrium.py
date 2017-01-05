@@ -1,11 +1,15 @@
 import numpy as np
 from scipy import linalg
 import matplotlib
-matplotlib.use('Qt4Agg')
-# matplotlib.rcParams['backend.qt4'] = 'PySide'
-from matplotlib import pyplot as plt
 from numerik import nr_ls
 import logging
+from sympy import solve, nsolve, symbols, pprint
+from mpmath import nstr
+from _functools import partial
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4'] = 'PySide'
+# noinspection PyPep8
+from matplotlib import pyplot as plt
 
 eps = np.finfo(float).eps
 logger = logging.getLogger()
@@ -53,7 +57,7 @@ def jac_eq_set(x):
     d_f1_dc = np.zeros([9, ])
 
     d_f1_dc[0:6] = 1670.0 * 100 * (-1.0 / sum(c) ** 2) * c[6]
-    d_f1_dc[6] = sum([c_ for i, c_ in enumerate(c) if i != 6]) / sum(c) ** 2
+    d_f1_dc[6] = 1670.0 * 100 * sum([c_ for i, c_ in enumerate(c) if i != 6]) / sum(c) ** 2
     d_f1_dc[7] = 1670.0 * 100 * (-1.0 / sum(c) ** 2) * c[6]
     d_f1_dc[8] = -1.0
 
@@ -84,7 +88,9 @@ def eq_set_const_p(x, c0, p0co2, p0n2, p0o2):
     # xco2 = c[6] / sum(c)
     pco2 = x[8]
     xi = x[9:]
-    f = eq_set(x, c0, p0co2)[0][0]
+    f = eq_set(x, c0, p0co2)
+    if f.ndim != 1:
+        f = f.flatten()
     f[13] = pco2 - p0co2 * (101.325 - pco2) / (p0n2 + p0o2) - \
         (+ xi[0]) * 8.314 * 298.15 * \
         (101.325 - pco2) / (p0n2 + p0o2)
@@ -142,10 +148,10 @@ def print_variables_vector(x):
             print 'x' + str(index - 9) + '=' + '%.20e' % num + ','
     print 'pH: ' + '%g' % -np.log10(x[1])
     print 'pOH: ' + '%g' % -np.log10(x[2])
-    print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2+1]))
+    print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2 + 1]))
 
 
-def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
+def main(xw0nahco3=0.07318, ph0=13.99602524 / 2, x0=None):
     comps = np.array([
         'H2O', 'H3O(+)', 'HO(-)', 'HCO3(-)', 'Na(+)',
         'CO3(2-)', 'CO2', 'H2CO3', 'CO2'
@@ -158,8 +164,8 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
     pkw = 13.99602524
     mm0 = mm[0]
     rho0 = 1.0
-    #ph0 = pkw / 2
-    #xw0nahco3 = 0.07318
+    # ph0 = pkw / 2
+    # xw0nahco3 = 0.07318
     p0n2 = 78.12 / (78.12 + 20.96) * 101.325
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
 
@@ -239,9 +245,9 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
         method_loops = \
         nr_ls(x0=np.matrix(x0).T,
               f=lambda x_v:
-                np.matrix(eq_set_const_p(x_v, c0, p0co2, p0n2, p0o2)).T,
+              np.matrix(eq_set_const_p(x_v, c0, p0co2, p0n2, p0o2)).T,
               j=lambda x_v:
-                np.matrix(jac_eq_set_const_p(x_v, p0co2, p0n2, p0o2)),
+              np.matrix(jac_eq_set_const_p(x_v, p0co2, p0n2, p0o2)),
               tol=1e-14,
               max_it=1000,
               inner_loop_condition=lambda x_vec:
@@ -257,7 +263,7 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
     print '||f||: ' + str(np.sqrt(f_val.T.dot(f_val)))
     print 'x:'
     print_variables_vector(x)
-    print 's(c_i*z_i)=' + '%g' % (x[1]-x[2]-x[3]+x[4]-2*x[5])
+    print 's(c_i*z_i)=' + '%g' % (x[1] - x[2] - x[3] + x[4] - 2 * x[5])
     print 'Vl/Vg0=' + '%f' % 1.0
     print 'Vl/Vg=' + '%f' % (1.0 * ((101.325 - x[8]) / (p0n2 + p0o2)))
 
@@ -271,15 +277,48 @@ if __name__ == '__main__':
         x0 = main(xw0nahco3=xw, x0=x0)
     # iterate for xwnahco3 vs. P curve, approaching by
     # valid P < 101.325kPa
-    xw = 0.0730905 # beyond sat. (?)
+    xw = 0.0730905  # beyond sat. (?)
     it = 0
     min_pco2 = 90.0
+    p0n2 = 78.12 / (78.12 + 20.96) * 101.325
+    p0o2 = 20.96 / (78.12 + 20.96) * 101.325
+
     x_val = np.array(xw)
     y_val = np.array(x0[8])
+
+    c_sym = symbols('c:8')
+    p_sym = symbols('pco2')
+    xi_sym = symbols('xi:5')
+
+    sym_x = np.append(
+        np.append(
+            np.array(c_sym), np.array(p_sym)
+        ), np.array(xi_sym)
+    )
+
+    pprint(eq_set(sym_x, x0[:8], x0[9]))
+
+    f0 = eq_set_const_p(
+         sym_x, c0=x0[:8], p0co2=x0[9], p0n2=p0n2, p0o2=p0o2
+    )
+
+    # f0 = eq_set(sym_x, c0=x0[:8], p0co2=x0[9])
+
+    solution = nsolve(f0, sym_x, x0.tolist(), verbose=True, tol=1e-14)
+
+    solution = np.fromstring(nstr(solution,20).replace('\n','').replace('[','').replace(']',''), sep='   ')
+
+    print -np.log10(solution[1])
+    print -np.log10(solution[2])
+    print -np.log10(solution[1]) -np.log10(solution[2])
+    print x0
+    print jac_eq_set_const_p(x0, x0[9], p0n2, p0o2)
+
+
     plt.ion()
-    hl, = plt.plot([], [])
+    hl, = plt.plot([], [], 'o-')
     ax = plt.gca()
-    #plt.show()
+    # plt.show()
     hl.set_xdata(x_val)
     hl.set_ydata(y_val)
     plt.show()
@@ -303,6 +342,6 @@ if __name__ == '__main__':
             ax.autoscale_view()
             plt.draw()
             plt.pause(0.05)
-            xw = xw*1.1
+            xw *= 1.025
         it += 1
-    input ('press enter to end')
+    input('press enter to end')
