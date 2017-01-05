@@ -141,7 +141,7 @@ def print_variables_vector(x):
     print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2+1]))
 
 
-def main():
+def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
     comps = np.array([
         'H2O', 'H3O(+)', 'HO(-)', 'HCO3(-)', 'Na(+)',
         'CO3(2-)', 'CO2', 'H2CO3', 'CO2'
@@ -154,8 +154,8 @@ def main():
     pkw = 13.99602524
     mm0 = mm[0]
     rho0 = 1.0
-    ph0 = pkw / 2
-    xw0nahco3 = 0.001
+    #ph0 = pkw / 2
+    #xw0nahco3 = 0.07318
     p0n2 = 78.12 / (78.12 + 20.96) * 101.325
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
 
@@ -192,7 +192,8 @@ def main():
     c0[6] = p0co2 / (1670.0 * 100) * (sum(c0) - c0[6]) / \
         (1 - p0co2 / (1670.0 * 100))
 
-    x0 = np.append(np.append(c0, p0co2), xi)
+    if x0 is None:
+        x0 = np.append(np.append(c0, p0co2), xi)
     x = x0
 
     print 'x0:'
@@ -256,6 +257,11 @@ def main():
     print 'Vl/Vg0=' + '%f' % 1.0
     print 'Vl/Vg=' + '%f' % (1.0 * ((101.325 - x[8]) / (p0n2 + p0o2)))
 
+    return x
+
 
 if __name__ == '__main__':
-    main()
+    x0 = main(xw0nahco3=0.001)
+    for xw in [0.07308, 0.07309, 0.73095, 0.7312, 0.7313, 0.7314]:
+        print 'xw0nahco3 = ' + '%g' % xw
+        x0 = main(xw0nahco3=xw, x0=x0)
