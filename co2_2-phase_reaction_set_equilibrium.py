@@ -136,6 +136,9 @@ def print_variables_vector(x):
             print 'pco2' + '=' + '%.20e' % num + ','
         else:
             print 'x' + str(index - 9) + '=' + '%.20e' % num + ','
+    print 'pH: ' + '%g' % -np.log10(x[1])
+    print 'pOH: ' + '%g' % -np.log10(x[2])
+    print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2+1]))
 
 
 def main():
