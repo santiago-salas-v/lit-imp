@@ -1,5 +1,9 @@
 import numpy as np
 from scipy import linalg
+import matplotlib
+matplotlib.use('Qt4Agg')
+# matplotlib.rcParams['backend.qt4'] = 'PySide'
+from matplotlib import pyplot as plt
 from numerik import nr_ls
 import logging
 
@@ -209,7 +213,7 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
         nr_ls(x0=np.matrix(x0).T,
               f=lambda x_v: np.matrix(eq_set(x_v, c0, p0co2)).T,
               j=lambda x_v: np.matrix(jac_eq_set(x_v)),
-              tol=1e-12,
+              tol=1e-14,
               max_it=1000,
               inner_loop_condition=lambda x_vec:
               all([item >= 0 for item in
@@ -262,6 +266,43 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
 
 if __name__ == '__main__':
     x0 = main(xw0nahco3=0.001)
-    for xw in [0.07308, 0.07309, 0.73095, 0.7312, 0.7313, 0.7314]:
+    for xw in [0.07308, 0.07309]:
         print 'xw0nahco3 = ' + '%g' % xw
         x0 = main(xw0nahco3=xw, x0=x0)
+    # iterate for xwnahco3 vs. P curve, approaching by
+    # valid P < 101.325kPa
+    xw = 0.0730905 # beyond sat. (?)
+    it = 0
+    min_pco2 = 90.0
+    x_val = np.array(xw)
+    y_val = np.array(x0[8])
+    plt.ion()
+    hl, = plt.plot([], [])
+    ax = plt.gca()
+    #plt.show()
+    hl.set_xdata(x_val)
+    hl.set_ydata(y_val)
+    plt.show()
+    ax.relim()
+    ax.autoscale_view()
+    plt.draw()
+    plt.pause(0.05)
+    while it < 100 and (x0[8] < min_pco2 or x0[8] > 101.325):
+        print '\n\nxw0nahco3 = ' + '%1.20g' % xw
+        x0_n_m_1 = x0
+        x0 = main(xw0nahco3=xw, x0=x0)
+        if x0[8] > 101.325:
+            xw = (0.07309 + xw) / 2
+            x0 = x0_n_m_1
+        elif x0[8] < min_pco2:
+            x_val = np.append(x_val, [xw])
+            y_val = np.append(y_val, [x0[8]])
+            hl.set_xdata(x_val)
+            hl.set_ydata(y_val)
+            ax.relim()
+            ax.autoscale_view()
+            plt.draw()
+            plt.pause(0.05)
+            xw = xw*1.1
+        it += 1
+    input ('press enter to end')
