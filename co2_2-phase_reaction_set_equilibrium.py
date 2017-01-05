@@ -1,11 +1,12 @@
 import numpy as np
 from scipy import linalg
 import matplotlib
-matplotlib.use('Qt4Agg')
-# matplotlib.rcParams['backend.qt4'] = 'PySide'
-from matplotlib import pyplot as plt
 from numerik import nr_ls
 import logging
+matplotlib.use('Qt4Agg')
+matplotlib.rcParams['backend.qt4'] = 'PySide'
+# noinspection PyPep8
+from matplotlib import pyplot as plt
 
 eps = np.finfo(float).eps
 logger = logging.getLogger()
@@ -142,10 +143,10 @@ def print_variables_vector(x):
             print 'x' + str(index - 9) + '=' + '%.20e' % num + ','
     print 'pH: ' + '%g' % -np.log10(x[1])
     print 'pOH: ' + '%g' % -np.log10(x[2])
-    print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2+1]))
+    print 'pH + pOH: ' + '%g' % sum(-np.log10(x[1:2 + 1]))
 
 
-def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
+def main(xw0nahco3=0.07318, ph0=13.99602524 / 2, x0=None):
     comps = np.array([
         'H2O', 'H3O(+)', 'HO(-)', 'HCO3(-)', 'Na(+)',
         'CO3(2-)', 'CO2', 'H2CO3', 'CO2'
@@ -158,8 +159,8 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
     pkw = 13.99602524
     mm0 = mm[0]
     rho0 = 1.0
-    #ph0 = pkw / 2
-    #xw0nahco3 = 0.07318
+    # ph0 = pkw / 2
+    # xw0nahco3 = 0.07318
     p0n2 = 78.12 / (78.12 + 20.96) * 101.325
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
 
@@ -239,9 +240,9 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
         method_loops = \
         nr_ls(x0=np.matrix(x0).T,
               f=lambda x_v:
-                np.matrix(eq_set_const_p(x_v, c0, p0co2, p0n2, p0o2)).T,
+              np.matrix(eq_set_const_p(x_v, c0, p0co2, p0n2, p0o2)).T,
               j=lambda x_v:
-                np.matrix(jac_eq_set_const_p(x_v, p0co2, p0n2, p0o2)),
+              np.matrix(jac_eq_set_const_p(x_v, p0co2, p0n2, p0o2)),
               tol=1e-14,
               max_it=1000,
               inner_loop_condition=lambda x_vec:
@@ -257,7 +258,7 @@ def main(xw0nahco3=0.07318, ph0=13.99602524/2, x0=None):
     print '||f||: ' + str(np.sqrt(f_val.T.dot(f_val)))
     print 'x:'
     print_variables_vector(x)
-    print 's(c_i*z_i)=' + '%g' % (x[1]-x[2]-x[3]+x[4]-2*x[5])
+    print 's(c_i*z_i)=' + '%g' % (x[1] - x[2] - x[3] + x[4] - 2 * x[5])
     print 'Vl/Vg0=' + '%f' % 1.0
     print 'Vl/Vg=' + '%f' % (1.0 * ((101.325 - x[8]) / (p0n2 + p0o2)))
 
@@ -271,15 +272,16 @@ if __name__ == '__main__':
         x0 = main(xw0nahco3=xw, x0=x0)
     # iterate for xwnahco3 vs. P curve, approaching by
     # valid P < 101.325kPa
-    xw = 0.0730905 # beyond sat. (?)
+    xw = 0.0730905  # beyond sat. (?)
     it = 0
     min_pco2 = 90.0
+
     x_val = np.array(xw)
     y_val = np.array(x0[8])
     plt.ion()
-    hl, = plt.plot([], [])
+    hl, = plt.plot([], [], 'o-')
     ax = plt.gca()
-    #plt.show()
+    # plt.show()
     hl.set_xdata(x_val)
     hl.set_ydata(y_val)
     plt.show()
@@ -303,6 +305,6 @@ if __name__ == '__main__':
             ax.autoscale_view()
             plt.draw()
             plt.pause(0.05)
-            xw = xw*1.1
+            xw *= 1.05
         it += 1
-    input ('press enter to end')
+    input('press enter to end')
