@@ -3,9 +3,12 @@ from scipy import linalg
 import matplotlib
 from numerik import nr_ls
 import logging
+<<<<<<< HEAD
 from sympy import solve, nsolve, symbols, pprint
 from mpmath import nstr
 from _functools import partial
+=======
+>>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 # noinspection PyPep8
@@ -280,8 +283,11 @@ if __name__ == '__main__':
     xw = 0.0730905  # beyond sat. (?)
     it = 0
     min_pco2 = 90.0
+<<<<<<< HEAD
     p0n2 = 78.12 / (78.12 + 20.96) * 101.325
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
+=======
+>>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
 
     x_val = np.array(xw)
     y_val = np.array(x0[8])
@@ -342,6 +348,10 @@ if __name__ == '__main__':
             ax.autoscale_view()
             plt.draw()
             plt.pause(0.05)
+<<<<<<< HEAD
             xw *= 1.025
+=======
+            xw *= 1.05
+>>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
         it += 1
     input('press enter to end')
