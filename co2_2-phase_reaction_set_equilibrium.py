@@ -3,12 +3,8 @@ from scipy import linalg
 import matplotlib
 from numerik import nr_ls
 import logging
-<<<<<<< HEAD
 from sympy import solve, nsolve, symbols, pprint
 from mpmath import nstr
-from _functools import partial
-=======
->>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 # noinspection PyPep8
@@ -229,7 +225,7 @@ def main(xw0nahco3=0.07318, ph0=13.99602524 / 2, x0=None):
                    x_vec[0:9]]),
               notify_status_func=notify_status_func,
               method_loops=[0, 0],
-              process_func_handle=None)
+              process_func_handle=lambda: pprint('no progress'))
 
     x = x.A1
     f_val = f_val.A1
@@ -258,7 +254,7 @@ def main(xw0nahco3=0.07318, ph0=13.99602524 / 2, x0=None):
                    x_vec[0:9]]),
               notify_status_func=notify_status_func,
               method_loops=[0, 0],
-              process_func_handle=None)
+              process_func_handle=lambda: pprint('no progress'))
 
     x = x.A1
     f_val = f_val.A1
@@ -282,12 +278,9 @@ if __name__ == '__main__':
     # valid P < 101.325kPa
     xw = 0.0730905  # beyond sat. (?)
     it = 0
-    min_pco2 = 90.0
-<<<<<<< HEAD
+    final_pco2 = 101.325
     p0n2 = 78.12 / (78.12 + 20.96) * 101.325
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
-=======
->>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
 
     x_val = np.array(xw)
     y_val = np.array(x0[8])
@@ -320,6 +313,10 @@ if __name__ == '__main__':
     print x0
     print jac_eq_set_const_p(x0, x0[9], p0n2, p0o2)
 
+    logger_2 = logging.getLogger('log results pco2 vs xw0nahco3')
+    handler_2 = logging.FileHandler('./logs/output.csv')
+    handler_2.setFormatter(formatter)
+    logger_2.addHandler(handler_2)
 
     plt.ion()
     hl, = plt.plot([], [], 'o-')
@@ -332,14 +329,16 @@ if __name__ == '__main__':
     ax.autoscale_view()
     plt.draw()
     plt.pause(0.05)
-    while it < 100 and (x0[8] < min_pco2 or x0[8] > 101.325):
+    logger_2.debug('%1.20g' % xw + ', ' +  '%1.20g' % x0[8])
+    while it < 100 and (x0[8] < final_pco2 or x0[8] > 101.325):
         print '\n\nxw0nahco3 = ' + '%1.20g' % xw
         x0_n_m_1 = x0
         x0 = main(xw0nahco3=xw, x0=x0)
         if x0[8] > 101.325:
             xw = (0.07309 + xw) / 2
             x0 = x0_n_m_1
-        elif x0[8] < min_pco2:
+        elif x0[8] < final_pco2:
+            logger_2.debug('%1.20g' % xw + ', ' + '%1.20g' % x0[8])
             x_val = np.append(x_val, [xw])
             y_val = np.append(y_val, [x0[8]])
             hl.set_xdata(x_val)
@@ -348,10 +347,7 @@ if __name__ == '__main__':
             ax.autoscale_view()
             plt.draw()
             plt.pause(0.05)
-<<<<<<< HEAD
-            xw *= 1.025
-=======
             xw *= 1.05
->>>>>>> cba2043dcfd5d7de9f6eccd5102078c2924e7483
         it += 1
+
     input('press enter to end')
