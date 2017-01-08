@@ -3,11 +3,8 @@ from scipy import linalg
 import matplotlib
 from numerik import nr_ls
 import logging
-<<<<<<< HEAD
-=======
 from sympy import solve, nsolve, symbols, pprint
 from mpmath import nstr
->>>>>>> comparewithsympy
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 # noinspection PyPep8
@@ -281,10 +278,8 @@ if __name__ == '__main__':
     # iterate for xwnahco3 vs. P curve, approaching by
     # valid P < 101.325kPa
     xw = 0.0730905  # beyond sat. (?)
-<<<<<<< HEAD
     it = 0
     min_pco2 = 90.0
-=======
     xw = 0.001
     it = 0
     final_pco2 = 101.325
@@ -292,7 +287,6 @@ if __name__ == '__main__':
     p0o2 = 20.96 / (78.12 + 20.96) * 101.325
 
     x0 = main(xw0nahco3=xw, x0=x0)
->>>>>>> comparewithsympy
 
     x_val = np.array(xw)
     y_val = np.array(x0[8])
@@ -377,11 +371,6 @@ if __name__ == '__main__':
             ax.autoscale_view()
             plt.draw()
             plt.pause(0.05)
-<<<<<<< HEAD
-            xw *= 1.05
-        it += 1
-    input('press enter to end')
-=======
             xw += 1.0 / 100
         it += 1
->>>>>>> comparewithsympy
+    input('press enter to end')
