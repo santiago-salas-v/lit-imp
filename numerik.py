@@ -126,7 +126,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
                 progress_k = 0.0
             else:
                 pass
-            if round(progress_k, 10) == round(progress_k_m_1, 10):
+            if progress_k == progress_k_m_1:
                 # Non-functional gui processing
                 process_func_handle()
                 # End non-functional processing
