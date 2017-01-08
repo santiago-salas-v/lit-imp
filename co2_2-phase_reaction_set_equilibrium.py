@@ -350,7 +350,7 @@ if __name__ == '__main__':
         ','.join(['%1.20g' % x_v for x_v in x0]
                  )
     )
-    while it < 110 and (x0[8] < final_pco2 or x0[8] > 101.325):
+    while xw < 1.0 and (x0[8] < final_pco2 or x0[8] > 101.325):
         print '\n\nxw0nahco3 = ' + '%1.20g' % xw
         x0_n_m_1 = x0
         x0 = main(xw0nahco3=xw, x0=x0)
