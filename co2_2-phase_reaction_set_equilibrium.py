@@ -331,8 +331,10 @@ if __name__ == '__main__':
 
     logger_2 = logging.getLogger('log results pco2 vs xw0nahco3')
     handler_2 = logging.FileHandler('./logs/output.csv')
-    handler_2.setFormatter(formatter)
+    handler_2.setFormatter(logging.Formatter('%(message)s'))
     logger_2.addHandler(handler_2)
+    logger_2.info('sep=;')
+    handler_2.setFormatter(formatter)
 
     plt.ion()
     hl, = plt.plot([], [], 'o-')
@@ -346,9 +348,11 @@ if __name__ == '__main__':
     plt.draw()
     plt.pause(0.05)
     logger_2.debug(
-        ',' + '%1.20g' % xw + ', ' +
-        ','.join(['%1.20g' % x_v for x_v in x0]
-                 )
+        'xwnahco3' +
+        ';' + ';'.join(['c' + str(i) for i in range(8)]) +
+        ';' + 'pco2' +
+        ';' + ';'.join(['xi' + str(i) for i in range(5)]) +
+        ';' + 'Vl/Vg'
     )
     while xw < 1.0 and (x0[8] < final_pco2 or x0[8] > 101.325):
         print '\n\nxw0nahco3 = ' + '%1.20g' % xw
@@ -359,9 +363,9 @@ if __name__ == '__main__':
             x0 = x0_n_m_1
         elif x0[8] < final_pco2:
             logger_2.debug(
-                ',' + '%1.20g' % xw + ', ' +
-                ','.join(['%1.20g' % x_v for x_v in x0]
-                         )
+                '%1.20g' % xw + ';' +
+                ';'.join(['%1.20g' % x_v for x_v in x0]) +
+                ';' + '%1.20g' % (1.0 * ((101.325 - x0[8]) / (p0n2 + p0o2)))
             )
             x_val = np.append(x_val, [xw])
             y_val = np.append(y_val, [x0[8]])
