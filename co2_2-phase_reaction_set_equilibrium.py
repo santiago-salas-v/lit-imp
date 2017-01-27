@@ -4,7 +4,7 @@ import matplotlib
 from numerik import nr_ls
 import logging
 from sympy import solve, nsolve, symbols, pprint
-from mpmath import nstr
+from sympy.mpmath import nstr
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 # noinspection PyPep8
