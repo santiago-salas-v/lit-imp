@@ -55,7 +55,7 @@ def take_list(x):
     raw_list = x.rpartition('=')[-1].replace('[', '').replace(']', '')
     output_string = np.fromstring(raw_list, dtype=float, sep=separator)
     if x.find('j') > -1:
-        square_dim = round(np.sqrt(len(output_string)))
+        square_dim = int(round(np.sqrt(len(output_string))))
         output_string = output_string.reshape(square_dim, square_dim)
     return output_string
 

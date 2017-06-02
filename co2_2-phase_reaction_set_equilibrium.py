@@ -4,7 +4,7 @@ import matplotlib
 from numerik import nr_ls
 import logging
 from sympy import solve, nsolve, symbols, pprint
-from mpmath import nstr
+from sympy.mpmath import nstr
 matplotlib.use('Qt4Agg')
 matplotlib.rcParams['backend.qt4'] = 'PySide'
 # noinspection PyPep8
@@ -377,4 +377,3 @@ if __name__ == '__main__':
             plt.pause(0.05)
             xw += 1.0 / 100
         it += 1
-    input('press enter to end')
