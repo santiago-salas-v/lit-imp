@@ -29,6 +29,7 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from PySide import QtGui, QtCore, QtWebKit
 from mpldatacursor import datacursor
+import pyqtgraph as pg
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -168,9 +169,10 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps = QtGui.QTableView()
         self.label_9 = QtGui.QLabel()
         self.progress_var = QtGui.QProgressBar(parent)
+        self.progress_plot = pg.PlotWidget(name='progress')
         self.cancelButton = QtGui.QPushButton(parent)
         self.doubleSpinBox_5 = ScientificDoubleSpinBox()
-        self.horizontalLayout_7 = QtGui.QHBoxLayout()
+        self.gridLayout_7 = QtGui.QGridLayout()
         self.horizontalLayout_6 = QtGui.QHBoxLayout()
         self.label_5 = QtGui.QLabel()
         self.comboBox_3 = QtGui.QComboBox()
@@ -282,17 +284,20 @@ class UiGroupBox(QtGui.QWidget):
         self.label_9.setAlignment(QtCore.Qt.AlignTop)
         self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
         self.verticalLayout_2.addWidget(self.label_9)
-        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignRight)
-        self.horizontalLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.horizontalLayout_7.addStrut(max(
-            [self.progress_var.frameSize().height(),
-             self.cancelButton.frameSize().height()]))
-        self.horizontalLayout_7.setAlignment(QtCore.Qt.AlignLeft)
-        self.horizontalLayout_7.addWidget(self.cancelButton)
-        self.horizontalLayout_7.addWidget(self.progress_var)
+        self.gridLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
+        self.gridLayout_7.addWidget(
+            self.cancelButton, 1, 1, 2, 1
+        )
+        self.gridLayout_7.addWidget(
+            self.progress_var, 1, 2, 1, 1
+        )
+        self.gridLayout_7.addWidget(
+            self.progress_plot, 2, 2, 1, 1
+        )
+        self.progress_plot.setFixedHeight(self.progress_var.height()*3)
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_7)
+        self.verticalLayout_2.addLayout(self.gridLayout_7)
         self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
         self.horizontalLayout_6.addWidget(self.label_5)
         self.horizontalLayout_6.addWidget(self.comboBox_3)
@@ -2128,7 +2133,8 @@ def update_status_label(
         f_val,
         j_val,
         lambda_ls_y,
-        method_loops):
+        method_loops,
+        plot_curve=None):
     status = 'solving...'
     if stop_value and progress == 100.0:
         status = 'solved.'
@@ -2168,6 +2174,8 @@ def update_status_label(
                   ';g=' + str(g_min) +
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';' + series_id)
+    # Live plot of ||f(x)|| vs. acum_step
+    #plot_curve =
 
 
 class PandasModel(QtCore.QAbstractTableModel):
