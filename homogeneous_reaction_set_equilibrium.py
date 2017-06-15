@@ -2196,20 +2196,19 @@ def update_status_label(
         x_new_data[:data[0].shape[0]] = data[0]
         y_new_data = np.full((data[1].shape[0] * 2), np.nan)
         y_new_data[:data[1].shape[0]] = data[1]
-        x_new_data[pos] = pos
+        x_new_data[pos] = accum_step
         y_new_data[pos] = mag_f
         form.progress_plot_data_item.setData(
             x=x_new_data,
             y=y_new_data
         )
     else:
-        data[0][pos] = pos
+        data[0][pos] = accum_step
         data[1][pos] = mag_f
         form.progress_plot_data_item.setData(
             x=data[0],
             y=data[1]
         )
-    # form.progress_plot.autoRange()
     # Live plot of ||f(x)|| vs. acum_step
     #plot_curve =
 
