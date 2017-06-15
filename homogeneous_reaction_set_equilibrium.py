@@ -297,14 +297,10 @@ class UiGroupBox(QtGui.QWidget):
         self.gridLayout_7.addWidget(
             self.progress_view, 2, 2, 1, 1
         )
-        #self.progress_view.setFixedHeight(self.progress_var.height() * 3)
-        #self.progress_layout.setHorizontalSpacing(0)
-        #self.progress_layout.setVerticalSpacing(0)
-        #self.progress_layout.addItem(self.progress_view, 0, 1)
-        # self.progress_plot_gv.centralWidget.setLayout(self.progress_layout)
         self.progress_plot.enableAutoRange(
             axis=pg.ViewBox.XYAxes, enable=True)
         self.progress_plot.addItem(self.progress_plot_data_item)
+        self.progress_plot_data_item.setPen(pg.mkPen(color='g', width=2))
         self.progress_plot_data_item.setData(
             y=np.full(20, np.nan), x=np.full(20, np.nan)
         )
@@ -1119,6 +1115,9 @@ class UiGroupBox(QtGui.QWidget):
         stop = False
         self.cancelButton.setEnabled(True)
         self.progress_var.setEnabled(True)
+        self.progress_plot_data_item.setData(
+            y=np.full(20, np.nan), x=np.full(20, np.nan)
+        )
         self.remove_canceled_status()
         self.acceptable_solution = False
         self.initialEstimateAttempts = 1
@@ -2209,6 +2208,7 @@ def update_status_label(
             x=data[0],
             y=data[1]
         )
+    QtGui.QApplication.processEvents()
     # Live plot of ||f(x)|| vs. acum_step
     #plot_curve =
 
