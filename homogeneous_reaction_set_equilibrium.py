@@ -169,10 +169,10 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps = QtGui.QTableView()
         self.label_9 = QtGui.QLabel()
         self.progress_var = QtGui.QProgressBar(parent)
-        self.progress_plot_gv = pg.GraphicsView()
-        self.progress_viewbox = pg.ViewBox()
+        self.progress_view = pg.GraphicsLayoutWidget()
+        self.progress_plot = self.progress_view.addPlot()
         self.progress_layout = QtGui.QGraphicsGridLayout()
-        self.progress_plot_data_item = pg.PlotDataItem()
+        self.progress_plot_data_item = pg.PlotDataItem(connect='finite')
         self.cancelButton = QtGui.QPushButton(parent)
         self.doubleSpinBox_5 = ScientificDoubleSpinBox()
         self.gridLayout_7 = QtGui.QGridLayout()
@@ -295,17 +295,20 @@ class UiGroupBox(QtGui.QWidget):
             self.progress_var, 1, 2, 1, 1
         )
         self.gridLayout_7.addWidget(
-            self.progress_plot_gv, 2, 2, 1, 1
+            self.progress_view, 2, 2, 1, 1
         )
-        self.progress_plot_gv.setFixedHeight(self.progress_var.height() * 3)
-        self.progress_layout.setHorizontalSpacing(0)
-        self.progress_layout.setVerticalSpacing(0)
-        self.progress_layout.addItem(self.progress_viewbox, 0, 1)
-        self.progress_plot_gv.centralWidget.setLayout(self.progress_layout)
-        self.progress_viewbox.addItem(self.progress_plot_data_item)
+        #self.progress_view.setFixedHeight(self.progress_var.height() * 3)
+        #self.progress_layout.setHorizontalSpacing(0)
+        #self.progress_layout.setVerticalSpacing(0)
+        #self.progress_layout.addItem(self.progress_view, 0, 1)
+        # self.progress_plot_gv.centralWidget.setLayout(self.progress_layout)
+        self.progress_plot.enableAutoRange(
+            axis=pg.ViewBox.XYAxes, enable=True)
+        self.progress_plot.addItem(self.progress_plot_data_item)
         self.progress_plot_data_item.setData(
-            y=np.empty(20), x=np.empty(20)
+            y=np.full(20, np.nan), x=np.full(20, np.nan)
         )
+        self.progress_plot.setLogMode(False, False)
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
         self.verticalLayout_2.addLayout(self.gridLayout_7)
@@ -2187,26 +2190,26 @@ def update_status_label(
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';' + series_id)
     data = form.progress_plot_data_item.getData()
-    pos = method_loops[1]
+    pos = method_loops[0]
     if pos >= data[0].shape[0]:
-        x_new_data = np.empty((data[0].shape[0] * 2))
+        x_new_data = np.full((data[0].shape[0] * 2), np.nan)
         x_new_data[:data[0].shape[0]] = data[0]
-        y_new_data = np.empty((data[1].shape[0] * 2))
+        y_new_data = np.full((data[1].shape[0] * 2), np.nan)
         y_new_data[:data[1].shape[0]] = data[1]
-        x_new_data[pos] = accum_step
+        x_new_data[pos] = pos
         y_new_data[pos] = mag_f
         form.progress_plot_data_item.setData(
             x=x_new_data,
             y=y_new_data
         )
     else:
-        data[0][pos] = accum_step
+        data[0][pos] = pos
         data[1][pos] = mag_f
         form.progress_plot_data_item.setData(
             x=data[0],
             y=data[1]
         )
-    form.progress_viewbox.autoRange()
+    # form.progress_plot.autoRange()
     # Live plot of ||f(x)|| vs. acum_step
     #plot_curve =
 
