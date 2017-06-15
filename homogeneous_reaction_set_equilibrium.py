@@ -2187,7 +2187,7 @@ def update_status_label(
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';' + series_id)
     data = form.progress_plot_data_item.getData()
-    pos = method_loops[0]
+    pos = method_loops[1]
     if pos >= data[0].shape[0]:
         x_new_data = np.empty((data[0].shape[0] * 2))
         x_new_data[:data[0].shape[0]] = data[0]
@@ -2196,15 +2196,15 @@ def update_status_label(
         x_new_data[pos] = accum_step
         y_new_data[pos] = mag_f
         form.progress_plot_data_item.setData(
-            y=x_new_data,
-            x=y_new_data
+            x=x_new_data,
+            y=y_new_data
         )
     else:
         data[0][pos] = accum_step
         data[1][pos] = mag_f
         form.progress_plot_data_item.setData(
-            y=data[0],
-            x=data[1]
+            x=data[0],
+            y=data[1]
         )
     form.progress_viewbox.autoRange()
     # Live plot of ||f(x)|| vs. acum_step
