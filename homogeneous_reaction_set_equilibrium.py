@@ -169,7 +169,10 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps = QtGui.QTableView()
         self.label_9 = QtGui.QLabel()
         self.progress_var = QtGui.QProgressBar(parent)
-        self.progress_plot = pg.PlotWidget(name='progress')
+        self.progress_plot_gv = pg.GraphicsView()
+        self.progress_viewbox = pg.ViewBox()
+        self.progress_layout = QtGui.QGraphicsGridLayout()
+        self.progress_plot_data_item = pg.PlotDataItem()
         self.cancelButton = QtGui.QPushButton(parent)
         self.doubleSpinBox_5 = ScientificDoubleSpinBox()
         self.gridLayout_7 = QtGui.QGridLayout()
@@ -292,9 +295,17 @@ class UiGroupBox(QtGui.QWidget):
             self.progress_var, 1, 2, 1, 1
         )
         self.gridLayout_7.addWidget(
-            self.progress_plot, 2, 2, 1, 1
+            self.progress_plot_gv, 2, 2, 1, 1
         )
-        self.progress_plot.setFixedHeight(self.progress_var.height()*3)
+        self.progress_plot_gv.setFixedHeight(self.progress_var.height() * 3)
+        self.progress_layout.setHorizontalSpacing(0)
+        self.progress_layout.setVerticalSpacing(0)
+        self.progress_layout.addItem(self.progress_viewbox, 0, 1)
+        self.progress_plot_gv.centralWidget.setLayout(self.progress_layout)
+        self.progress_viewbox.addItem(self.progress_plot_data_item)
+        self.progress_plot_data_item.setData(
+            y=np.empty(20), x=np.empty(20)
+        )
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
         self.verticalLayout_2.addLayout(self.gridLayout_7)
@@ -2144,6 +2155,7 @@ def update_status_label(
     g_min = np.nan
     g1 = np.nan
     y = lambda_ls_y
+    mag_f = np.sqrt((f_val.T * f_val).item())
     # Add progress bar & variable
     form.progress_var.setValue(progress)
     form.label_9.setText('Loops: Newton \t' +
@@ -2167,13 +2179,34 @@ def update_status_label(
                   ';X=' + '[' + ','.join(map(str, x.T.A1)) + ']' +
                   ';||X(k)-X(k-1)||=' + str((diff.T * diff).item()) +
                   ';f(X)=' + '[' + ','.join(map(str, f_val.T.A1)) + ']' +
-                  ';||f(X)||=' + str(np.sqrt((f_val.T * f_val).item())) +
+                  ';||f(X)||=' + str(mag_f) +
                   ';j(X)=' + str(j_val.tolist()) +
                   ';Y=' + '[' + ','.join(map(str, y.T.A1)) + ']' +
                   ';||Y||=' + str(np.sqrt((y.T * y).item())) +
                   ';g=' + str(g_min) +
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';' + series_id)
+    data = form.progress_plot_data_item.getData()
+    pos = method_loops[0]
+    if pos >= data[0].shape[0]:
+        x_new_data = np.empty((data[0].shape[0] * 2))
+        x_new_data[:data[0].shape[0]] = data[0]
+        y_new_data = np.empty((data[1].shape[0] * 2))
+        y_new_data[:data[1].shape[0]] = data[1]
+        x_new_data[pos] = accum_step
+        y_new_data[pos] = mag_f
+        form.progress_plot_data_item.setData(
+            y=x_new_data,
+            x=y_new_data
+        )
+    else:
+        data[0][pos] = accum_step
+        data[1][pos] = mag_f
+        form.progress_plot_data_item.setData(
+            y=data[0],
+            x=data[1]
+        )
+    form.progress_viewbox.autoRange()
     # Live plot of ||f(x)|| vs. acum_step
     #plot_curve =
 
