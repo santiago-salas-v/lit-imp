@@ -302,7 +302,7 @@ class UiGroupBox(QtGui.QWidget):
         self.progress_plot.addItem(self.progress_plot_data_item)
         self.progress_plot_data_item.setPen(pg.mkPen(color='g', width=2))
         self.progress_plot_data_item.setData(
-            y=np.full(20, np.nan), x=np.full(20, np.nan)
+            y=np.full(10, np.nan), x=np.full(10, np.nan)
         )
         self.progress_plot.setLogMode(False, False)
         self.cancelButton.setEnabled(False)
@@ -1116,7 +1116,7 @@ class UiGroupBox(QtGui.QWidget):
         self.cancelButton.setEnabled(True)
         self.progress_var.setEnabled(True)
         self.progress_plot_data_item.setData(
-            y=np.full(20, np.nan), x=np.full(20, np.nan)
+            y=np.full(10, np.nan), x=np.full(10, np.nan)
         )
         self.remove_canceled_status()
         self.acceptable_solution = False
@@ -2189,17 +2189,15 @@ def update_status_label(
                   ';|g-g1|=' + str(abs(g_min - g1)) +
                   ';' + series_id)
     data = form.progress_plot_data_item.getData()
-    pos = method_loops[0]
+    pos = method_loops[0] + method_loops[1]
     if pos >= data[0].shape[0]:
-        x_new_data = np.full((data[0].shape[0] * 2), np.nan)
-        x_new_data[:data[0].shape[0]] = data[0]
-        y_new_data = np.full((data[1].shape[0] * 2), np.nan)
-        y_new_data[:data[1].shape[0]] = data[1]
-        x_new_data[pos] = accum_step
-        y_new_data[pos] = mag_f
+        data[0][:-1] = data[0][1:]
+        data[1][:-1] = data[1][1:]
+        data[0][-1] = accum_step
+        data[1][-1] = mag_f
         form.progress_plot_data_item.setData(
-            x=x_new_data,
-            y=y_new_data
+            x=data[0],
+            y=data[1]
         )
     else:
         data[0][pos] = accum_step
