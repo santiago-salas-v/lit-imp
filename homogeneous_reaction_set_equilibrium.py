@@ -234,7 +234,7 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_b_1.setObjectName(_fromutf8("radio_b_1"))
         self.radio_b_2.setObjectName(_fromutf8("radio_b_2"))
         self.radio_b_3.setObjectName(_fromutf8("radio_b_3"))
-        # Operations
+        # Add widgets
         self.horizontalLayout_2.addWidget(self.open_button)
         self.horizontalLayout_2.addWidget(self.save_button)
         self.horizontalLayout_2.addWidget(self.log_button)
@@ -243,6 +243,44 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_group.addWidget(self.radio_b_1)
         self.radio_group.addWidget(self.radio_b_2)
         self.radio_group.addWidget(self.radio_b_3)
+        self.verticalLayout_2.addLayout(self.radio_group)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
+        self.verticalLayout_2.addWidget(self.tableComps)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.verticalLayout_2.addWidget(self.label_9)
+        self.verticalLayout_2.addLayout(self.gridLayout_7)
+        self.horizontalLayout_5.addWidget(self.label_3)
+        self.horizontalLayout_5.addWidget(self.spinBox_3)
+        self.horizontalLayout_5.addWidget(self.label_4)
+        self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
+        self.horizontalLayout_5.addWidget(self.label)
+        self.horizontalLayout_5.addWidget(self.spinBox)
+        self.gridLayout_7.addWidget(
+            self.cancelButton, 1, 1, 2, 1
+        )
+        self.gridLayout_7.addWidget(
+            self.progress_var, 1, 2, 1, 1
+        )
+        self.gridLayout_7.addWidget(
+            self.progress_view, 2, 2, 1, 1
+        )
+        self.horizontalLayout_6.addWidget(self.label_5)
+        self.horizontalLayout_6.addWidget(self.comboBox_3)
+        self.horizontalLayout_6.addWidget(self.label_6)
+        self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
+        self.horizontalLayout_6.addWidget(self.label_2)
+        self.horizontalLayout_6.addWidget(self.spinBox_2)
+        self.horizontalLayout.addWidget(self.tableReacs)
+        self.verticalLayout.addWidget(self.label_7)
+        self.verticalLayout.addWidget(self.comboBox)
+        self.horizontalLayout_3.addWidget(self.doubleSpinBox)
+        self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.verticalLayout.addWidget(self.plotButton)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        # Operations
         self.radio_b_1.setChecked(True)
         self.radio_b_1.setToolTip('<b>%s</b><br><img src="%s">' %
                                   ('Ideal solution',
@@ -253,16 +291,11 @@ class UiGroupBox(QtGui.QWidget):
         self.radio_b_3.setToolTip('<b>%s</b><br><img src="%s">' %
                                   ('Davies (DH ext.)',
                                    'utils/Davies.png'))
-        self.verticalLayout_2.addLayout(self.radio_group)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.label_3.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label_3)
         self.spinBox_3.setMaximum(2000)
         self.spinBox_3.setMinimum(2)
         self.spinBox_3.setProperty("value", 1000)
-        self.horizontalLayout_5.addWidget(self.spinBox_3)
         self.label_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label_4)
         self.doubleSpinBox_5.setDecimals(
             int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_5.setMaximum(float(1))
@@ -270,12 +303,8 @@ class UiGroupBox(QtGui.QWidget):
         self.doubleSpinBox_5.setSingleStep(
             0.1 / 100.0 * (1.0 - np.finfo(float).eps))
         self.doubleSpinBox_5.setProperty("value", float(1.0e-08))
-        self.horizontalLayout_5.addWidget(self.doubleSpinBox_5)
         self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_5.addWidget(self.label)
         self.spinBox.setProperty("value", 0)
-        self.horizontalLayout_5.addWidget(self.spinBox)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.tableComps.setMinimumSize(QtCore.QSize(0, 210))
         #item.setTextAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.tableComps.horizontalHeader().setCascadingSectionResizes(False)
@@ -283,62 +312,36 @@ class UiGroupBox(QtGui.QWidget):
         self.tableComps.horizontalHeader().setMinimumSectionSize(27)
         self.tableComps.horizontalHeader().setSortIndicatorShown(True)
         self.tableComps.verticalHeader().setVisible(False)
-        self.verticalLayout_2.addWidget(self.tableComps)
         self.label_9.setAlignment(QtCore.Qt.AlignTop)
         self.label_9.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Raised)
-        self.verticalLayout_2.addWidget(self.label_9)
         self.gridLayout_7.setSizeConstraint(QtGui.QLayout.SetFixedSize)
-        self.gridLayout_7.addWidget(
-            self.cancelButton, 1, 1, 2, 1
-        )
-        self.gridLayout_7.addWidget(
-            self.progress_var, 1, 2, 1, 1
-        )
-        self.gridLayout_7.addWidget(
-            self.progress_view, 2, 2, 1, 1
-        )
         self.progress_plot.enableAutoRange(
             axis=pg.ViewBox.XYAxes, enable=True)
+        # No margins in plot
+        self.progress_view.ci.layout.setContentsMargins(0, 0, 0, 0)
         self.progress_plot.addItem(self.progress_plot_data_item)
         self.progress_plot_data_item.setPen(pg.mkPen(color='g', width=2))
         self.progress_plot_data_item.setData(
-            y=np.full(10, np.nan), x=np.full(10, np.nan)
+            y=np.full(100, np.nan), x=np.full(100, np.nan)
         )
         self.progress_plot.setLogMode(False, False)
         self.cancelButton.setEnabled(False)
         self.progress_var.setEnabled(False)
-        self.verticalLayout_2.addLayout(self.gridLayout_7)
         self.label_5.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_5)
-        self.horizontalLayout_6.addWidget(self.comboBox_3)
         self.label_6.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_6)
         self.doubleSpinBox_6.setDecimals(
             int(-np.log10(np.finfo(float).eps) + 1))
         self.doubleSpinBox_6.setMaximum(float(1000))
         self.doubleSpinBox_6.setMinimum(np.finfo(float).eps * 1.1)
         self.doubleSpinBox_6.setSingleStep(1.0e-2)
-        self.horizontalLayout_6.addWidget(self.doubleSpinBox_6)
         self.label_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignCenter)
-        self.horizontalLayout_6.addWidget(self.label_2)
         self.spinBox_2.setProperty("value", 0)
-        self.horizontalLayout_6.addWidget(self.spinBox_2)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_6)
         self.tableReacs.horizontalHeader().setVisible(True)
         self.tableReacs.verticalHeader().setVisible(False)
-        self.horizontalLayout.addWidget(self.tableReacs)
         self.label_7.setAlignment(
             QtCore.Qt.AlignHCenter | QtCore.Qt.AlignCenter)
-        self.verticalLayout.addWidget(self.label_7)
-        self.verticalLayout.addWidget(self.comboBox)
         self.doubleSpinBox.setMinimum(0.0)
-        self.horizontalLayout_3.addWidget(self.doubleSpinBox)
         self.doubleSpinBox_2.setMinimum(0.0)
-        self.horizontalLayout_3.addWidget(self.doubleSpinBox_2)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.verticalLayout.addWidget(self.plotButton)
-        self.horizontalLayout.addLayout(self.verticalLayout)
-        self.verticalLayout_2.addLayout(self.horizontalLayout)
         # Events
         self.open_button.clicked.connect(partial(self.open_file))
         self.save_button.clicked.connect(partial(self.save_file))
@@ -1116,7 +1119,7 @@ class UiGroupBox(QtGui.QWidget):
         self.cancelButton.setEnabled(True)
         self.progress_var.setEnabled(True)
         self.progress_plot_data_item.setData(
-            y=np.full(10, np.nan), x=np.full(10, np.nan)
+            y=np.full(100, np.nan), x=np.full(100, np.nan)
         )
         self.remove_canceled_status()
         self.acceptable_solution = False
