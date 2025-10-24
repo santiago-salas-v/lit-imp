@@ -1,18 +1,19 @@
-import numpy as np
+from numpy import array, ones, eye, zeros_like, empty
+from numpy import sqrt, log10, nan, isnan, isinf
 
 
 def lrpd(a):
     """L,R,P,D,DA from LR = PDA factorization
     Method: Dahmen W., Reusken A.; Numerik fuer Ingenieure und Naturwissenschaeftler; Springer S. 79
-    :param a: numpy.matrix NxN
+    :param a: array NxN
     """
     n = a.shape[0]
-    p = np.matrix(np.eye(n).astype(dtype=float))
-    d = np.matrix(np.eye(n).astype(dtype=float))
-    da = np.matrix(np.zeros_like(p))
-    l = np.matrix(np.eye(n))
-    r = np.matrix(np.zeros_like(p))
-    indexes_r = range(n)
+    p = array(eye(n).astype(dtype=float))
+    d = array(eye(n).astype(dtype=float))
+    da = array(zeros_like(p))
+    l = array(eye(n))
+    r = array(zeros_like(p))
+    indexes_r = [i for i in range(n)]
     for i in range(n):
         d[i, i] = 1 / abs(a[i]).sum()
         # scaling
@@ -35,29 +36,33 @@ def lrpd(a):
 
 
 def gauss_elimination(a, b):
-    """Solution of the system Ax = b (LRx=PDb) through forward substitution of Ly = Pb, and then
-    backward substitution of Rx = y
-    :param a: numpy.matrix n X n
-    :param b: numpy.matrix n X 1
+    """
+    Gauss elimination by LR factorization.
+
+    Solution of the system Ax = b (LRx=PDb) by forward substitution of
+    Ly = Pb, followed by backward substitution of Rx = y
+
+    :param a: array n X n
+    :param b: array n X 1
     """
     n = a.shape[0]
-    x = np.matrix(np.zeros_like(b))
-    y = np.matrix(np.zeros_like(b))
+    x = zeros_like(b, dtype=float)
+    y = zeros_like(b, dtype=float)
     l, r, p, d, da = lrpd(a)
-    pdb = p * d * b
-    sum_lik_xk = 0
-    sum_lik_yk = 0
+    pdb = (p.dot(d).dot(b))
+    sum_lik_xk = 0.
+    sum_lik_yk = 0.
     for j in range(0, n, +1):
         # Forward substitution Ly = PDb
         for k in range(0, j, +1):
             sum_lik_yk = sum_lik_yk + l[j, k] * y[k]
-        y[j] = (pdb[j, 0] - sum_lik_yk) / 1.0
+        y[j] = (pdb[j] - sum_lik_yk) / 1.0
         sum_lik_yk = 0
     for j in range(n - 1, -1, -1):
         # Backward substitution Rx = y
         for k in range(n - 1, j, -1):
             sum_lik_xk = sum_lik_xk + r[j, k] * x[k]
-        x[j] = (y[j, 0] - sum_lik_xk) / r[j, j]
+        x[j] = (y[j] - sum_lik_xk) / r[j, j]
         sum_lik_xk = 0
     return x
 
@@ -71,17 +76,17 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
     inner_it_j = 0
     j_val = j(x)
     f_val = f(x)
-    y = np.matrix(np.ones(len(x))).T * tol / (np.sqrt(len(x)) * tol)
-    magnitude_f = np.sqrt((f_val.T * f_val).item())
+    y = ones(len(x)) * tol / (sqrt(len(x)) * tol)
+    magnitude_f = sqrt((f_val.T.dot(f_val)).item())
     # Line search variable lambda
     lambda_ls = 0.0
     accum_step = 0.0
     # For progress bar, use log scale to compensate for quadratic convergence
-    log10_to_o_max_magnitude_f = np.log10(tol / magnitude_f)
-    progress_k = (1.0 - np.log10(tol / magnitude_f) /
+    log10_to_o_max_magnitude_f = log10(tol / magnitude_f)
+    progress_k = (1.0 - log10(tol / magnitude_f) /
                   log10_to_o_max_magnitude_f) * 100.0
-    diff = np.matrix(np.empty([len(x), 1]))
-    diff.fill(np.nan)
+    diff = empty(len(x))
+    diff.fill(nan)
     stop = False
     divergent = False
     # Non-functional status notification
@@ -104,7 +109,7 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
         diff = x - x_k_m_1
         j_val = j(x)
         f_val = f(x)
-        magnitude_f = np.sqrt((f_val.T * f_val).item())
+        magnitude_f = sqrt((f_val.T.dot(f_val)).item())
         if magnitude_f < tol and inner_loop_condition(x):
             stop = True  # Procedure successful
         else:
@@ -117,9 +122,9 @@ def nr_ls(x0, f, j, tol, max_it, inner_loop_condition,
 
             # For progress use log scale to compensate for quadratic
             # convergence
-            progress_k = (1.0 - np.log10(tol / magnitude_f) /
+            progress_k = (1.0 - log10(tol / magnitude_f) /
                           log10_to_o_max_magnitude_f) * 100.0
-            if np.isnan(magnitude_f) or np.isinf(magnitude_f):
+            if isnan(magnitude_f) or isinf(magnitude_f):
                 # TODO: Re-implement steepest descent
                 stop = True  # Divergent method
                 divergent = True
