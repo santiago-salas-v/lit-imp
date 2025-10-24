@@ -14,7 +14,7 @@ import numpy as np
 import csv
 import bisect
 import uuid
-import urllib
+from urllib.request import pathname2url
 import matplotlib
 import colormaps
 import ctypes  # Needed to set the app icon correctly
@@ -1187,7 +1187,7 @@ class UiGroupBox(QtWidgets.QWidget):
         self.progress_var.setEnabled(False)
 
     def display_about_info(self):
-        row_string = unicode('', 'utf_8')
+        row_string = ''
         self.browser_window = QtWidgets.QWidget()
         self.browser_window.setWindowIcon(QtGui.QIcon(
             os.path.join(sys.path[0], *['utils', 'icon_batch_16X16.png'])))
@@ -1198,7 +1198,7 @@ class UiGroupBox(QtWidgets.QWidget):
         # https://bugreports.qt-project.org/browse/QTBUG-29571
         window = QtWidgets.QApplication.desktop().screen()
         horizontalDpi = window.logicalDpiX()
-        aboutBox_1 = QtWebKit.QWebView()
+        aboutBox_1 = QtWebEngineWidgets.QWebEngineView()
         aboutBox_1.setZoomFactor(horizontalDpi / 96.0)
         toolbar_1 = QtWidgets.QToolBar()
         back_icon = QtGui.QIcon(
@@ -1219,19 +1219,18 @@ class UiGroupBox(QtWidgets.QWidget):
         aboutBox_1.setWindowTitle('About')
 
         adding_table = False
-        html_stream = unicode('<!DOCTYPE html>', 'utf_8')
-        html_stream += unicode('<html>', 'utf_8')
-        html_stream += unicode(
+        html_stream = '<!DOCTYPE html>'
+        html_stream += '<html>'
+        html_stream += (
             '<head><title>00 - README</title>' +
             '<meta name="qrichtext" content="1">' +
             '<meta charset="utf-8">' +
             '<style type="text/css">' +
             '\\np,li {white-space: pre-wrap;}\n' +
             '\\np,br {line-height: 10%;}\n' +
-            '</style></head>',
-            'utf_8')
+            '</style></head>')
 
-        html_stream += unicode('<body style=' +
+        html_stream += ('<body style=' +
                                '"' +
                                ' font-family:' +
                                "'" +
@@ -1239,16 +1238,15 @@ class UiGroupBox(QtWidgets.QWidget):
                                "'" +
                                '; font-size:8.25pt; font-weight:400; font-style:normal;' +
                                '"' +
-                               '>', 'utf_8')
-        string_to_add = unicode('', 'utf_8')
-        starting_p = unicode(
+                               '>')
+        string_to_add = ''
+        starting_p = (
             "<p style=' margin-top:0px; margin-bottom:0px; margin-left:0px;" +
-            "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>",
-            'utf_8')
-        ending_p = unicode('</p>', 'utf_8')
+            "margin-right:0px; -qt-block-indent:0; text-indent:0px;'>")
+        ending_p = '</p>'
         with open('README.md') as readme_file:
             for row in readme_file:
-                row_string = unicode(row, 'utf_8')
+                row_string = row
                 if not adding_table and row_string.find('|') != -1:
                     string_to_add = ''.join(
                         ['<table>', '<tr><td>',
@@ -1277,9 +1275,9 @@ class UiGroupBox(QtWidgets.QWidget):
                 else:
                     html_stream += string_to_add
             if adding_table:
-                html_stream += unicode('</table>', 'utf_8')
-        html_stream += unicode('<hr>', 'utf_8')
-        html_stream += unicode('<ul>', 'utf_8')
+                html_stream += '</table>'
+        html_stream += '<hr>'
+        html_stream += '<ul>'
         file_name_list = []
         for file in os.listdir(os.path.abspath('docs')):
             filename_ext = os.path.splitext(os.path.basename(file))
@@ -1298,22 +1296,21 @@ class UiGroupBox(QtWidgets.QWidget):
         comboBox_1.model().sort(0)
         comboBox_1.setCurrentIndex(0)
         for file_name_path in sorted(file_name_list, key=lambda x: x[0]):
-            html_stream += unicode(
+            html_stream += (
                 '<li><a href=' +
                 'file://' +
-                urllib.pathname2url(os.path.abspath(file_name_path[1])) +
+                pathname2url(os.path.abspath(file_name_path[1])) +
                 '>' +
                 file_name_path[0] +
-                '</a></li>', 'utf-8')
-        html_stream += unicode('</ul>', 'utf_8')
-        html_stream += unicode('<hr>', 'utf_8')
-        html_stream += unicode(
-            "<footer><p>" +
+                '</a></li>' )
+        html_stream += '</ul>'
+        html_stream += '<hr>'
+        html_stream += (
+            '<footer><p>' +
             '<a href=' +
             'https://github.com/santiago-salas-v/lit-impl-py' + '>' +
-            'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>',
-            'utf_8')
-        html_stream += unicode('</body></html>', 'utf_8')
+            'https://github.com/santiago-salas-v/lit-impl-py</a></p></footer>' )
+        html_stream += '</body></html>'
         readme_file.close()
         html_file_path = os.path.join('docs', 'README.html')
         html_file = open(html_file_path, 'w')
