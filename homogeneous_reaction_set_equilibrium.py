@@ -15,6 +15,7 @@ import csv
 import bisect
 import uuid
 from urllib.request import pathname2url
+from pathlib import Path
 import matplotlib
 import colormaps
 import ctypes  # Needed to set the app icon correctly
@@ -1285,7 +1286,7 @@ class UiGroupBox(QtWidgets.QWidget):
             file_name = filename_ext[0]
             if ext == '.html':
                 file_path = os.path.join('docs', file)
-                with open(file_path) as opened_file:
+                with open(file_path,encoding='utf-8') as opened_file:
                     read_file = '\n'.join(opened_file.readlines())
                     file_title = \
                         html_title.search(read_file).groups()[0]
@@ -1314,9 +1315,9 @@ class UiGroupBox(QtWidgets.QWidget):
         readme_file.close()
         html_file_path = os.path.join('docs', 'README.html')
         html_file = open(html_file_path, 'w')
-        html_file.write(html_stream.encode('utf-8'))
+        html_file.write(html_stream)
         html_file.close()
-        aboutBox_1.load(html_file_path)
+        aboutBox_1.load(QtCore.QUrl.fromLocalFile(str(Path('docs/README.html').absolute())))
         aboutBox_1.show()
         self.browser_window.show()
         # Make connections at the end
@@ -1325,7 +1326,8 @@ class UiGroupBox(QtWidgets.QWidget):
         comboBox_1.currentIndexChanged.connect(
             partial(
                 lambda x: aboutBox_1.load(
-                    comboBox_1.itemData(x))
+                    QtCore.QUrl.fromLocalFile(str(Path(comboBox_1.itemData(x)).absolute()))
+                    )
             ))
 
     def show_log(self):
