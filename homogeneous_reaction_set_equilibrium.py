@@ -1198,9 +1198,9 @@ class UiGroupBox(QtWidgets.QWidget):
         # Handle fixed 96 dpi for Webkit bugreport
         # https://bugreports.qt-project.org/browse/QTBUG-29571
         window = QtWidgets.QApplication.desktop().screen()
-        horizontalDpi = window.logicalDpiX()
+        #horizontalDpi = window.logicalDpiX()
         aboutBox_1 = QtWebEngineWidgets.QWebEngineView()
-        aboutBox_1.setZoomFactor(horizontalDpi / 96.0)
+        #aboutBox_1.setZoomFactor(horizontalDpi / 96.0)
         toolbar_1 = QtWidgets.QToolBar()
         back_icon = QtGui.QIcon(
             os.path.join(
@@ -1411,10 +1411,10 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         # Handle fixed 96 dpi for Webkit bugreport
         # https://bugreports.qt-project.org/browse/QTBUG-29571
-        window = QtWidgets.QApplication.desktop().screen()
-        horizontalDpi = window.logicalDpiX()
+        #window = QtWidgets.QApplication.desktop().screen()
+        #horizontalDpi = window.logicalDpiX()
         canvas_factor = 72.0 / 96.0
-        self.figure = Figure(dpi=horizontalDpi * canvas_factor,
+        self.figure = Figure(#dpi=horizontalDpi * canvas_factor,
                              facecolor=(1, 1, 1),
                              edgecolor=(0, 0, 0))
         self.ax = self.figure.add_subplot(111)
@@ -1540,7 +1540,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
         else:
             self.set_log_scale_func_list(log_scale_func_list)
         # Variabeln in Log-Skala
-        for k in self.log_dep_var_series.iterkeys():
+        for k in self.log_dep_var_series:
             self.log_dep_var_series[k] = \
                 self.log_scale_func(self.dep_var_series[k])
             self.log_indep_var_series[k] = \
@@ -1582,64 +1582,54 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
             QtWidgets.QApplication.translate(
                 "parent",
                 "Plot",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         parent.setTitle(
             QtWidgets.QApplication.translate(
                 "parent",
                 "Plot",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.label.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "Displayed",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.label_2.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "Available",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.plotButton.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "Plot",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.toggleLogButtonX.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 self.log_scale_string +
                 "(x) - horizontal",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.toggleLogButtonY.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 self.log_scale_string +
                 "(y) - vertical",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.eraseAnnotationsB.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "Erase annotations",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.move_10_to_available.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "(10)",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
         self.move_10_to_displayed.setText(
             QtWidgets.QApplication.translate(
                 "parent",
                 "(10)",
-                None,
-                QtWidgets.QApplication.UnicodeUTF8))
+                ))
 
     def toggled_toggle_log_button_x(self, checked):
         self.delete_arrows()
@@ -1678,7 +1668,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
             loc='best',
             fancybox=True,
             borderaxespad=0.,
-            framealpha=0.5).draggable(True)
+            framealpha=0.5).set_draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
@@ -1720,7 +1710,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
             loc='best',
             fancybox=True,
             borderaxespad=0.,
-            framealpha=0.5).draggable(True)
+            framealpha=0.5).set_draggable(True)
         self.ax.relim()
         self.ax.autoscale_view()
         self.canvas.draw()
@@ -1763,7 +1753,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
                 dep_var_values = self.log_dep_var_series[label]
                 series_label = '$' + self.log_scale_string + '(' + label + ')$'
             plotted_series[label] = self.ax.plot(
-                indep_var_values, dep_var_values.flatten().tolist(), 'go-', label=series_label,
+                indep_var_values, dep_var_values.flatten().tolist(), label=series_label,
                 color=colormap_colors[
                     np.random.randint(
                         0, len(colormap_colors), 1).item()],
@@ -1771,10 +1761,13 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
                     np.random.randint(0, len(colormap_colors), 1).item()],
                 marker=markers[np.random.randint(0, len(markers) - 1)],
                 fillstyle=fillstyles[np.random.randint(0, len(fillstyles) - 1)])
+            def set_arrow_props(sel):
+                sel.annotation.arrowprops=dict(
+                    arrowstyle='simple', fc='white', alpha=0.5)
+                sel.annotation.bbox=dict(fc='white',alpha=0.5)
+                sel.annotation.formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format
             dc[label] = datacursor(
-                plotted_series[label], draggable=True, display='multiple', arrowprops=dict(
-                    arrowstyle='simple', fc='white', alpha=0.5), bbox=dict(
-                    fc='white', alpha=0.5), formatter='x: {x:0.3g},y: {y:0.3g}\n{label}'.format)
+                plotted_series[label], multiple=True).connect('add',set_arrow_props)
         if self.add_path_arrows:
             add_arrow_to_line2d(
                 self.ax,
@@ -1789,7 +1782,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
             loc='best',
             fancybox=True,
             borderaxespad=0.,
-            framealpha=0.5).draggable(True)
+            framealpha=0.5).set_draggable(True)
         self.plotted_series = plotted_series
         self.dc = dc
         self.ax.set_xlabel(indep_var_label, fontsize=14)
@@ -1798,17 +1791,10 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
         self.canvas.draw()
 
     def erase_annotations(self, text_list=None):
-        if text_list is None:
-            text_list = [x.get_text() for x in self.figure.texts]
-        for text in text_list:
-            indexes_of_text = np.where(
-                [x.get_text().find(text) >= 0 for x in self.figure.texts])[0]
-            if len(indexes_of_text) > 1:
-                l = self.figure.texts.pop(indexes_of_text[0].item())
-                del l
-            else:
-                l = self.figure.texts.pop(indexes_of_text.item())
-                del l
+        text_list = [child.get_text() for child in self.figure.get_children() if isinstance(child,matplotlib.text.Annotation)]
+        for child in self.figure.get_children():
+            if isinstance(child,matplotlib.text.Annotation):
+                child.remove()
         self.canvas.draw()
 
     def move_to_available(self, item_no=-1):
@@ -1835,8 +1821,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
             new_item.setIcon(QtGui.QIcon(os.path.join(
                 sys.path[0], *['utils', 'glyphicons-601-chevron-up.png'])))
             self.listWidget.insertItem(self.listWidget.count(), new_item)
-            associated_annotations = [
-                x.get_text() for x in self.figure.texts if x.get_text().find(name) >= 0]
+            associated_annotations = [child.get_text() for child in self.figure.get_children() if isinstance(child,matplotlib.text.Annotation)]
             self.erase_annotations(associated_annotations)
             l = self.ax.lines.pop(np.where(
                 [x.properties()['label'].find(name) >= 0 for x in self.ax.lines])[0].item())
@@ -1846,7 +1831,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
                 loc='best',
                 fancybox=True,
                 borderaxespad=0.,
-                framealpha=0.5).draggable(True)
+                framealpha=0.5).set_draggable(True)
         else:
             del self.ax.legend
         self.ax.relim()
@@ -1885,7 +1870,7 @@ class UiGroupBoxPlot(QtWidgets.QWidget):
                 loc='best',
                 fancybox=True,
                 borderaxespad=0.,
-                framealpha=0.5).draggable(True)
+                framealpha=0.5).set_draggable(True)
         else:
             del self.ax.legend
         self.ax.relim()
@@ -2215,7 +2200,7 @@ class MatrixModel(QtCore.QAbstractTableModel):
         return self._data.shape[1]
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
-        if index.isValid():
+        if role==QtCore.Qt.DisplayRole:
             return str(self._data[index.row(), index.column()])
         return None
 
@@ -2263,10 +2248,12 @@ class MatrixModel(QtCore.QAbstractTableModel):
         if index.column() in self._editable_columns:
             return QtCore.Qt.ItemIsEnabled | \
                 QtCore.Qt.ItemIsSelectable | \
-                QtCore.Qt.ItemIsEditable
+                QtCore.Qt.ItemIsEditable | \
+                ~QtCore.Qt.ItemIsUserCheckable
         else:
             return QtCore.Qt.ItemIsEnabled | \
-                QtCore.Qt.ItemIsSelectable
+                QtCore.Qt.ItemIsSelectable | \
+                ~QtCore.Qt.ItemIsUserCheckable
 
     def return_data(self):
         return self._data
